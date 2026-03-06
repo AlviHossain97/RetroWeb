@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Copy, RefreshCcw, Search } from "lucide-react";
 import { toast } from "sonner";
 import { getStorageEstimate } from "../lib/capability/storage-quota";
 import { getThreadingCapability } from "../lib/capability/capability-check";
-import { getAllBIOSFiles, getAllGames, getAllSaves } from "../lib/storage/db";
+import { db, getAllBIOSFiles, getAllGames, getAllSaves, removeRomFromOPFS } from "../lib/storage/db";
 
 type SettingsState = {
   displayShader: "none" | "crt" | "scanlines" | "sharp";
@@ -34,6 +34,52 @@ const DEFAULT_SETTINGS: SettingsState = {
 };
 
 type SectionId = "storage" | "performance" | "display" | "audio" | "input" | "saves" | "data" | "about";
+type BackupPayload = {
+  version: 1;
+  createdAt: string;
+  bios: Array<{
+    filename: string;
+    system: string;
+    dataBase64: string;
+    sourceFilename?: string;
+    hashMd5?: string;
+    verifiedHash?: boolean;
+    expectedSize?: number;
+    size: number;
+    installedAt: number;
+  }>;
+  games: Awaited<ReturnType<typeof getAllGames>>;
+  saves: Array<{
+    id?: number;
+    filename: string;
+    system: string;
+    type: "sram" | "state";
+    dataBase64: string;
+    timestamp: number;
+    image?: string;
+    slot?: number;
+    coreId?: string;
+    coreVersion?: string;
+  }>;
+};
+
+function bytesToBase64(data: Uint8Array): string {
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let i = 0; i < data.length; i += chunkSize) {
+    binary += String.fromCharCode(...data.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
+}
+
+function base64ToBytes(value: string): Uint8Array {
+  const binary = atob(value);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
 
 export default function Settings() {
   const [storage, setStorage] = useState<{ usedMB: number; totalMB: number; percentUsed: number } | null>(null);
@@ -49,38 +95,46 @@ export default function Settings() {
   });
   const [searchQuery, setSearchQuery] = useState("");
   const [debugInfo, setDebugInfo] = useState("");
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   const capability = getThreadingCapability();
+  const refreshStorageEstimate = useCallback(async () => {
+    setStorage(await getStorageEstimate());
+  }, []);
+
+  const refreshDebugInfo = useCallback(async () => {
+    const [bios, games, saves, estimate] = await Promise.all([getAllBIOSFiles(), getAllGames(), getAllSaves(), getStorageEstimate()]);
+    const payload = [
+      `RetroWeb Debug Info`,
+      `Time: ${new Date().toISOString()}`,
+      `User Agent: ${navigator.userAgent}`,
+      `Threads: ${capability.canUseThreads ? "enabled" : `disabled (${capability.reason})`}`,
+      `Cross Origin Isolated: ${self.crossOriginIsolated ? "yes" : "no"}`,
+      `Storage: ${estimate ? `${estimate.usedMB}MB / ${estimate.totalMB}MB (${estimate.percentUsed}%)` : "unavailable"}`,
+      `Games: ${games.length}`,
+      `Saves: ${saves.length}`,
+      `Installed BIOS: ${bios.length}`,
+    ].join("\n");
+    setDebugInfo(payload);
+  }, [capability.canUseThreads, capability.reason]);
+
+  const removeTrackedRomsFromOPFS = useCallback(async (gameIds: string[]) => {
+    for (const gameId of gameIds) {
+      await removeRomFromOPFS(gameId);
+    }
+  }, []);
 
   useEffect(() => {
-    void getStorageEstimate().then(setStorage);
-  }, []);
+    void refreshStorageEstimate();
+  }, [refreshStorageEstimate]);
 
   useEffect(() => {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
   }, [settings]);
 
   useEffect(() => {
-    const buildDebugInfo = async () => {
-      const [bios, games, saves, estimate] = await Promise.all([getAllBIOSFiles(), getAllGames(), getAllSaves(), getStorageEstimate()]);
-
-      const payload = [
-        `RetroWeb Debug Info`,
-        `Time: ${new Date().toISOString()}`,
-        `User Agent: ${navigator.userAgent}`,
-        `Threads: ${capability.canUseThreads ? "enabled" : `disabled (${capability.reason})`}`,
-        `Cross Origin Isolated: ${self.crossOriginIsolated ? "yes" : "no"}`,
-        `Storage: ${estimate ? `${estimate.usedMB}MB / ${estimate.totalMB}MB (${estimate.percentUsed}%)` : "unavailable"}`,
-        `Games: ${games.length}`,
-        `Saves: ${saves.length}`,
-        `Installed BIOS: ${bios.length}`,
-      ].join("\n");
-
-      setDebugInfo(payload);
-    };
-
-    void buildDebugInfo();
-  }, [capability.canUseThreads, capability.reason]);
+    void refreshDebugInfo();
+  }, [refreshDebugInfo]);
 
   const updateSettings = (next: Partial<SettingsState>) => {
     setSettings((prev) => ({ ...prev, ...next }));
@@ -135,6 +189,121 @@ export default function Settings() {
     saves: sectionMatches("Saves", ["autosave", "slot", "sram"]),
     data: sectionMatches("Data Management", ["clear", "backup", "import", "export"]),
     about: sectionMatches("About & Debug", ["debug", "copy", "environment"]),
+  };
+
+  const handleClearRomCache = async () => {
+    if (!window.confirm("Clear all cached ROM files and library entries? Saves will be kept.")) return;
+    const games = await getAllGames();
+    await removeTrackedRomsFromOPFS(games.map((game) => game.id));
+    await db.games.clear();
+    toast.success("ROM cache cleared. Save files were kept.");
+    await Promise.all([refreshStorageEstimate(), refreshDebugInfo()]);
+  };
+
+  const handleExportBackup = async () => {
+    const [bios, saves, games] = await Promise.all([db.bios.toArray(), getAllSaves(), getAllGames()]);
+    const payload: BackupPayload = {
+      version: 1,
+      createdAt: new Date().toISOString(),
+      bios: bios.map((entry) => ({
+        filename: entry.filename,
+        system: entry.system,
+        dataBase64: bytesToBase64(entry.data),
+        sourceFilename: entry.sourceFilename,
+        hashMd5: entry.hashMd5,
+        verifiedHash: entry.verifiedHash,
+        expectedSize: entry.expectedSize,
+        size: entry.size,
+        installedAt: entry.installedAt,
+      })),
+      games,
+      saves: saves.map((entry) => ({
+        id: entry.id,
+        filename: entry.filename,
+        system: entry.system,
+        type: entry.type,
+        dataBase64: bytesToBase64(entry.data),
+        timestamp: entry.timestamp.getTime(),
+        image: entry.image,
+        slot: entry.slot,
+        coreId: entry.coreId,
+        coreVersion: entry.coreVersion,
+      })),
+    };
+
+    const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `retroweb-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+    toast.success("Backup exported.");
+  };
+
+  const handleImportBackup = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+      const raw = await file.text();
+      const backup = JSON.parse(raw) as BackupPayload;
+      if (!backup || backup.version !== 1 || !Array.isArray(backup.bios) || !Array.isArray(backup.games) || !Array.isArray(backup.saves)) {
+        toast.error("Invalid backup file.");
+        return;
+      }
+      if (!window.confirm("Importing a backup will overwrite current BIOS, library, and saves. Continue?")) return;
+
+      const existingGames = await getAllGames();
+      await removeTrackedRomsFromOPFS(existingGames.map((game) => game.id));
+      await Promise.all([db.bios.clear(), db.games.clear(), db.saves.clear()]);
+
+      await db.bios.bulkPut(
+        backup.bios.map((entry) => ({
+          filename: entry.filename,
+          system: entry.system,
+          data: base64ToBytes(entry.dataBase64),
+          sourceFilename: entry.sourceFilename,
+          hashMd5: entry.hashMd5,
+          verifiedHash: entry.verifiedHash,
+          expectedSize: entry.expectedSize,
+          size: entry.size,
+          installedAt: entry.installedAt,
+        }))
+      );
+      await db.games.bulkPut(backup.games);
+      await db.saves.bulkPut(
+        backup.saves.map((entry) => ({
+          id: entry.id,
+          filename: entry.filename,
+          system: entry.system,
+          type: entry.type,
+          data: base64ToBytes(entry.dataBase64),
+          timestamp: new Date(entry.timestamp),
+          image: entry.image,
+          slot: entry.slot,
+          coreId: entry.coreId,
+          coreVersion: entry.coreVersion,
+        }))
+      );
+
+      toast.success("Backup imported.");
+      await Promise.all([refreshStorageEstimate(), refreshDebugInfo()]);
+    } catch {
+      toast.error("Backup import failed.");
+    } finally {
+      event.target.value = "";
+    }
+  };
+
+  const handleClearEverything = async () => {
+    if (!window.confirm("This will delete all ROMs, BIOS files, saves, and library metadata. Continue?")) return;
+    const games = await getAllGames();
+    await removeTrackedRomsFromOPFS(games.map((game) => game.id));
+    await Promise.all([db.bios.clear(), db.games.clear(), db.saves.clear()]);
+    toast.success("All local data was cleared.");
+    await Promise.all([refreshStorageEstimate(), refreshDebugInfo()]);
   };
 
   return (
@@ -370,11 +539,12 @@ export default function Settings() {
         <section className="mb-10">
           <h2 className="text-xl font-bold mb-4 border-b border-border pb-2 text-foreground">Data Management</h2>
           <div className="bg-card border border-border rounded-md shadow-sm p-6 grid sm:grid-cols-2 gap-4">
-            <button className="text-xs font-sans tracking-widest uppercase font-bold rounded-sm px-4 py-3 bg-muted border border-border text-foreground hover:bg-secondary transition-colors text-left flex items-center justify-between">Clear ROM cache <span className="text-[10px] text-muted-foreground font-normal normal-case tracking-normal">Keeps saves</span></button>
-            <button className="text-xs font-sans tracking-widest uppercase font-bold rounded-sm px-4 py-3 bg-muted border border-border text-foreground hover:bg-secondary transition-colors text-left flex items-center justify-between">Export Backup <span className="text-[10px] text-muted-foreground font-normal normal-case tracking-normal">.zip</span></button>
-            <button className="text-xs font-sans tracking-widest uppercase font-bold rounded-sm px-4 py-3 bg-muted border border-border text-foreground hover:bg-secondary transition-colors text-left flex items-center justify-between">Import Backup <span className="text-[10px] text-muted-foreground font-normal normal-case tracking-normal">.zip</span></button>
-            <button className="text-xs font-sans tracking-widest uppercase font-bold rounded-sm px-4 py-3 bg-[#1A0A0A] border border-destructive/30 text-destructive hover:bg-destructive hover:text-white transition-colors text-left">Clear Everything</button>
+            <button onClick={() => void handleClearRomCache()} className="text-xs font-sans tracking-widest uppercase font-bold rounded-sm px-4 py-3 bg-muted border border-border text-foreground hover:bg-secondary transition-colors text-left flex items-center justify-between">Clear ROM cache <span className="text-[10px] text-muted-foreground font-normal normal-case tracking-normal">Keeps saves</span></button>
+            <button onClick={() => void handleExportBackup()} className="text-xs font-sans tracking-widest uppercase font-bold rounded-sm px-4 py-3 bg-muted border border-border text-foreground hover:bg-secondary transition-colors text-left flex items-center justify-between">Export Backup <span className="text-[10px] text-muted-foreground font-normal normal-case tracking-normal">.json</span></button>
+            <button onClick={() => importInputRef.current?.click()} className="text-xs font-sans tracking-widest uppercase font-bold rounded-sm px-4 py-3 bg-muted border border-border text-foreground hover:bg-secondary transition-colors text-left flex items-center justify-between">Import Backup <span className="text-[10px] text-muted-foreground font-normal normal-case tracking-normal">.json</span></button>
+            <button onClick={() => void handleClearEverything()} className="text-xs font-sans tracking-widest uppercase font-bold rounded-sm px-4 py-3 bg-[#1A0A0A] border border-destructive/30 text-destructive hover:bg-destructive hover:text-white transition-colors text-left">Clear Everything</button>
           </div>
+          <input ref={importInputRef} type="file" accept="application/json,.json" className="hidden" onChange={handleImportBackup} />
         </section>
       )}
 
