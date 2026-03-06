@@ -1,0 +1,77 @@
+{
+    "nes": {
+        "tier": "doable",
+        "preferredCore": "fceumm",
+        "fallbackCores": [
+            "nestopia"
+        ],
+        "extensions": [
+            ".nes",
+            ".zip"
+        ],
+        "biosRequired": [],
+        "coreVersion": "1.22.0",
+        "corePath": "/cores/fceumm/1.22.0/fceumm_libretro"
+    },
+    "snes": {
+        "tier": "doable",
+        "preferredCore": "snes9x",
+        "fallbackCores": [],
+        "extensions": [
+            ".smc",
+            ".sfc",
+            ".zip"
+        ],
+        "biosRequired": [],
+        "coreVersion": "1.22.0",
+        "corePath": "/cores/snes9x/1.22.0/snes9x_libretro"
+    },
+    "gb": {
+        "tier": "doable",
+        "preferredCore": "mgba",
+        "fallbackCores": [
+            "gambatte"
+        ],
+        "extensions": [
+            ".gb",
+            ".gbc",
+            ".gba",
+            ".zip"
+        ],
+        "biosRequired": [],
+        "coreVersion": "1.22.0",
+        "corePath": "/cores/mgba/1.22.0/mgba_libretro"
+    },
+    "genesis": {
+        "tier": "doable",
+        "preferredCore": "genesis_plus_gx",
+        "fallbackCores": [
+            "picodrive"
+        ],
+        "extensions": [
+            ".md",
+            ".smd",
+            ".gen",
+            ".bin",
+            ".zip"
+        ],
+        "biosRequired": [],
+        "coreVersion": "1.22.0",
+        "corePath": "/cores/genesis_plus_gx/1.22.0/genesis_plus_gx_libretro"
+    },
+    "ps1": {
+        "tier": "doable",
+        "preferredCore": "pcsx_rearmed",
+        "fallbackCores": [
+            "duckstation"
+        ],
+        "extensions": [
+            ".chd"
+        ],
+        "biosRequired": [
+            "scph5501.bin"
+        ],
+        "coreVersion": "1.22.0",
+        "corePath": "/cores/pcsx_rearmed/1.22.0/pcsx_rearmed_libretro"
+    }
+}
