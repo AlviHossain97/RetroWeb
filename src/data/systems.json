@@ -1,0 +1,27 @@
+[
+    {
+        "id": "nes",
+        "name": "Nintendo Entertainment System",
+        "manufacturer": "Nintendo"
+    },
+    {
+        "id": "snes",
+        "name": "Super Nintendo",
+        "manufacturer": "Nintendo"
+    },
+    {
+        "id": "gb",
+        "name": "Game Boy Series",
+        "manufacturer": "Nintendo"
+    },
+    {
+        "id": "genesis",
+        "name": "Sega Genesis / Mega Drive",
+        "manufacturer": "Sega"
+    },
+    {
+        "id": "ps1",
+        "name": "PlayStation 1",
+        "manufacturer": "Sony"
+    }
+]
