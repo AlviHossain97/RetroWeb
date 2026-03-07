@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { VirtuosoGrid } from "react-virtuoso";
-import { LayoutGrid, List, Star, MoreVertical, Gamepad2 } from "lucide-react";
+import { LayoutGrid, List, Gamepad2, Star, Play } from "lucide-react";
 import type { Game } from "../lib/storage/db";
 import GameCard from "./GameCard";
 import { getSystemLabel } from "../lib/library/title-utils";
@@ -36,23 +36,34 @@ export default function LibraryGrid({
   return (
     <div className="flex flex-col w-full h-full flex-1">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-[28px] font-bold tracking-tight text-foreground">My Library</h2>
-        <div className="bg-muted flex rounded-md overflow-hidden border border-border">
+        <div className="flex items-center gap-3">
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">My Library</h2>
+          <span className="text-sm text-muted-foreground font-mono bg-secondary px-2.5 py-1 rounded-lg">
+            {games.length}
+          </span>
+        </div>
+        <div className="bg-secondary flex rounded-lg overflow-hidden border border-border p-0.5">
           <button
             onClick={() => onViewModeChange("grid")}
-            className={`px-3 py-2 transition-colors ${viewMode === "grid" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-              }`}
+            className={`px-3 py-2 rounded-md transition-all ${
+              viewMode === "grid"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
             title="Grid View"
           >
-            <LayoutGrid size={18} />
+            <LayoutGrid size={16} />
           </button>
           <button
             onClick={() => onViewModeChange("list")}
-            className={`px-3 py-2 transition-colors ${viewMode === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-              }`}
+            className={`px-3 py-2 rounded-md transition-all ${
+              viewMode === "list"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
             title="List View"
           >
-            <List size={18} />
+            <List size={16} />
           </button>
         </div>
       </div>
@@ -64,23 +75,21 @@ export default function LibraryGrid({
             totalCount={games.length}
             overscan={20}
             components={{
-              List: React.forwardRef<HTMLDivElement, VirtuosoListProps>(({ style, children, ...props }, ref) => {
-                return (
-                  <div
-                    ref={ref}
-                    {...props}
-                    style={{
-                      ...style,
-                      display: "grid",
-                      gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
-                      gap: "2rem",
-                      paddingBottom: "2rem",
-                    }}
-                  >
-                    {children}
-                  </div>
-                );
-              }),
+              List: React.forwardRef<HTMLDivElement, VirtuosoListProps>(({ style, children, ...props }, ref) => (
+                <div
+                  ref={ref}
+                  {...props}
+                  style={{
+                    ...style,
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+                    gap: "1.25rem",
+                    paddingBottom: "2rem",
+                  }}
+                >
+                  {children}
+                </div>
+              )),
               Item: ({ children, ...props }) => (
                 <div {...props} className="w-full">
                   {children}
@@ -102,38 +111,37 @@ export default function LibraryGrid({
             }}
           />
         ) : (
-          <div className="flex flex-col gap-4 pb-8 h-full pr-2">
+          <div className="flex flex-col gap-2 pb-8 h-full">
             {listGames.map((game) => (
               <div
                 key={game.id}
-                className="flex items-center justify-between px-4 bg-card h-[64px] border border-border hover:border-primary transition-colors cursor-pointer group rounded-md mb-2 shadow-sm"
+                className="flex items-center justify-between px-4 bg-card h-[68px] border border-border hover:border-primary/40 transition-all cursor-pointer group rounded-xl card-hover"
+                style={{ boxShadow: "var(--shadow-sm)" }}
                 onClick={() => onLaunch(game)}
               >
                 <div className="flex items-center gap-4 flex-1 overflow-hidden">
-                  <div className="w-12 h-12 bg-[#111111] rounded-sm flex items-center justify-center shrink-0">
+                  <div className="w-12 h-12 bg-[var(--surface-1)] rounded-lg flex items-center justify-center shrink-0 overflow-hidden">
                     {game.coverUrl ? (
-                      <img src={game.coverUrl} alt={game.title} className="w-full h-full object-cover rounded-sm" />
+                      <img src={game.coverUrl} alt={game.title} className="w-full h-full object-cover" />
                     ) : (
-                      <Gamepad2 size={24} className="text-muted-foreground" strokeWidth={1.5} />
+                      <Gamepad2 size={22} className="text-muted-foreground/40" strokeWidth={1.5} />
                     )}
                   </div>
-                  <h4 className="font-sans font-medium text-foreground text-base truncate flex-1">{game.displayTitle || game.title}</h4>
-                  <p className="font-sans text-sm text-muted-foreground w-40 shrink-0 truncate">{getSystemLabel(game.system)}</p>
-                  <p className="font-sans text-sm text-muted-foreground w-40 shrink-0 hidden sm:block">
+                  <h4 className="font-medium text-foreground text-sm truncate flex-1 group-hover:text-primary transition-colors">
+                    {game.displayTitle || game.title}
+                  </h4>
+                  <p className="text-xs text-muted-foreground w-32 shrink-0 truncate uppercase tracking-wider font-semibold">
+                    {getSystemLabel(game.system)}
+                  </p>
+                  <p className="text-xs text-muted-foreground w-32 shrink-0 hidden sm:block">
                     {game.lastPlayed ? "Played recently" : "Never played"}
                   </p>
                 </div>
-                <div className="flex items-center gap-4 ml-4 shrink-0">
-                  {game.isFavorite && <Star size={18} className="text-yellow-500" fill="currentColor" />}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      // We'll leave the menu functionality out of the list item for brevity but keep the visual icon
-                    }}
-                    className="p-1 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <MoreVertical size={20} />
-                  </button>
+                <div className="flex items-center gap-3 ml-4 shrink-0">
+                  {game.isFavorite && <Star size={16} className="text-[var(--warning)]" fill="currentColor" />}
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Play size={14} className="text-primary ml-0.5" fill="currentColor" />
+                  </div>
                 </div>
               </div>
             ))}
