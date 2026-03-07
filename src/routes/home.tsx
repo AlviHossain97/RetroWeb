@@ -1,6 +1,122 @@
 import { Link } from "react-router";
 import { LibraryBig, Gamepad2, Cpu, Save, MessageCircle, Settings2, Upload, Wifi } from "lucide-react";
 
+/* From Uiverse.io by TemRevil — Pong loading animation, colour-matched */
+const PONG_CSS = `
+.pong-bg {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+  opacity: 0.15;
+  z-index: 0;
+}
+.pong-box {
+  width: 60%;
+  max-width: 600px;
+  height: 300px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  position: relative;
+}
+.pong-paddle {
+  background-color: #a855f7;
+  width: 10px;
+  height: 70px;
+  position: absolute;
+  border-radius: 5px;
+}
+.pong-l1 {
+  left: 0;
+  animation: pong-l1 4s infinite linear;
+}
+.pong-l2 {
+  right: 0;
+  animation: pong-l2 4s infinite linear;
+}
+.pong-ball {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  position: absolute;
+  background-color: #ef4444;
+  box-shadow: 0 0 12px #ef4444, 0 0 24px rgba(239,68,68,0.4);
+  animation: pong-ball 4s infinite linear;
+}
+.pong-net {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 10px,
+    rgba(168,85,247,0.3) 10px,
+    rgba(168,85,247,0.3) 20px
+  );
+}
+@keyframes pong-l1 {
+  0% { top: 0%; }
+  10% { top: -20%; }
+  20% { top: 0%; }
+  30% { top: 40%; }
+  40% { top: 0%; }
+  50% { top: 30%; }
+  60% { top: 40%; }
+  70% { top: 60%; }
+  80% { top: -10%; }
+  90% { top: 10%; }
+  100% { top: 0%; }
+}
+@keyframes pong-l2 {
+  0% { bottom: 0%; }
+  10% { bottom: -20%; }
+  20% { bottom: 40%; }
+  30% { bottom: 60%; }
+  40% { bottom: 20%; }
+  50% { bottom: 30%; }
+  60% { bottom: 40%; }
+  70% { bottom: 60%; }
+  80% { bottom: -10%; }
+  90% { bottom: 10%; }
+  100% { bottom: 0%; }
+}
+@keyframes pong-ball {
+  0% { top: 80%; left: 96%; }
+  10% { top: 10%; left: 3%; }
+  20% { top: 10%; left: 90%; }
+  30% { top: 60%; left: 3%; }
+  40% { top: 10%; left: 90%; }
+  50% { top: 50%; left: 3%; }
+  60% { top: 10%; left: 90%; }
+  70% { top: 93%; left: 3%; }
+  80% { top: 83%; left: 90%; }
+  90% { top: 10%; left: 3%; }
+  100% { top: 80%; left: 90%; }
+}
+`;
+
+function PongBackground() {
+  return (
+    <>
+      <style dangerouslySetInnerHTML={{ __html: PONG_CSS }} />
+      <div className="pong-bg">
+        <div className="pong-box">
+          <div className="pong-net" />
+          <div className="pong-paddle pong-l1" />
+          <div className="pong-paddle pong-l2" />
+          <div className="pong-ball" />
+        </div>
+      </div>
+    </>
+  );
+}
+
 const features = [
   {
     icon: <LibraryBig size={28} />,
@@ -57,6 +173,7 @@ export default function Home() {
     <div className="flex-1 overflow-y-auto">
       {/* Hero */}
       <section className="relative flex flex-col items-center justify-center text-center px-6 py-20 overflow-hidden">
+        <PongBackground />
         <div className="absolute inset-0 bg-gradient-to-b from-purple-900/20 via-transparent to-transparent pointer-events-none" />
         <h1 className="text-5xl md:text-6xl font-black tracking-tight text-white mb-4 relative">
           <span className="bg-gradient-to-r from-red-500 via-purple-500 to-blue-500 bg-clip-text text-transparent">
