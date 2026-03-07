@@ -3,16 +3,8 @@
 @import "shadcn/tailwind.css";
 
 @font-face {
-  font-family: "MarioWorldPixel";
-  src: url("/fonts/MarioWorldPixelFilled.ttf") format("truetype");
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "MarioWorldPixelOutline";
-  src: url("/fonts/MarioWorldPixelOutline.ttf") format("truetype");
+  font-family: "SuperMarioBros";
+  src: url("/fonts/SuperMarioBros.ttf") format("truetype");
   font-weight: normal;
   font-style: normal;
   font-display: swap;
@@ -21,8 +13,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: "MarioWorldPixel", "Ubuntu", sans-serif;
-  --font-serif: "MarioWorldPixel", "Ubuntu", sans-serif;
+  --font-sans: "SuperMarioBros", "Ubuntu", sans-serif;
+  --font-serif: "SuperMarioBros", "Ubuntu", sans-serif;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
