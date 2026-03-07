@@ -266,7 +266,7 @@ export default function Play() {
     let isMounted = true;
 
     if (!romFile || !requestedCoreId) {
-      navigate("/");
+      navigate("/library");
       return;
     }
 
@@ -453,7 +453,7 @@ export default function Play() {
         onLoad={() => void handleLoadState(0)}
         onReset={() => void handleReset()}
         onFullscreen={() => void handleFullscreenToggle()}
-        onExit={() => navigate("/")}
+        onExit={() => navigate("/library")}
         onMenu={() => setIsMenuOpen(true)}
         onRetry={() => { setRuntimeError(null); setRetryToken(p => p + 1); }}
         showOverlay={showOverlay}

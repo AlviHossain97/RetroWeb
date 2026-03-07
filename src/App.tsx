@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation, Navigate, useNavigate } from "react-router";
 import type { ReactNode } from "react";
-import { Gamepad2, LibraryBig, Settings2, Cpu, Save, LogOut, MessageCircle } from "lucide-react";
+import { Gamepad2, LibraryBig, Settings2, Cpu, Save, LogOut, MessageCircle, Home } from "lucide-react";
 import { useState, useCallback, useEffect } from "react";
 import { Toaster, toast } from "sonner";
 import LegalModal from "./components/LegalModal";
@@ -224,7 +224,7 @@ export default function App() {
         }
       }
 
-      if (biosInstalled === 0 && location.pathname !== "/") {
+      if (biosInstalled === 0 && location.pathname !== "/" && location.pathname !== "/library") {
         toast.warning("Not a recognized BIOS file. Drop ROMs on the Library page.");
       }
     },
@@ -259,7 +259,8 @@ export default function App() {
   }, []);
 
   const navItems = [
-    { to: "/", label: "Library", icon: <LibraryBig size={18} /> },
+    { to: "/", label: "Home", icon: <Home size={18} /> },
+    { to: "/library", label: "Library", icon: <LibraryBig size={18} /> },
     { to: "/systems", label: "Supported Systems", icon: <Gamepad2 size={18} /> },
     { to: "/bios", label: "BIOS Vault", icon: <Cpu size={18} /> },
     { to: "/saves", label: "Saves Vault", icon: <Save size={18} /> },
