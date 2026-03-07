@@ -14,14 +14,85 @@ import {
 } from "../lib/storage/db";
 import { normalizeROM, NormalizeError, type ZipRomCandidate } from "../lib/emulation/rom-normalizer";
 import coreMap from "../data/coreMap.json";
-import { UploadCloud, AlertCircle, Save, HardDrive, Search, ArrowUpDown } from "lucide-react";
+import { UploadCloud, AlertCircle, Save, HardDrive, Search, ArrowUpDown, Gamepad2 } from "lucide-react";
 import { toast } from "sonner";
 import LibraryGrid from "../components/LibraryGrid";
+import GameDetailsDrawer from "../components/GameDetailsDrawer";
+import LoaderOverlay from "../components/LoaderOverlay";
 import { cleanGameTitleFromFilename, getSystemLabel } from "../lib/library/title-utils";
 import { md5FromUint8Array } from "../lib/hash/md5";
 import { SYSTEMS } from "../data/systemBrowserData";
 
 type SortKey = "name" | "system" | "lastPlayed" | "dateAdded" | "playtime";
+
+/* From Uiverse.io by akshat-patel28 — neon upload circle, colour-matched */
+const UPLOAD_CSS = `
+.rw-upload-div {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  border: 2px solid var(--accent-primary);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  box-shadow: 0px 0px 100px var(--accent-primary), inset 0px 0px 10px var(--accent-primary), 0px 0px 5px rgb(255, 255, 255);
+  animation: rw-flicker 2s linear infinite;
+  cursor: pointer;
+}
+
+.rw-upload-icon {
+  color: var(--accent-primary);
+  font-size: 2rem;
+  cursor: pointer;
+  animation: rw-iconflicker 2s linear infinite;
+}
+
+.rw-upload-div .rw-upload-input {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer !important;
+}
+
+@keyframes rw-flicker {
+  0% {
+    border: 2px solid var(--accent-primary);
+    box-shadow: 0px 0px 100px var(--accent-primary), inset 0px 0px 10px var(--accent-primary), 0px 0px 5px rgb(255, 255, 255);
+  }
+  5% {
+    border: none;
+    box-shadow: none;
+  }
+  10% {
+    border: 2px solid var(--accent-primary);
+    box-shadow: 0px 0px 100px var(--accent-primary), inset 0px 0px 10px var(--accent-primary), 0px 0px 5px rgb(255, 255, 255);
+  }
+  25% {
+    border: none;
+    box-shadow: none;
+  }
+  30% {
+    border: 2px solid var(--accent-primary);
+    box-shadow: 0px 0px 100px var(--accent-primary), inset 0px 0px 10px var(--accent-primary), 0px 0px 5px rgb(255, 255, 255);
+  }
+  100% {
+    border: 2px solid var(--accent-primary);
+    box-shadow: 0px 0px 100px var(--accent-primary), inset 0px 0px 10px var(--accent-primary), 0px 0px 5px rgb(255, 255, 255);
+  }
+}
+
+@keyframes rw-iconflicker {
+  0% { opacity: 1; }
+  5% { opacity: 0.2; }
+  10% { opacity: 1; }
+  25% { opacity: 0.2; }
+  30% { opacity: 1; }
+  100% { opacity: 1; }
+}
+`;
 
 const VIEW_MODE_STORAGE_KEY = "retroweb.library.viewMode";
 const SORT_STORAGE_KEY = "retroweb.library.sort";
@@ -48,9 +119,9 @@ export default function Library() {
   const [pendingRom, setPendingRom] = useState<PendingROM | null>(null);
   const [missingBiosList, setMissingBiosList] = useState<string[]>([]);
   const [showChdGuide, setShowChdGuide] = useState(false);
-  const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
+  const [viewMode, setViewMode] = useState<"grid" | "list" | "carousel">(() => {
     const stored = localStorage.getItem(VIEW_MODE_STORAGE_KEY);
-    return stored === "list" ? "list" : "grid";
+    return (stored === "list" || stored === "carousel") ? stored as "list" | "carousel" : "grid";
   });
   const [sortBy, setSortBy] = useState<SortKey>(() => {
     const stored = localStorage.getItem(SORT_STORAGE_KEY);
@@ -61,6 +132,7 @@ export default function Library() {
   const [processingState, setProcessingState] = useState<LibraryProcessingState>(null);
   const [zipPicker, setZipPicker] = useState<ZipPickerState | null>(null);
   const [coverTargetGameId, setCoverTargetGameId] = useState<string | null>(null);
+  const [selectedGame, setSelectedGame] = useState<Game | null>(null);
 
   const coverInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
@@ -541,6 +613,7 @@ export default function Library() {
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
+      <style dangerouslySetInnerHTML={{ __html: UPLOAD_CSS }} />
       {isDragging && (
         <div className="absolute inset-0 z-40 bg-black/85 backdrop-blur-sm border border-dashed border-muted-foreground m-8 flex flex-col items-center justify-center pointer-events-none">
           <UploadCloud size={80} className="text-primary mb-6 animate-pulse" strokeWidth={1.5} />
@@ -549,14 +622,11 @@ export default function Library() {
         </div>
       )}
 
-      {processingState && (
-        <div className="absolute top-4 right-4 z-50 bg-black/70 border border-neutral-700 rounded-lg px-4 py-3 w-80">
-          <p className="text-sm text-neutral-200 mb-2">{processingState.message}</p>
-          <div className="w-full bg-neutral-800 rounded-full h-2 overflow-hidden">
-            <div className="h-2 bg-primary transition-all" style={{ width: `${Math.max(5, processingState.percent)}%` }} />
-          </div>
-        </div>
-      )}
+      <LoaderOverlay
+        visible={processingState !== null}
+        mode="upload"
+        message={processingState?.message}
+      />
 
       {zipPicker && (
         <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm p-4 flex items-center justify-center">
@@ -588,18 +658,19 @@ export default function Library() {
         </div>
       )}
 
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center w-full mb-8 gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center w-full mb-6 gap-3 p-4 rounded-xl" style={{background: 'var(--surface-1)', border: '1px solid var(--border-soft)'}}>
         <div className="flex flex-col gap-2 w-full md:w-auto">
           {hasGames && (
             <div className="relative w-full max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-              <input
-                type="text"
-                placeholder="Search library..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-[#111111] border border-border text-foreground pl-10 pr-4 py-2 font-sans text-sm focus:outline-none focus:border-primary transition-colors placeholder:text-muted-foreground"
-              />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={16} style={{color: 'var(--text-muted)'}} />
+                <input
+                  type="text"
+                  placeholder="Search library..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full rounded-xl text-sm focus:outline-none focus:ring-2 transition-colors placeholder:opacity-50"
+                  style={{ background: 'var(--surface-2)', border: '1px solid var(--border-soft)', color: 'var(--text-primary)', padding: '10px 12px 10px 40px' }}
+                />
             </div>
           )}
 
@@ -618,13 +689,25 @@ export default function Library() {
           )}
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-          <div className="flex items-center gap-2 bg-[#111111] border border-border px-3 py-2 text-sm font-sans text-foreground">
-            <ArrowUpDown size={15} className="text-muted-foreground" />
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+          <div className="rw-upload-div" style={{ width: 50, height: 50 }}>
+            <UploadCloud className="rw-upload-icon" size={22} strokeWidth={1.5} />
+            <input
+              className="rw-upload-input"
+              type="file"
+              multiple
+              onChange={handleFileInput}
+              accept=".nes,.zip,.smc,.sfc,.gb,.gbc,.gba,.md,.smd,.gen,.bin,.chd,.pbp,.n64,.z64,.v64"
+            />
+          </div>
+
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm" style={{background: 'var(--surface-2)', border: '1px solid var(--border-soft)', color: 'var(--text-primary)'}}>
+            <ArrowUpDown size={15} style={{color: 'var(--text-muted)'}} />
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortKey)}
               className="bg-transparent focus:outline-none cursor-pointer"
+              style={{color: 'var(--text-primary)'}}
             >
               <option value="dateAdded">Sort: Date Added</option>
               <option value="name">Sort: Name</option>
@@ -634,19 +717,19 @@ export default function Library() {
             </select>
           </div>
 
-          <div className="flex items-center gap-3 bg-[#111111] border border-border p-1 w-full sm:w-auto">
+          <div className="flex items-center gap-3 p-1 rounded-xl w-full sm:w-auto" style={{background: 'var(--surface-2)', border: '1px solid var(--border-soft)'}}>
             <button
               onClick={() => setPersistGame(true)}
-              className={`flex flex-1 justify-center items-center gap-2 px-3 py-1.5 text-sm font-sans transition-colors ${persistGame ? "bg-primary text-black font-medium" : "text-muted-foreground hover:text-foreground"
-                }`}
+              className={`flex flex-1 justify-center items-center gap-2 px-3 py-1.5 text-sm font-sans transition-colors rounded-lg ${persistGame ? "font-medium" : ""}`}
+              style={persistGame ? {background: 'var(--accent-primary)', color: '#fff'} : {color: 'var(--text-muted)'}}
             >
               <HardDrive size={16} />
               Add to Library
             </button>
             <button
               onClick={() => setPersistGame(false)}
-              className={`flex flex-1 justify-center items-center gap-2 px-3 py-1.5 text-sm font-sans transition-colors ${!persistGame ? "bg-primary text-black font-medium" : "text-muted-foreground hover:text-foreground"
-                }`}
+              className={`flex flex-1 justify-center items-center gap-2 px-3 py-1.5 text-sm font-sans transition-colors rounded-lg ${!persistGame ? "font-medium" : ""}`}
+              style={!persistGame ? {background: 'var(--accent-primary)', color: '#fff'} : {color: 'var(--text-muted)'}}
             >
               <Save size={16} />
               Memory Only
@@ -658,22 +741,48 @@ export default function Library() {
       {hasGames ? (
         <div className="w-full flex-1 flex flex-col gap-6">
           {!searchQuery.trim() && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-card border border-border p-5">
-                <p className="font-sans text-xs text-muted-foreground uppercase tracking-widest mb-2">Recently Played</p>
-                <p className="font-serif text-[28px] text-foreground leading-none mb-1">{recentGames.length}</p>
-                <p className="font-sans text-xs text-muted-foreground">Top games with play history</p>
-              </div>
-              <div className="bg-card border border-border p-5">
-                <p className="font-sans text-xs text-muted-foreground uppercase tracking-widest mb-2">Favorites</p>
-                <p className="font-serif text-[28px] text-primary leading-none mb-1">{favoriteGames.length}</p>
-                <p className="font-sans text-xs text-muted-foreground">Marked with a star</p>
+            <div className="grid grid-cols-3 gap-4 mb-6">
+              {[
+                { label: 'Total Games', value: games.length, color: 'var(--text-primary)' },
+                { label: 'Favorites', value: favoriteGames.length, color: 'var(--accent-primary)' },
+                { label: 'Played', value: recentGames.length, color: 'var(--success)' },
+              ].map(stat => (
+                <div key={stat.label} className="p-4 rounded-xl" style={{background: 'var(--surface-1)', border: '1px solid var(--border-soft)'}}>
+                  <p className="text-2xl font-bold" style={{color: stat.color}}>{stat.value}</p>
+                  <p className="text-xs mt-0.5" style={{color: 'var(--text-muted)'}}>{stat.label}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {!searchQuery.trim() && recentGames.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-sm font-bold uppercase tracking-wider mb-3" style={{color: 'var(--text-muted)'}}>Recently Played</h3>
+              <div className="flex gap-3 overflow-x-auto pb-2">
+                {recentGames.map(game => (
+                  <div
+                    key={game.id}
+                    className="shrink-0 cursor-pointer rounded-lg overflow-hidden"
+                    style={{width: 80, border: '1px solid var(--border-soft)'}}
+                    onClick={() => setSelectedGame(game)}
+                  >
+                    {game.coverUrl ? (
+                      <img src={game.coverUrl} alt={game.title} className="w-full aspect-[3/4] object-cover" />
+                    ) : (
+                      <div className="w-full aspect-[3/4] flex items-center justify-center" style={{background: 'var(--surface-2)'}}>
+                        <Gamepad2 size={20} style={{color: 'var(--text-muted)'}} />
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           )}
 
           <div className="w-full flex-1">
-            <h2 className="text-xl font-bold mb-4 text-neutral-300">{searchQuery.trim() ? "Search Results" : "All Games"}</h2>
+            <div className="flex items-end gap-3 mb-4">
+              <h2 className="text-xl font-bold text-neutral-300">{searchQuery.trim() ? "Search Results" : "All Games"}</h2>
+            </div>
             {sortedGames.length > 0 ? (
               <LibraryGrid
                 games={sortedGames}
@@ -683,6 +792,7 @@ export default function Library() {
                 onToggleFavorite={handleToggleFavorite}
                 onRemove={handleRemoveGame}
                 onSetCover={handleSetCover}
+                onSelectGame={setSelectedGame}
               />
             ) : (
               <div className="text-neutral-500 py-8 text-center bg-neutral-900/50 rounded-xl border border-neutral-800">
@@ -693,30 +803,22 @@ export default function Library() {
         </div>
       ) : (
         <div className="flex-1 w-full flex flex-col items-center justify-center p-8">
-          <div
-            className="w-full max-w-xl p-12 mt-8 flex flex-col items-center justify-center cursor-pointer group"
-            onClick={() => document.getElementById("file-upload")?.click()}
-          >
-            <UploadCloud size={64} className="text-muted-foreground mb-6 group-hover:text-primary transition-colors" strokeWidth={1.5} />
-            <h2 className="text-[32px] font-serif tracking-tight text-foreground mb-4">Your library is empty</h2>
-            <p className="font-sans text-muted-foreground text-center max-w-md mb-8">
-              Drag and drop ROM files anywhere to import them, or click to browse files.
-            </p>
-            <span className="bg-primary hover:bg-[#B3934B] text-[#0A0A0A] px-6 py-3 font-sans font-medium transition-colors">
-              Browse Files
-            </span>
+          <div className="rw-upload-div mb-8">
+            <UploadCloud className="rw-upload-icon" size={40} strokeWidth={1.5} />
+            <input
+              className="rw-upload-input"
+              type="file"
+              multiple
+              onChange={handleFileInput}
+              accept=".nes,.zip,.smc,.sfc,.gb,.gbc,.gba,.md,.smd,.gen,.bin,.chd,.pbp,.n64,.z64,.v64"
+            />
           </div>
+          <h2 className="text-3xl font-bold mb-3" style={{color: 'var(--text-primary)'}}>Your library is empty</h2>
+          <p className="text-center max-w-sm mb-8" style={{color: 'var(--text-secondary)'}}>
+            Drag and drop ROM files anywhere, or click the circle above to browse files.
+          </p>
         </div>
       )}
-
-      <input
-        id="file-upload"
-        type="file"
-        className="hidden"
-        multiple
-        onChange={handleFileInput}
-        accept=".nes,.zip,.smc,.sfc,.gb,.gbc,.gba,.md,.smd,.gen,.bin,.chd,.pbp,.n64,.z64,.v64"
-      />
 
       <input
         ref={coverInputRef}
@@ -724,6 +826,15 @@ export default function Library() {
         accept="image/png,image/jpeg,image/webp"
         className="hidden"
         onChange={handleCoverInput}
+      />
+
+      <GameDetailsDrawer
+        game={selectedGame}
+        onClose={() => setSelectedGame(null)}
+        onLaunch={(game) => { setSelectedGame(null); handleLaunchGame(game); }}
+        onToggleFavorite={handleToggleFavorite}
+        onRemove={handleRemoveGame}
+        onSetCover={handleSetCover}
       />
     </div>
   );

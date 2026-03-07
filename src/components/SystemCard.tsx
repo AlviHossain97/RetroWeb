@@ -3,8 +3,7 @@ import { Link } from "react-router";
 import { type SystemInfo } from "../data/systemBrowserData";
 import { saveBIOS, validateBiosFilename } from "../lib/storage/db";
 import { toast } from "sonner";
-import { UploadCloud, CheckCircle2, AlertCircle, PlayCircle, Gamepad2 } from "lucide-react";
-import { getSystemColor } from "../lib/library/title-utils";
+import { UploadCloud, CheckCircle2, AlertCircle, Gamepad2, ChevronRight } from "lucide-react";
 
 interface SystemCardProps {
   sys: SystemInfo;
@@ -13,16 +12,21 @@ interface SystemCardProps {
   onBiosChange: () => void;
 }
 
+const SYSTEM_ACCENT_COLORS: Record<string, string> = {
+  nes: '#e53e3e', snes: '#805ad5', gb: '#2b6cb0', gbc: '#276749',
+  gba: '#2c5282', genesis: '#4a5568', psx: '#1a365d', n64: '#2f855a',
+  default: '#cc0000',
+};
+
 export default function SystemCard({ sys, biosStatus, gameCount, onBiosChange }: SystemCardProps) {
   const isDoable = sys.tier === "doable";
   const needsBios = sys.bios.length > 0;
-  const isBiosReady = !needsBios || sys.bios.every((b) => biosStatus[b]);
+  const isBiosReady = !needsBios || sys.bios.every(b => biosStatus[b]);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const systemColor = getSystemColor(sys.id);
+  const accentColor = SYSTEM_ACCENT_COLORS[sys.id] ?? SYSTEM_ACCENT_COLORS.default;
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) return;
-
+    if (!e.target.files?.length) return;
     const file = e.target.files[0];
     const validation = validateBiosFilename(file.name);
     if (!validation.isValid || validation.systemId !== sys.id || !validation.expectedName) {
@@ -30,140 +34,117 @@ export default function SystemCard({ sys, biosStatus, gameCount, onBiosChange }:
       if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
-
     try {
       const buffer = await file.arrayBuffer();
-      const result = await saveBIOS(validation.expectedName, sys.id, new Uint8Array(buffer), {
-        sourceFilename: file.name,
-      });
-
-      if (result.verifiedHash) {
-        toast.success(`BIOS ${result.filename} verified and installed!`);
-      } else if (result.sizeWarning) {
-        toast.warning(`Installed ${result.filename}, but size looks unusual.`);
-      } else {
-        toast.success(`BIOS ${result.filename} installed!`);
-      }
-
+      const result = await saveBIOS(validation.expectedName, sys.id, new Uint8Array(buffer), { sourceFilename: file.name });
+      toast[result.verifiedHash ? 'success' : result.sizeWarning ? 'warning' : 'success'](
+        result.verifiedHash ? `verified ${result.filename}` : result.sizeWarning ? `${result.filename} size unusual` : `${result.filename} installed`
+      );
       onBiosChange();
-    } catch {
-      toast.error(`Failed to install BIOS: ${file.name}`);
-    }
-
+    } catch { toast.error(`Failed to install: ${file.name}`); }
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   return (
     <div
-      className="bg-card border border-border p-6 hover:border-primary/40 transition-all flex flex-col h-full relative overflow-hidden group rounded-xl card-hover"
-      style={{ boxShadow: "var(--shadow-card)" }}
+      className="group relative rounded-xl p-4 transition-all duration-200 cursor-default"
+      style={{
+        background: 'var(--surface-1)',
+        border: '1px solid var(--border-soft)',
+        boxShadow: 'var(--shadow-sm)',
+      }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLElement).style.borderColor = accentColor + '60';
+        (e.currentTarget as HTMLElement).style.boxShadow = `0 4px 24px rgba(0,0,0,0.4), 0 0 0 1px ${accentColor}30`;
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-soft)';
+        (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-sm)';
+      }}
     >
-      {/* Background accent */}
-      <div
-        className="absolute -right-10 -top-10 w-40 h-40 rounded-full blur-3xl opacity-10 pointer-events-none transition-opacity group-hover:opacity-20"
-        style={{ background: systemColor }}
-      />
-
-      {/* Header */}
-      <div className="flex justify-between items-start mb-4 z-10">
-        <div className="flex items-center gap-4">
-          <div
-            className="p-3 border border-border rounded-xl group-hover:bg-secondary transition-colors"
-            style={{ background: `${systemColor}08` }}
-          >
-            <Gamepad2 size={24} style={{ color: isDoable ? systemColor : "var(--muted-foreground)" }} />
-          </div>
-          <div>
-            <h3 className="font-bold text-xl text-foreground leading-none mb-1">{sys.name}</h3>
-            <p className="text-[11px] text-muted-foreground font-bold uppercase tracking-widest">{sys.manufacturer}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Meta Tags */}
-      <div className="flex flex-wrap items-center gap-2 mb-5 z-10">
-        <span className="px-2.5 py-1 text-[10px] uppercase tracking-widest font-bold bg-secondary text-foreground border border-border rounded-lg">
-          {sys.era}
-        </span>
-        <span
-          className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest border rounded-lg ${
-            isDoable
-              ? "bg-[var(--success)]/10 text-[var(--success)] border-[var(--success)]/20"
-              : "bg-destructive/10 text-destructive border-destructive/20"
-          }`}
+      <div className="flex items-start gap-4">
+        <div
+          className="shrink-0 w-12 h-12 rounded-xl flex items-center justify-center"
+          style={{ background: accentColor + '20', border: `1px solid ${accentColor}40` }}
         >
-          {sys.tier.replace("_", " ")}
-        </span>
-      </div>
-
-      {/* Extensions */}
-      <div className="mb-5 z-10 flex-grow">
-        <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-3">Accepted Formats</p>
-        <div className="flex flex-wrap gap-1.5">
-          {sys.extensions.map((ext) => (
-            <span
-              key={ext}
-              className="bg-[var(--surface-1)] text-muted-foreground px-2 py-1 font-mono text-[11px] border border-border rounded-lg"
-            >
-              .{ext}
-            </span>
-          ))}
+          <Gamepad2 size={22} style={{ color: accentColor }} />
         </div>
-      </div>
 
-      {/* Footer */}
-      <div className="mt-auto pt-4 border-t border-border flex flex-col gap-3 z-10">
-        {needsBios ? (
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {isBiosReady ? (
-                <CheckCircle2 size={16} className="text-[var(--success)]" />
-              ) : (
-                <AlertCircle size={16} className="text-[var(--warning)]" />
-              )}
-              <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-                {isBiosReady ? "BIOS Ready" : "BIOS Missing"}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2 mb-1">
+            <h3 className="font-bold text-base leading-tight truncate" style={{ color: 'var(--text-primary)' }}>{sys.name}</h3>
+            <span
+              className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0"
+              style={{
+                background: isDoable ? 'rgba(34,197,94,0.15)' : 'rgba(245,158,11,0.15)',
+                color: isDoable ? '#22c55e' : '#f59e0b',
+                border: `1px solid ${isDoable ? 'rgba(34,197,94,0.3)' : 'rgba(245,158,11,0.3)'}`,
+              }}
+            >
+              {isDoable ? 'Supported' : sys.tier.replace('_', ' ')}
+            </span>
+          </div>
+
+          <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>
+            {sys.manufacturer} · {sys.era} · {gameCount === 1 ? '1 game' : `${gameCount} games`}
+          </p>
+
+          <div className="flex flex-wrap gap-1 mb-3">
+            {sys.extensions.map(ext => (
+              <span
+                key={ext}
+                className="text-[10px] font-mono px-1.5 py-0.5 rounded"
+                style={{ background: 'var(--surface-3)', color: 'var(--text-muted)', border: '1px solid var(--border-soft)' }}
+              >
+                .{ext}
               </span>
+            ))}
+          </div>
+
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-1.5">
+              {needsBios ? (
+                isBiosReady ? (
+                  <>
+                    <CheckCircle2 size={13} className="text-green-500" />
+                    <span className="text-[11px] font-medium" style={{ color: '#22c55e' }}>BIOS Ready</span>
+                  </>
+                ) : (
+                  <>
+                    <AlertCircle size={13} className="text-yellow-500" />
+                    <span className="text-[11px] font-medium" style={{ color: '#f59e0b' }}>BIOS Required</span>
+                  </>
+                )
+              ) : (
+                <>
+                  <CheckCircle2 size={13} style={{ color: 'var(--text-muted)', opacity: 0.4 }} />
+                  <span className="text-[11px]" style={{ color: 'var(--text-muted)', opacity: 0.5 }}>No BIOS needed</span>
+                </>
+              )}
             </div>
 
-            {!isBiosReady && (
-              <>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="text-[10px] uppercase font-bold tracking-widest bg-secondary hover:bg-[var(--surface-4)] text-foreground px-3 py-1.5 transition-colors border border-border flex items-center gap-1.5 rounded-lg"
-                >
-                  <UploadCloud size={14} />
-                  Upload
-                </button>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  className="hidden"
-                  onChange={handleFileUpload}
-                />
-              </>
-            )}
+            <div className="flex items-center gap-2">
+              {needsBios && !isBiosReady && (
+                <>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="text-[11px] font-bold px-3 py-1 rounded-lg transition-colors flex items-center gap-1.5"
+                    style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.3)' }}
+                  >
+                    <UploadCloud size={12} /> Upload BIOS
+                  </button>
+                  <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileUpload} />
+                </>
+              )}
+              <Link
+                to={needsBios && !isBiosReady ? "/bios" : "/"}
+                className="text-[11px] font-bold px-3 py-1 rounded-lg transition-colors flex items-center gap-1 opacity-0 group-hover:opacity-100"
+                style={{ background: accentColor + '20', color: accentColor }}
+              >
+                {needsBios && !isBiosReady ? 'BIOS Vault' : 'Library'} <ChevronRight size={11} />
+              </Link>
+            </div>
           </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <CheckCircle2 size={16} className="text-[var(--success)]/50" />
-            <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground opacity-50">
-              No BIOS required
-            </span>
-          </div>
-        )}
-
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground font-bold uppercase tracking-widest">
-            {gameCount === 1 ? "1 game" : `${gameCount} games`}
-          </span>
-          <Link
-            to={needsBios && !isBiosReady ? "/bios" : "/"}
-            className="text-[11px] font-bold text-primary hover:text-[var(--accent)] flex items-center gap-1.5 uppercase tracking-widest transition-colors"
-          >
-            <PlayCircle size={14} />
-            {needsBios && !isBiosReady ? "Open BIOS Vault" : "View Library"}
-          </Link>
         </div>
       </div>
     </div>
