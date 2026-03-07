@@ -1,7 +1,7 @@
 import { Link } from "react-router";
 import { LibraryBig, Gamepad2, Cpu, Save, MessageCircle, Settings2, Upload, Wifi } from "lucide-react";
 
-/* From Uiverse.io by TemRevil — Pong loading animation, colour-matched */
+/* From Uiverse.io by TemRevil — Pong animation, colour-matched, slowed */
 const PONG_CSS = `
 .pong-bg {
   position: absolute;
@@ -14,28 +14,28 @@ const PONG_CSS = `
   z-index: 0;
 }
 .pong-box {
-  width: 60%;
-  max-width: 600px;
-  height: 300px;
+  width: 250px;
+  height: 100px;
   display: flex;
   justify-content: space-around;
   align-items: center;
   position: relative;
 }
-.pong-paddle {
+.pong-color {
   background-color: #a855f7;
+}
+.pong-WH {
   width: 10px;
   height: 70px;
   position: absolute;
-  border-radius: 5px;
 }
 .pong-l1 {
   left: 0;
-  animation: pong-l1 4s infinite linear;
+  animation: pong-l1 8s infinite linear;
 }
 .pong-l2 {
   right: 0;
-  animation: pong-l2 4s infinite linear;
+  animation: pong-l2 8s infinite linear;
 }
 .pong-ball {
   width: 15px;
@@ -44,21 +44,7 @@ const PONG_CSS = `
   position: absolute;
   background-color: #ef4444;
   box-shadow: 0 0 12px #ef4444, 0 0 24px rgba(239,68,68,0.4);
-  animation: pong-ball 4s infinite linear;
-}
-.pong-net {
-  position: absolute;
-  left: 50%;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background: repeating-linear-gradient(
-    to bottom,
-    transparent,
-    transparent 10px,
-    rgba(168,85,247,0.3) 10px,
-    rgba(168,85,247,0.3) 20px
-  );
+  animation: pong-ball 8s infinite linear;
 }
 @keyframes pong-l1 {
   0% { top: 0%; }
@@ -107,9 +93,8 @@ function PongBackground() {
       <style dangerouslySetInnerHTML={{ __html: PONG_CSS }} />
       <div className="pong-bg">
         <div className="pong-box">
-          <div className="pong-net" />
-          <div className="pong-paddle pong-l1" />
-          <div className="pong-paddle pong-l2" />
+          <div className="pong-WH pong-color pong-l1" />
+          <div className="pong-WH pong-color pong-l2" />
           <div className="pong-ball" />
         </div>
       </div>
