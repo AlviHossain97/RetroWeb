@@ -3,9 +3,9 @@
 @import "shadcn/tailwind.css";
 
 @font-face {
-  font-family: "SuperMarioBros";
-  src: url("/fonts/SuperMarioBros.ttf") format("truetype");
-  font-weight: normal;
+  font-family: "RoSpritendo";
+  src: url("/fonts/RoSpritendo.otf") format("opentype");
+  font-weight: 600;
   font-style: normal;
   font-display: swap;
 }
@@ -13,8 +13,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: "SuperMarioBros", "Ubuntu", sans-serif;
-  --font-serif: "SuperMarioBros", "Ubuntu", sans-serif;
+  --font-sans: "RoSpritendo", "Ubuntu", sans-serif;
+  --font-serif: "RoSpritendo", "Ubuntu", sans-serif;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
