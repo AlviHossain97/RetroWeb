@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Copy, RefreshCcw, Search } from "lucide-react";
+import { Copy, RefreshCcw, Search, HardDrive, Cpu, Monitor, Volume2, Gamepad, Save, Database, Info } from "lucide-react";
 import { toast } from "sonner";
 import { getStorageEstimate } from "../lib/capability/storage-quota";
 import { getThreadingCapability } from "../lib/capability/capability-check";
@@ -307,8 +307,11 @@ export default function Settings() {
   };
 
   return (
-    <div className="flex-1 w-full max-w-5xl mx-auto p-4 md:p-8">
-      <h1 className="text-[32px] font-bold tracking-tight text-foreground mb-6">Settings</h1>
+    <div className="flex-1 w-full max-w-4xl mx-auto p-4 md:p-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold tracking-tight" style={{color: 'var(--text-primary)'}}>Settings</h1>
+        <p className="text-sm mt-1" style={{color: 'var(--text-muted)'}}>Configure your RetroWeb experience</p>
+      </div>
 
       <div className="relative mb-8 max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
@@ -323,9 +326,9 @@ export default function Settings() {
 
       {visibleSections.storage && (
         <section className="mb-10">
-          <h2 className="text-xl font-bold mb-4 border-b border-border pb-2 text-foreground">Storage Usage</h2>
+          <h2 className="text-base font-bold mb-4 pb-2 flex items-center gap-2" style={{color: 'var(--text-primary)', borderBottom: '1px solid var(--border-soft)'}}><HardDrive size={16} style={{color: 'var(--accent-primary)'}} /> Storage Usage</h2>
           {storage ? (
-            <div className="bg-card border border-border rounded-md shadow-sm p-6">
+            <div style={{background: 'var(--surface-1)', border: '1px solid var(--border-soft)'}} className="rounded-md shadow-sm p-6">
               <div className="flex justify-between mb-3 text-sm font-sans font-medium">
                 <span className="text-foreground">{storage.usedMB} MB Used</span>
                 <span className="text-muted-foreground">{storage.totalMB} MB Total</span>
@@ -346,8 +349,8 @@ export default function Settings() {
 
       {visibleSections.performance && (
         <section className="mb-10">
-          <h2 className="text-xl font-bold mb-4 border-b border-border pb-2 text-foreground">Performance & Compatibility</h2>
-          <div className="bg-card border border-border rounded-md shadow-sm p-6">
+          <h2 className="text-base font-bold mb-4 pb-2 flex items-center gap-2" style={{color: 'var(--text-primary)', borderBottom: '1px solid var(--border-soft)'}}><Cpu size={16} style={{color: 'var(--accent-primary)'}} /> Performance &amp; Compatibility</h2>
+          <div style={{background: 'var(--surface-1)', border: '1px solid var(--border-soft)'}} className="rounded-md shadow-sm p-6">
             <div className="flex items-center gap-4 mb-3">
               <span className="font-sans text-sm font-medium text-foreground">Multi-threading (WASM Threads)</span>
               {capability.canUseThreads ? (
@@ -367,13 +370,13 @@ export default function Settings() {
 
       {visibleSections.display && (
         <section className="mb-10">
-          <div className="flex items-center justify-between mb-4 border-b border-border pb-2">
-            <h2 className="text-xl font-bold text-foreground">Display</h2>
+          <div className="flex items-center justify-between mb-4 pb-2" style={{borderBottom: '1px solid var(--border-soft)'}}>
+            <h2 className="text-base font-bold flex items-center gap-2" style={{color: 'var(--text-primary)'}}><Monitor size={16} style={{color: 'var(--accent-primary)'}} /> Display</h2>
             <button onClick={() => resetSection("display")} className="font-sans text-[10px] uppercase font-bold tracking-widest text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 transition-colors">
               <RefreshCcw size={12} /> RESET
             </button>
           </div>
-          <div className="bg-card border border-border p-6 grid sm:grid-cols-2 gap-6">
+          <div className="bg-card border border-border p-6 grid sm:grid-cols-2 gap-6" style={{background: 'var(--surface-1)', border: '1px solid var(--border-soft)'}}>
             <label className="text-sm font-sans">
               <span className="block text-xs font-medium text-muted-foreground mb-2 uppercase tracking-widest">Shader preset</span>
               <select
@@ -416,13 +419,13 @@ export default function Settings() {
 
       {visibleSections.audio && (
         <section className="mb-10">
-          <div className="flex items-center justify-between mb-4 border-b border-border pb-2">
-            <h2 className="text-xl font-bold text-foreground">Audio</h2>
+          <div className="flex items-center justify-between mb-4 pb-2" style={{borderBottom: '1px solid var(--border-soft)'}}>
+            <h2 className="text-base font-bold flex items-center gap-2" style={{color: 'var(--text-primary)'}}><Volume2 size={16} style={{color: 'var(--accent-primary)'}} /> Audio</h2>
             <button onClick={() => resetSection("audio")} className="font-sans text-[10px] uppercase font-bold tracking-widest text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 transition-colors">
               <RefreshCcw size={12} /> RESET
             </button>
           </div>
-          <div className="bg-card border border-border rounded-md shadow-sm p-6 grid sm:grid-cols-2 gap-6">
+          <div className="rounded-md shadow-sm p-6 grid sm:grid-cols-2 gap-6" style={{background: 'var(--surface-1)', border: '1px solid var(--border-soft)'}}>
             <label className="text-sm font-sans">
               <span className="block text-xs font-bold text-muted-foreground mb-3 uppercase tracking-widest">Master volume ({settings.volume}%)</span>
               <input
@@ -453,13 +456,13 @@ export default function Settings() {
 
       {visibleSections.input && (
         <section className="mb-10">
-          <div className="flex items-center justify-between mb-4 border-b border-border pb-2">
-            <h2 className="text-xl font-bold text-foreground">Input</h2>
+          <div className="flex items-center justify-between mb-4 pb-2" style={{borderBottom: '1px solid var(--border-soft)'}}>
+            <h2 className="text-base font-bold flex items-center gap-2" style={{color: 'var(--text-primary)'}}><Gamepad size={16} style={{color: 'var(--accent-primary)'}} /> Input</h2>
             <button onClick={() => resetSection("input")} className="font-sans text-[10px] uppercase font-bold tracking-widest text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 transition-colors">
               <RefreshCcw size={12} /> RESET
             </button>
           </div>
-          <div className="bg-card border border-border rounded-md shadow-sm p-6 grid sm:grid-cols-2 gap-6">
+          <div className="rounded-md shadow-sm p-6 grid sm:grid-cols-2 gap-6" style={{background: 'var(--surface-1)', border: '1px solid var(--border-soft)'}}>
             <label className="text-sm font-sans">
               <span className="block text-xs font-bold text-muted-foreground mb-3 uppercase tracking-widest">Touch opacity ({settings.touchOpacity}%)</span>
               <input
@@ -489,13 +492,13 @@ export default function Settings() {
 
       {visibleSections.saves && (
         <section className="mb-10">
-          <div className="flex items-center justify-between mb-4 border-b border-border pb-2">
-            <h2 className="text-xl font-bold text-foreground">Saves</h2>
+          <div className="flex items-center justify-between mb-4 pb-2" style={{borderBottom: '1px solid var(--border-soft)'}}>
+            <h2 className="text-base font-bold flex items-center gap-2" style={{color: 'var(--text-primary)'}}><Save size={16} style={{color: 'var(--accent-primary)'}} /> Saves</h2>
             <button onClick={() => resetSection("saves")} className="font-sans text-[10px] uppercase font-bold tracking-widest text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 transition-colors">
               <RefreshCcw size={12} /> RESET
             </button>
           </div>
-          <div className="bg-card border border-border rounded-md shadow-sm p-6 grid sm:grid-cols-2 gap-6">
+          <div className="rounded-md shadow-sm p-6 grid sm:grid-cols-2 gap-6" style={{background: 'var(--surface-1)', border: '1px solid var(--border-soft)'}}>
             <label className="text-sm font-sans">
               <span className="block text-xs font-bold text-muted-foreground mb-2 uppercase tracking-widest">Auto-save interval</span>
               <select
@@ -537,8 +540,8 @@ export default function Settings() {
 
       {visibleSections.data && (
         <section className="mb-10">
-          <h2 className="text-xl font-bold mb-4 border-b border-border pb-2 text-foreground">Data Management</h2>
-          <div className="bg-card border border-border rounded-md shadow-sm p-6 grid sm:grid-cols-2 gap-4">
+          <h2 className="text-base font-bold mb-4 pb-2 flex items-center gap-2" style={{color: 'var(--text-primary)', borderBottom: '1px solid var(--border-soft)'}}><Database size={16} style={{color: 'var(--accent-primary)'}} /> Data Management</h2>
+          <div className="rounded-md shadow-sm p-6 grid sm:grid-cols-2 gap-4" style={{background: 'var(--surface-1)', border: '1px solid var(--border-soft)'}}>
             <button onClick={() => void handleClearRomCache()} className="text-xs font-sans tracking-widest uppercase font-bold rounded-sm px-4 py-3 bg-muted border border-border text-foreground hover:bg-secondary transition-colors text-left flex items-center justify-between">Clear ROM cache <span className="text-[10px] text-muted-foreground font-normal normal-case tracking-normal">Keeps saves</span></button>
             <button onClick={() => void handleExportBackup()} className="text-xs font-sans tracking-widest uppercase font-bold rounded-sm px-4 py-3 bg-muted border border-border text-foreground hover:bg-secondary transition-colors text-left flex items-center justify-between">Export Backup <span className="text-[10px] text-muted-foreground font-normal normal-case tracking-normal">.json</span></button>
             <button onClick={() => importInputRef.current?.click()} className="text-xs font-sans tracking-widest uppercase font-bold rounded-sm px-4 py-3 bg-muted border border-border text-foreground hover:bg-secondary transition-colors text-left flex items-center justify-between">Import Backup <span className="text-[10px] text-muted-foreground font-normal normal-case tracking-normal">.json</span></button>
@@ -550,8 +553,8 @@ export default function Settings() {
 
       {visibleSections.about && (
         <section className="mb-10">
-          <h2 className="text-xl font-bold mb-4 border-b border-border pb-2 text-foreground">About & Debug</h2>
-          <div className="bg-card border border-border rounded-md shadow-sm p-6">
+          <h2 className="text-base font-bold mb-4 pb-2 flex items-center gap-2" style={{color: 'var(--text-primary)', borderBottom: '1px solid var(--border-soft)'}}><Info size={16} style={{color: 'var(--accent-primary)'}} /> About &amp; Debug</h2>
+          <div className="rounded-md shadow-sm p-6" style={{background: 'var(--surface-1)', border: '1px solid var(--border-soft)'}}>
             <div className="grid sm:grid-cols-2 gap-3 font-sans text-sm text-muted-foreground mb-6">
               <p>Version: <span className="text-foreground">v0.2.0-dev</span></p>
               <p>Threads: <span className="text-foreground">{capability.canUseThreads ? "Enabled" : "Disabled"}</span></p>

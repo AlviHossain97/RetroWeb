@@ -25,29 +25,17 @@ export function getSystemLabel(systemId: string) {
   return labels[systemId] ?? systemId.toUpperCase();
 }
 
-export function getSystemGradient(systemId: string): string {
+export function getSystemGradient(systemId: string) {
   const gradients: Record<string, string> = {
-    nes: "linear-gradient(135deg, rgba(185,28,28,0.5), rgba(217,119,6,0.2), transparent)",
-    snes: "linear-gradient(135deg, rgba(126,34,206,0.5), rgba(79,70,229,0.2), transparent)",
-    gb: "linear-gradient(135deg, rgba(4,120,87,0.5), rgba(101,163,13,0.2), transparent)",
-    genesis: "linear-gradient(135deg, rgba(3,105,161,0.5), rgba(6,182,212,0.2), transparent)",
-    ps1: "linear-gradient(135deg, rgba(71,85,105,0.5), rgba(37,99,235,0.2), transparent)",
-    n64: "linear-gradient(135deg, rgba(194,65,12,0.5), rgba(202,138,4,0.2), transparent)",
+    nes: "from-red-700/70 via-amber-600/30 to-zinc-900",
+    snes: "from-purple-700/70 via-indigo-700/30 to-zinc-900",
+    gb: "from-emerald-700/70 via-lime-700/30 to-zinc-900",
+    genesis: "from-sky-700/70 via-cyan-700/30 to-zinc-900",
+    ps1: "from-slate-700/70 via-blue-700/30 to-zinc-900",
+    n64: "from-orange-700/70 via-yellow-700/30 to-zinc-900",
   };
 
-  return gradients[systemId] ?? "linear-gradient(135deg, rgba(63,63,70,0.5), rgba(63,63,70,0.2), transparent)";
-}
-
-export function getSystemColor(systemId: string): string {
-  const colors: Record<string, string> = {
-    nes: "#ef4444",
-    snes: "#a855f7",
-    gb: "#10b981",
-    genesis: "#06b6d4",
-    ps1: "#3b82f6",
-    n64: "#f59e0b",
-  };
-  return colors[systemId] ?? "#8b5cf6";
+  return gradients[systemId] ?? "from-zinc-700/70 via-zinc-700/30 to-zinc-900";
 }
 
 export function hasRecentAutoSave(lastAutoSaveAt?: number) {

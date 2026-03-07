@@ -3,7 +3,7 @@ import { SYSTEMS, type SystemInfo } from "../data/systemBrowserData";
 import { hasBIOS, getAllGames } from "../lib/storage/db";
 import SystemCard from "../components/SystemCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Filter } from "lucide-react";
+import { Search, Filter, AlertTriangle } from "lucide-react";
 
 export default function Systems() {
     const [biosStatus, setBiosStatus] = useState<Record<string, Record<string, boolean>>>({});
@@ -97,7 +97,7 @@ export default function Systems() {
         });
 
         return (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                 {sorted.map(sys => (
                     <SystemCard
                         key={sys.id}
@@ -112,12 +112,22 @@ export default function Systems() {
     };
 
     return (
-        <div className="flex-1 w-full max-w-5xl mx-auto p-4 md:p-8">
-            <div className="mb-8">
-                <h1 className="text-[32px] font-bold tracking-tight text-foreground mb-2">Supported Systems</h1>
-                <p className="font-sans text-lg text-muted-foreground">
-                    Your complete guide to what RetroWeb supports. Upload BIOS files to unlock CD-based systems.
+        <div className="flex-1 w-full max-w-7xl mx-auto p-4 md:p-8">
+            <div className="mb-8 -mx-4 md:-mx-8 -mt-4 md:-mt-8 px-4 md:px-8 pt-10 pb-8 relative overflow-hidden" style={{background: 'linear-gradient(135deg, var(--surface-1) 0%, var(--bg-primary) 100%)'}}>
+              {/* Decorative grid */}
+              <div className="absolute inset-0 opacity-[0.03]" style={{backgroundImage: 'linear-gradient(var(--border-strong) 1px, transparent 1px), linear-gradient(90deg, var(--border-strong) 1px, transparent 1px)', backgroundSize: '40px 40px'}} />
+              <div className="relative">
+                <h1 className="text-3xl font-bold tracking-tight mb-2" style={{color: 'var(--text-primary)'}}>Supported Systems</h1>
+                <p className="text-base" style={{color: 'var(--text-secondary)'}}>
+                  Your complete guide to what RetroWeb supports. Upload BIOS files to unlock CD-based systems.
                 </p>
+                <p className="text-sm mt-2 font-mono" style={{color: 'var(--text-muted)'}}>
+                  {filteredSystems.length} systems · {filteredSystems.filter(s => {
+                    const needsBios = s.bios.length > 0;
+                    return !needsBios || s.bios.every(b => biosStatus[s.id]?.[b]);
+                  }).length} ready to play
+                </p>
+              </div>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4 mb-8">
@@ -128,7 +138,8 @@ export default function Systems() {
                         placeholder="Search systems, manufacturers, or extensions..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-card border border-border pl-11 pr-4 py-3 rounded-md focus:outline-none focus:border-primary text-sm transition-colors text-foreground"
+                        className="w-full pl-11 pr-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-2 transition-colors"
+                        style={{ background: 'var(--surface-2)', borderColor: 'var(--border-soft)', color: 'var(--text-primary)', border: '1px solid var(--border-soft)' }}
                     />
                 </div>
 
@@ -137,7 +148,8 @@ export default function Systems() {
                     <select
                         value={filterStatus}
                         onChange={(e) => setFilterStatus(e.target.value as "all" | "ready" | "needs_setup")}
-                        className="w-full bg-card border border-border pl-11 pr-4 py-3 rounded-md focus:outline-none focus:border-primary text-sm appearance-none cursor-pointer transition-colors text-foreground"
+                        className="w-full pl-11 pr-4 py-3 rounded-xl text-sm appearance-none cursor-pointer focus:outline-none transition-colors"
+                        style={{ background: 'var(--surface-2)', color: 'var(--text-primary)', border: '1px solid var(--border-soft)' }}
                     >
                         <option value="all">All Statuses</option>
                         <option value="ready">Ready to Play</option>
@@ -147,7 +159,7 @@ export default function Systems() {
             </div>
 
             <Tabs defaultValue="supported" className="w-full">
-                <TabsList className="mb-8 bg-muted border border-border rounded-md p-1">
+                <TabsList className="mb-8 p-1 rounded-xl" style={{background: 'var(--surface-2)', border: '1px solid var(--border-soft)'}}>
                     <TabsTrigger value="supported" className="rounded-sm font-sans text-xs uppercase tracking-widest font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                         Fully Supported ({supportedSystems.length})
                     </TabsTrigger>
@@ -161,8 +173,11 @@ export default function Systems() {
                 </TabsContent>
 
                 <TabsContent value="experimental" className="mt-0 outline-none">
-                    <div className="mb-6 p-4 border border-destructive/30 bg-[#1A0A0A] rounded-md shadow-sm text-sm text-destructive font-sans">
-                        <strong className="font-bold">Warning:</strong> These systems are highly experimental and may crash the browser, run slowly, or have audio glitches.
+                    <div className="mb-6 p-4 rounded-xl text-sm font-sans flex items-start gap-3" style={{background: 'rgba(204,0,0,0.08)', border: '1px solid rgba(204,0,0,0.25)', color: 'var(--accent-secondary)'}}>
+                      <AlertTriangle size={18} className="shrink-0 mt-0.5" />
+                      <div>
+                        <strong className="font-bold" style={{color: 'var(--accent-primary)'}}>Warning:</strong> These systems are highly experimental and may crash the browser, run slowly, or have audio glitches.
+                      </div>
                     </div>
                     {renderSystemGrid(experimentalSystems)}
                 </TabsContent>

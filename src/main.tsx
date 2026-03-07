@@ -9,11 +9,15 @@ import Systems from './routes/systems.tsx'
 import Settings from './routes/settings.tsx'
 import BiosVault from './routes/bios.tsx'
 import SavesVault from './routes/saves.tsx'
+import Login from './routes/login.tsx'
+import ControllerTest from './routes/controller.tsx'
+import Chat from './routes/chat.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
       <Routes>
+        <Route path="/login" element={<Login />} />
         <Route path="/" element={<App />}>
           <Route index element={<Library />} />
           <Route path="systems" element={<Systems />} />
@@ -21,6 +25,8 @@ createRoot(document.getElementById('root')!).render(
           <Route path="play" element={<Play />} />
           <Route path="bios" element={<BiosVault />} />
           <Route path="saves" element={<SavesVault />} />
+          <Route path="controller" element={<ControllerTest />} />
+          <Route path="chat" element={<Chat />} />
           <Route path="settings" element={<Settings />} />
           <Route path="help/chd" element={<div>CHD Conversion Guide</div>} />
         </Route>

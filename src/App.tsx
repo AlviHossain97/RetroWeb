@@ -1,55 +1,199 @@
-import { Outlet, Link, useLocation } from "react-router";
+import { Outlet, Link, useLocation, Navigate, useNavigate } from "react-router";
 import type { ReactNode } from "react";
-import {
-  Gamepad2,
-  LibraryBig,
-  Settings2,
-  Menu,
-  X,
-  Cpu,
-  Save,
-  Zap,
-  ChevronRight,
-} from "lucide-react";
+import { Gamepad2, LibraryBig, Settings2, Cpu, Save, LogOut, MessageCircle } from "lucide-react";
 import { useState, useCallback, useEffect } from "react";
 import { Toaster, toast } from "sonner";
 import LegalModal from "./components/LegalModal";
 import CookieConsent from "./components/CookieConsent";
+import PacmanGhostEasterEgg from "./components/PacmanGhostEasterEgg";
 import { validateBiosFilename, saveBIOS } from "./lib/storage/db";
-
-function isActivePath(currentPath: string, targetPath: string) {
-  if (targetPath === "/") return currentPath === "/";
-  return currentPath.startsWith(targetPath);
-}
 
 interface NavItem {
   to: string;
   label: string;
   icon: ReactNode;
-  description?: string;
 }
 
-const navItems: NavItem[] = [
-  { to: "/", label: "Library", icon: <LibraryBig size={20} />, description: "Browse & play games" },
-  { to: "/systems", label: "Systems", icon: <Gamepad2 size={20} />, description: "Supported platforms" },
-  { to: "/bios", label: "BIOS Vault", icon: <Cpu size={20} />, description: "Firmware files" },
-  { to: "/saves", label: "Saves", icon: <Save size={20} />, description: "Save management" },
-  { to: "/settings", label: "Settings", icon: <Settings2 size={20} />, description: "Preferences" },
-];
+/* From Uiverse.io by Admin12121 */
+const NAV_CSS = `
+.rw-menu {
+  padding: 0.5rem;
+  background-color: var(--surface-1);
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  z-index: 30;
+  display: flex;
+  justify-content: center;
+  border-radius: 15px;
+  box-shadow: 0 10px 25px 0 rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border-soft);
+  color: var(--text-muted);
+}
+
+.rw-link {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 70px;
+  height: 50px;
+  border-radius: 8px;
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  transform-origin: center left;
+  transition: width 0.2s ease-in;
+  text-decoration: none;
+  color: inherit;
+}
+
+.rw-link:before {
+  position: absolute;
+  z-index: -1;
+  content: "";
+  display: block;
+  border-radius: 8px;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  transform: translateX(100%);
+  transition: transform 0.2s ease-in;
+  transform-origin: center right;
+  background-color: rgba(204, 0, 0, 0.15);
+}
+
+.rw-link:hover,
+.rw-link:focus {
+  outline: 0;
+  width: 130px;
+  color: var(--accent-secondary);
+}
+
+.rw-link:hover:before,
+.rw-link:focus:before {
+  transform: translateX(0);
+}
+
+.rw-link:hover .rw-link-title,
+.rw-link:focus .rw-link-title {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.rw-link-icon {
+  width: 28px;
+  height: 28px;
+  display: block;
+  flex-shrink: 0;
+  left: 18px;
+  position: absolute;
+}
+
+.rw-link-icon svg {
+  width: 28px;
+  height: 28px;
+}
+
+.rw-link-title {
+  transform: translateX(100%);
+  transition: transform 0.2s ease-in;
+  transform-origin: center right;
+  display: block;
+  text-align: center;
+  text-indent: 28px;
+  width: 100%;
+}
+`;
+
+/* From Uiverse.io by vinodjangid07 — logout button */
+const LOGOUT_CSS = `
+.rw-logout-btn {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 45px;
+  height: 45px;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 30;
+  overflow: hidden;
+  transition-duration: .3s;
+  box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.199);
+  background-color: var(--accent-primary);
+}
+
+.rw-logout-btn .rw-logout-sign {
+  width: 100%;
+  transition-duration: .3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rw-logout-btn .rw-logout-sign svg {
+  width: 17px;
+  height: 17px;
+}
+
+.rw-logout-btn .rw-logout-sign svg path {
+  fill: white;
+}
+
+.rw-logout-btn .rw-logout-text {
+  position: absolute;
+  right: 0%;
+  width: 0%;
+  opacity: 0;
+  color: white;
+  font-size: 1.2em;
+  font-weight: 600;
+  transition-duration: .3s;
+}
+
+.rw-logout-btn:hover {
+  width: 125px;
+  border-radius: 40px;
+  transition-duration: .3s;
+}
+
+.rw-logout-btn:hover .rw-logout-sign {
+  width: 30%;
+  transition-duration: .3s;
+  padding-left: 20px;
+}
+
+.rw-logout-btn:hover .rw-logout-text {
+  opacity: 1;
+  width: 70%;
+  transition-duration: .3s;
+  padding-right: 10px;
+}
+
+.rw-logout-btn:active {
+  transform: translate(2px, 2px);
+}
+`;
 
 export default function App() {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isGlobalDragging, setIsGlobalDragging] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   const isPlaying = location.pathname === "/play";
+  const isLoggedIn = sessionStorage.getItem("retroweb.loggedIn") === "true";
 
-  const closeMenu = () => setIsMobileMenuOpen(false);
+  if (!isLoggedIn) {
+    return <Navigate to="/login" replace />;
+  }
 
-  useEffect(() => {
-    setIsMobileMenuOpen(false);
-  }, [location.pathname]);
+  const handleLogout = () => {
+    sessionStorage.removeItem("retroweb.loggedIn");
+    navigate("/login");
+  };
 
   const handleDrop = useCallback(
     async (e: React.DragEvent) => {
@@ -73,7 +217,7 @@ export default function App() {
             sourceFilename: file.name,
           });
           biosInstalled++;
-          toast.success(`Installed BIOS: ${validation.expectedName}`);
+          toast.success(`✅ Installed BIOS: ${validation.expectedName}`);
         } catch (error) {
           console.error("Failed to install dropped BIOS", error);
           toast.error(`Failed to install ${file.name}`);
@@ -109,182 +253,76 @@ export default function App() {
       e.preventDefault();
       setIsGlobalDragging(false);
     };
+
     window.addEventListener("drop", handleWindowDrop);
     return () => window.removeEventListener("drop", handleWindowDrop);
   }, []);
 
+  const navItems = [
+    { to: "/", label: "Library", icon: <LibraryBig size={18} /> },
+    { to: "/systems", label: "Supported Systems", icon: <Gamepad2 size={18} /> },
+    { to: "/bios", label: "BIOS Vault", icon: <Cpu size={18} /> },
+    { to: "/saves", label: "Saves Vault", icon: <Save size={18} /> },
+    { to: "/controller", label: "Controller Test", icon: <Gamepad2 size={18} /> },
+    { to: "/chat", label: "AI Chat", icon: <MessageCircle size={18} /> },
+    { to: "/settings", label: "Settings", icon: <Settings2 size={18} /> },
+  ] satisfies NavItem[];
+
   return (
     <div
-      className="min-h-screen bg-background text-foreground flex md:flex-row flex-col relative"
+      className="min-h-screen bg-background text-foreground flex flex-col relative"
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
+      <style dangerouslySetInnerHTML={{ __html: NAV_CSS + LOGOUT_CSS }} />
+
       {isGlobalDragging && !isPlaying && location.pathname !== "/" && (
-        <div className="absolute inset-0 z-50 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center border-2 border-dashed border-primary m-4 rounded-2xl pointer-events-none">
-          <div className="relative">
-            <div className="absolute inset-0 bg-primary/20 rounded-full blur-3xl scale-150" />
-            <Cpu className="text-primary w-20 h-20 mb-6 animate-pulse relative z-10" />
-          </div>
+        <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center border-4 border-dashed border-primary m-4 rounded-xl pointer-events-none">
+          <Cpu className="text-primary w-24 h-24 mb-6 animate-pulse" />
           <h2 className="text-3xl font-bold text-white mb-2">Drop BIOS Here</h2>
-          <p className="text-muted-foreground text-lg">We'll validate and install it automatically.</p>
+          <p className="text-neutral-300 text-lg">We&apos;ll validate and install it automatically.</p>
         </div>
       )}
 
-      <Toaster
-        theme="dark"
-        position="bottom-right"
-        toastOptions={{
-          style: {
-            background: "var(--card)",
-            border: "1px solid var(--border)",
-            color: "var(--foreground)",
-          },
-        }}
-      />
+      <Toaster theme="dark" position="bottom-right" />
       <LegalModal />
       <CookieConsent />
+      <PacmanGhostEasterEgg frightenThreshold={5} frightenDuration={4000} />
 
-      {/* Mobile header */}
-      {!isPlaying && (
-        <header className="md:hidden flex items-center justify-between px-4 py-3 border-b border-border bg-sidebar/95 backdrop-blur-lg z-30 sticky top-0">
-          <Link to="/" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-              <Zap className="text-primary" size={18} />
-            </div>
-            <h1 className="text-lg font-bold tracking-tight text-foreground">PiStation</h1>
-          </Link>
-          <button
-            onClick={() => setIsMobileMenuOpen((prev) => !prev)}
-            className="p-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-secondary transition-colors"
-            aria-label="Toggle menu"
-          >
-            {isMobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
-          </button>
-        </header>
-      )}
-
-      {/* Mobile menu overlay */}
-      {isMobileMenuOpen && !isPlaying && (
-        <div className="md:hidden fixed inset-0 top-[57px] z-30">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={closeMenu} />
-          <nav className="relative bg-sidebar border-r border-border w-72 h-full p-4 flex flex-col gap-1 overflow-y-auto animate-in slide-in-from-left duration-200">
-            {navItems.map((item) => {
-              const active = isActivePath(location.pathname, item.to);
-              return (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  onClick={closeMenu}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm transition-all ${
-                    active
-                      ? "bg-primary/10 text-primary font-semibold border border-primary/20"
-                      : "text-muted-foreground hover:bg-secondary hover:text-foreground border border-transparent"
-                  }`}
-                >
-                  {item.icon}
-                  <div className="flex flex-col">
-                    <span>{item.label}</span>
-                    {item.description && (
-                      <span className="text-[11px] text-muted-foreground font-normal">{item.description}</span>
-                    )}
-                  </div>
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
-      )}
-
-      {/* Desktop sidebar */}
-      {!isPlaying && (
-        <aside
-          className={`hidden md:flex flex-col bg-sidebar border-r border-border h-screen sticky top-0 transition-all duration-300 ${
-            isSidebarCollapsed ? "w-[72px]" : "w-[260px]"
-          }`}
-        >
-          <div className={`flex items-center gap-3 px-5 pt-6 pb-4 ${isSidebarCollapsed ? "justify-center" : ""}`}>
-            <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 glow-primary">
-              <Zap className="text-primary" size={22} />
-            </div>
-            {!isSidebarCollapsed && (
-              <div className="flex flex-col">
-                <h1 className="text-xl font-bold tracking-tight text-foreground">PiStation</h1>
-                <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-medium">
-                  Gaming Hub
-                </span>
-              </div>
-            )}
-          </div>
-
-          <div className="mx-4 mb-2 h-px bg-border" />
-
-          <nav className="flex-1 flex flex-col gap-0.5 px-3 py-2">
-            {navItems.map((item) => {
-              const active = isActivePath(location.pathname, item.to);
-              return (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  title={isSidebarCollapsed ? item.label : undefined}
-                  className={`group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all relative ${
-                    active
-                      ? "bg-primary/10 text-primary font-semibold"
-                      : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
-                  } ${isSidebarCollapsed ? "justify-center" : ""}`}
-                >
-                  {active && (
-                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-primary rounded-r-full" />
-                  )}
-                  <span className={`shrink-0 transition-transform ${active ? "scale-110" : "group-hover:scale-105"}`}>
-                    {item.icon}
-                  </span>
-                  {!isSidebarCollapsed && (
-                    <>
-                      <span className="flex-1">{item.label}</span>
-                      {active && <ChevronRight size={14} className="text-primary/50" />}
-                    </>
-                  )}
-                </Link>
-              );
-            })}
-          </nav>
-
-          <div className="px-3 pb-2">
-            <button
-              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-              className="w-full flex items-center justify-center py-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
-              title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            >
-              <ChevronRight
-                size={16}
-                className={`transition-transform duration-300 ${isSidebarCollapsed ? "" : "rotate-180"}`}
-              />
-            </button>
-          </div>
-
-          {!isSidebarCollapsed && (
-            <div className="px-5 pb-4 pt-2 border-t border-border">
-              <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-mono">
-                <div className="w-1.5 h-1.5 rounded-full bg-[var(--success)] animate-pulse" />
-                <span>v0.3.0</span>
-                <span className="text-border">|</span>
-                <span>WASM Ready</span>
-              </div>
-            </div>
-          )}
-        </aside>
-      )}
-
-      <main
-        className={
-          isPlaying
-            ? "w-full h-screen bg-black"
-            : "flex-1 flex flex-col relative overflow-hidden bg-background min-h-screen"
-        }
-      >
+      <main className={
+        isPlaying
+          ? "w-full h-screen bg-black"
+          : "flex-1 flex flex-col relative overflow-hidden bg-background pt-20"
+      }>
         <Outlet />
       </main>
+
+      {/* Fixed top-left nav — Uiverse by Admin12121 */}
+      {!isPlaying && (
+        <nav className="rw-menu">
+          {navItems.map(item => (
+            <Link
+              key={item.to}
+              to={item.to}
+              className="rw-link"
+            >
+              <span className="rw-link-icon">{item.icon}</span>
+              <span className="rw-link-title">{item.label}</span>
+            </Link>
+          ))}
+        </nav>
+      )}
+
+      {/* Fixed top-right logout — Uiverse by vinodjangid07 */}
+      {!isPlaying && (
+        <button className="rw-logout-btn" onClick={handleLogout}>
+          <span className="rw-logout-sign">
+            <LogOut size={17} color="white" />
+          </span>
+          <span className="rw-logout-text">Logout</span>
+        </button>
+      )}
     </div>
   );
 }

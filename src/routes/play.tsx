@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { Nostalgist } from "nostalgist";
-import { Clock, Download, Menu, RotateCcw, Save, X, Expand, AlertTriangle } from "lucide-react";
+import { Clock, Download, Save, X } from "lucide-react";
 import { toast } from "sonner";
 import coreMap from "../data/coreMap.json";
 import {
@@ -17,6 +17,9 @@ import {
   updateGameMetadata,
 } from "../lib/storage/db";
 import { normalizeROM, NormalizeError } from "../lib/emulation/rom-normalizer";
+import SwitchGameShell from "../components/SwitchGameShell";
+import { useGamepadVisualizer } from "../hooks/useGamepadVisualizer";
+import { loadMappingOverrides } from "../gamepad/overrides";
 
 interface PlayLocationState {
   romFile?: File;
@@ -54,14 +57,15 @@ export default function Play() {
 
   const [bootState, setBootState] = useState<BootState | null>({ message: "Preparing player...", percent: 5 });
   const [runtimeError, setRuntimeError] = useState<RuntimeErrorState | null>(null);
-  const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isOverlayVisible, setIsOverlayVisible] = useState(true);
   const [slots, setSlots] = useState<SaveData[]>([]);
   const [showSaveIndicator, setShowSaveIndicator] = useState(false);
   const [retryToken, setRetryToken] = useState(0);
   const [requiresTapToStart, setRequiresTapToStart] = useState(false);
   const [didTapToStart, setDidTapToStart] = useState(false);
+  const [showOverlay, setShowOverlay] = useState(true);
+  const [mappingOverrides] = useState(() => loadMappingOverrides());
+  const { visualState } = useGamepadVisualizer({ overrides: mappingOverrides });
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -234,7 +238,7 @@ export default function Play() {
         if (isMenuOpen) {
           setIsMenuOpen(false);
         } else {
-          setIsOverlayVisible((prev) => !prev);
+          setShowOverlay((prev) => !prev);
         }
       }
 
@@ -274,7 +278,6 @@ export default function Play() {
     const launch = async () => {
       try {
         setRuntimeError(null);
-        setShowTechnicalDetails(false);
         setBootState({ message: "Preparing ROM...", percent: 5 });
 
         const normalized = await normalizeROM(romFile, {
@@ -336,6 +339,8 @@ export default function Play() {
         emulatorRef.current = launched as Nostalgist;
         setBootState(null);
         sessionStartedAtRef.current = Date.now();
+        // Focus canvas so keyboard input reaches RetroArch
+        setTimeout(() => canvasRef.current?.focus(), 100);
         await refreshSlots();
 
         if (gameId) {
@@ -438,154 +443,47 @@ export default function Play() {
   const playingTitle = routeState?.filename || romFile?.name || "Emulator";
 
   return (
-    <div className="relative h-[100dvh] w-full bg-black overflow-hidden">
-      {requiresTapToStart && !didTapToStart && (
-        <div className="absolute inset-0 z-[70] bg-black/90 backdrop-blur-sm flex flex-col items-center justify-center text-center px-6">
-          <h2 className="text-4xl font-bold text-white mb-4">Tap to Start</h2>
-          <p className="font-sans text-muted-foreground max-w-md mb-8">
-            iOS Safari requires a user gesture to start audio and gameplay.
-          </p>
-          <button
-            className="px-8 py-3 bg-primary text-primary-foreground font-sans font-medium transition-colors hover:bg-destructive rounded-md"
-            onClick={async () => {
-              try {
-                const Ctx = (window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext);
-                if (Ctx) {
-                  const ctx = new Ctx();
-                  if (ctx.state === "suspended") {
-                    await ctx.resume();
-                  }
-                }
-              } catch {
-                // best-effort only
-              }
-              setDidTapToStart(true);
-            }}
-          >
-            Start Game
-          </button>
-        </div>
-      )}
-
-      {isOverlayVisible && (
-        <div className="absolute top-0 left-0 right-0 z-40 p-4 bg-gradient-to-b from-black/90 via-black/50 to-transparent flex items-center justify-between gap-3 h-24">
-          <h2 className="text-xl md:text-2xl font-bold truncate text-white drop-shadow-md pb-4">{playingTitle}</h2>
-          <div className="flex items-center gap-3 pb-4">
-            <button
-              onClick={() => {
-                setIsMenuOpen(true);
-                setIsOverlayVisible(true);
-              }}
-              className="bg-primary text-primary-foreground px-4 py-2 font-sans font-medium text-sm flex items-center gap-2 hover:bg-destructive transition-colors rounded-sm shadow-md"
-            >
-              <Menu size={16} /> Menu (Esc)
-            </button>
-            <button
-              onClick={() => navigate("/")}
-              className="bg-card border border-border text-foreground px-4 py-2 flex items-center justify-center transition-colors hover:bg-muted rounded-sm shadow-md"
-              title="Back to Library"
-            >
-              <X size={16} />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {(bootState || runtimeError) && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-6">
-          {!runtimeError && bootState && (
-            <div className="w-full max-w-md bg-card border border-border p-8 text-center shadow-2xl rounded-md">
-              <div className="w-14 h-14 border-4 border-[#333333] border-t-primary rounded-full animate-spin mx-auto mb-6" />
-              <p className="font-sans text-foreground font-bold text-lg mb-4">{bootState.message}</p>
-              <div className="w-full bg-[#111111] h-2 overflow-hidden rounded-full">
-                <div className="h-full bg-primary transition-all" style={{ width: `${Math.max(4, bootState.percent)}%` }} />
-              </div>
-            </div>
-          )}
-
-          {runtimeError && (
-            <div className="w-full max-w-xl bg-card border-t-4 border-t-primary p-8 shadow-2xl rounded-md">
-              <div className="flex items-center gap-3 mb-4">
-                <AlertTriangle className="text-primary" size={28} />
-                <h3 className="text-2xl font-bold text-white">Load Failed</h3>
-              </div>
-              <p className="font-sans text-muted-foreground mb-6">{runtimeError.userMessage}</p>
-              <div className="flex flex-wrap gap-3">
-                <button
-                  onClick={() => {
-                    setRuntimeError(null);
-                    setRetryToken((prev) => prev + 1);
-                  }}
-                  className="px-6 py-2 bg-primary text-primary-foreground font-sans font-medium hover:bg-destructive transition-colors rounded-sm"
-                >
-                  Try Again
-                </button>
-                <button
-                  onClick={() => navigate("/")}
-                  className="px-6 py-2 bg-muted border border-border text-foreground hover:bg-secondary transition-colors rounded-sm"
-                >
-                  Back to Library
-                </button>
-              </div>
-              <button
-                onClick={() => setShowTechnicalDetails((prev) => !prev)}
-                className="text-xs text-muted-foreground mt-6 hover:text-foreground font-sans uppercase tracking-widest transition-colors"
-              >
-                {showTechnicalDetails ? "Hide Details" : "Show Details"}
-              </button>
-              {showTechnicalDetails && runtimeError.technicalMessage && (
-                <pre className="mt-4 text-xs text-destructive/90 bg-[#111111] border border-border p-4 overflow-auto max-h-44 font-mono">
-                  {runtimeError.technicalMessage}
-                </pre>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      <div className="absolute inset-x-0 bottom-4 z-30 flex justify-center pointer-events-none">
-        <div
-          className={`pointer-events-auto transition-all duration-300 flex items-center gap-2 bg-black/65 border border-neutral-700 rounded-full px-3 py-2 ${isOverlayVisible ? "opacity-100" : "opacity-0 translate-y-3"
-            }`}
-        >
-          <button onClick={() => void handleSaveState(0)} className="px-3 py-1.5 rounded-full text-xs bg-neutral-800 hover:bg-neutral-700">
-            Save
-          </button>
-          <button onClick={() => void handleLoadState(0)} className="px-3 py-1.5 rounded-full text-xs bg-neutral-800 hover:bg-neutral-700">
-            Load
-          </button>
-          <button onClick={() => void handleReset()} className="px-3 py-1.5 rounded-full text-xs bg-neutral-800 hover:bg-neutral-700 flex items-center gap-1">
-            <RotateCcw size={13} /> Reset
-          </button>
-          <button onClick={() => void handleFullscreenToggle()} className="px-3 py-1.5 rounded-full text-xs bg-neutral-800 hover:bg-neutral-700 flex items-center gap-1">
-            <Expand size={13} /> Fullscreen
-          </button>
-          <button onClick={() => navigate("/")} className="px-3 py-1.5 rounded-full text-xs bg-neutral-800 hover:bg-neutral-700">
-            Library
-          </button>
-        </div>
-      </div>
-
-      <div
-        className={`absolute bottom-4 right-4 z-40 transition-all duration-500 flex items-center gap-2 bg-black/65 border border-neutral-700 rounded-full px-3 py-1.5 ${showSaveIndicator ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2 pointer-events-none"
-          }`}
+    <>
+      <SwitchGameShell
+        title={playingTitle}
+        bootState={bootState}
+        runtimeError={runtimeError}
+        showSaveIndicator={showSaveIndicator}
+        onSave={() => void handleSaveState(0)}
+        onLoad={() => void handleLoadState(0)}
+        onReset={() => void handleReset()}
+        onFullscreen={() => void handleFullscreenToggle()}
+        onExit={() => navigate("/")}
+        onMenu={() => setIsMenuOpen(true)}
+        onRetry={() => { setRuntimeError(null); setRetryToken(p => p + 1); }}
+        showOverlay={showOverlay}
+        onOverlayToggle={() => setShowOverlay(p => !p)}
+        controllerState={visualState}
       >
-        <Save size={15} className="text-primary" />
-        <span className="text-xs uppercase tracking-wide">Auto-saved</span>
-      </div>
-
-      <canvas
-        ref={canvasRef}
-        className="w-full h-full object-contain"
-        onMouseMove={() => setIsOverlayVisible(true)}
-        onClick={() => {
-          setIsOverlayVisible(false);
-          setIsMenuOpen(false);
-        }}
-      />
+        {/* iOS tap-to-start overlay */}
+        {requiresTapToStart && !didTapToStart && (
+          <div style={{ position: 'absolute', inset: 0, zIndex: 70, background: 'rgba(0,0,0,0.9)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            <h2 style={{ color: '#fff', fontSize: 24, marginBottom: 8 }}>Tap to Start</h2>
+            <button style={{ padding: '12px 24px', background: '#cc0000', color: '#fff', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 700 }} onClick={async () => {
+              try {
+                const Ctx = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+                if (Ctx) { const c = new Ctx(); if (c.state === 'suspended') await c.resume(); }
+              } catch {}
+              setDidTapToStart(true);
+            }}>Start Game</button>
+          </div>
+        )}
+        <canvas
+          ref={canvasRef}
+          tabIndex={0}
+          style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block', outline: 'none' }}
+          onClick={() => { setShowOverlay(false); canvasRef.current?.focus(); }}
+          onMouseMove={() => setShowOverlay(true)}
+        />
+      </SwitchGameShell>
 
       {isMenuOpen && (
-        <div className="absolute inset-0 z-[60] bg-black/85 backdrop-blur-sm p-4 sm:p-8 flex items-center justify-center">
+        <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(4px)', padding: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div className="w-full max-w-5xl h-[90vh] bg-card border border-border shadow-2xl flex flex-col rounded-lg">
             <div className="flex items-center justify-between p-6 border-b border-border">
               <h2 className="text-3xl font-bold text-foreground">Save States</h2>
@@ -650,6 +548,6 @@ export default function Play() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

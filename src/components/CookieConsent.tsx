@@ -1,125 +1,135 @@
 import { useState, useEffect } from "react";
-import { Cookie, Settings2, Check, X } from "lucide-react";
+import { Cookie, ChevronDown, ChevronUp, Shield } from "lucide-react";
 
-const CONSENT_KEY = "pistation.cookie_consent";
+const STORAGE_KEY = "retroweb_cookie_consent";
+
+interface ConsentState {
+  essential: true;
+  analytics: boolean;
+  personalisation: boolean;
+  decided: boolean;
+}
 
 export default function CookieConsent() {
-  const [isVisible, setIsVisible] = useState(false);
-  const [showPreferences, setShowPreferences] = useState(false);
-  const [preferences, setPreferences] = useState({
+  const [visible, setVisible] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [consent, setConsent] = useState<ConsentState>({
     essential: true,
     analytics: false,
-    personalization: true,
+    personalisation: false,
+    decided: false,
   });
 
   useEffect(() => {
-    const consent = localStorage.getItem(CONSENT_KEY);
-    if (!consent) {
-      const timer = setTimeout(() => setIsVisible(true), 2000);
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) {
+      const timer = setTimeout(() => setVisible(true), 1500);
       return () => clearTimeout(timer);
     }
   }, []);
 
-  const handleAccept = () => {
-    localStorage.setItem(CONSENT_KEY, JSON.stringify({ ...preferences, analytics: true, accepted: true, ts: Date.now() }));
-    setIsVisible(false);
+  const save = (state: ConsentState) => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    setVisible(false);
   };
 
-  const handleSavePreferences = () => {
-    localStorage.setItem(CONSENT_KEY, JSON.stringify({ ...preferences, accepted: true, ts: Date.now() }));
-    setIsVisible(false);
-  };
+  const acceptAll = () => save({ essential: true, analytics: true, personalisation: true, decided: true });
+  const rejectOptional = () => save({ essential: true, analytics: false, personalisation: false, decided: true });
+  const savePreferences = () => save({ ...consent, decided: true });
 
-  const handleReject = () => {
-    localStorage.setItem(CONSENT_KEY, JSON.stringify({ essential: true, analytics: false, personalization: false, accepted: true, ts: Date.now() }));
-    setIsVisible(false);
-  };
-
-  if (!isVisible) return null;
+  if (!visible) return null;
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-5 duration-500 w-[380px] max-w-[calc(100vw-2rem)]">
-      <div className="rounded-2xl overflow-hidden" style={{ boxShadow: "var(--shadow-xl)" }}>
-        {/* Main card */}
-        <div className="bg-card border border-border rounded-2xl">
-          <div className="flex flex-col items-center justify-between pt-8 px-6 pb-6 relative">
-            {/* Cookie icon */}
-            <span className="relative mx-auto -mt-12 mb-6">
-              <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center glow-primary">
-                <Cookie className="text-primary" size={28} />
-              </div>
-            </span>
-
-            <h5 className="text-sm font-semibold mb-2 text-left mr-auto text-foreground">
-              Your privacy matters
-            </h5>
-
-            <p className="w-full mb-4 text-sm text-muted-foreground leading-relaxed">
-              We use local storage to save your preferences, game data, and session info.
-              Everything stays on your device.
-            </p>
-
-            {showPreferences && (
-              <div className="w-full mb-4 space-y-3 p-4 bg-secondary rounded-xl border border-border">
-                <label className="flex items-center justify-between cursor-not-allowed">
-                  <span className="text-sm text-foreground">Essential</span>
-                  <div className="w-10 h-6 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-end px-1">
-                    <div className="w-4 h-4 rounded-full bg-primary" />
-                  </div>
-                </label>
-                <label className="flex items-center justify-between cursor-pointer" onClick={() => setPreferences(p => ({ ...p, analytics: !p.analytics }))}>
-                  <span className="text-sm text-foreground">Analytics</span>
-                  <div className={`w-10 h-6 rounded-full border flex items-center px-1 transition-colors ${preferences.analytics ? "bg-primary/20 border-primary/30 justify-end" : "bg-secondary border-border justify-start"}`}>
-                    <div className={`w-4 h-4 rounded-full transition-colors ${preferences.analytics ? "bg-primary" : "bg-muted-foreground"}`} />
-                  </div>
-                </label>
-                <label className="flex items-center justify-between cursor-pointer" onClick={() => setPreferences(p => ({ ...p, personalization: !p.personalization }))}>
-                  <span className="text-sm text-foreground">Personalization</span>
-                  <div className={`w-10 h-6 rounded-full border flex items-center px-1 transition-colors ${preferences.personalization ? "bg-primary/20 border-primary/30 justify-end" : "bg-secondary border-border justify-start"}`}>
-                    <div className={`w-4 h-4 rounded-full transition-colors ${preferences.personalization ? "bg-primary" : "bg-muted-foreground"}`} />
-                  </div>
-                </label>
-              </div>
-            )}
-
-            <div className="flex w-full gap-2">
-              {showPreferences ? (
-                <>
-                  <button
-                    onClick={handleReject}
-                    className="flex-1 px-4 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground border border-border rounded-xl transition-colors hover:bg-secondary"
-                  >
-                    <X size={14} className="inline mr-1" />
-                    Reject
-                  </button>
-                  <button
-                    onClick={handleSavePreferences}
-                    className="flex-1 px-4 py-2.5 text-sm font-semibold text-primary-foreground bg-primary hover:bg-primary/90 rounded-xl transition-colors"
-                  >
-                    <Check size={14} className="inline mr-1" />
-                    Save
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    onClick={() => setShowPreferences(true)}
-                    className="flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground border border-border rounded-xl transition-colors hover:bg-secondary"
-                  >
-                    <Settings2 size={14} />
-                    Options
-                  </button>
-                  <button
-                    onClick={handleAccept}
-                    className="flex-1 px-6 py-2.5 text-sm font-semibold text-primary-foreground bg-primary hover:bg-primary/90 rounded-xl transition-colors glow-primary"
-                  >
-                    Accept All
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
+    <div
+      className="fixed bottom-4 right-4 z-[60] w-full max-w-sm rounded-xl p-5 shadow-2xl"
+      style={{
+        background: 'var(--surface-1)',
+        border: '1px solid var(--border-strong)',
+        animation: 'fadeSlideIn 0.4s ease forwards',
+      }}
+    >
+      <div className="flex items-start gap-3 mb-3">
+        <div className="p-2 rounded-lg shrink-0" style={{ background: 'var(--surface-3)' }}>
+          <Cookie size={18} style={{ color: 'var(--accent-primary)' }} />
         </div>
+        <div>
+          <h3 className="font-bold text-sm mb-1" style={{ color: 'var(--text-primary)' }}>Cookie Preferences</h3>
+          <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+            We use cookies to improve your experience. Essential cookies keep things working.
+          </p>
+        </div>
+      </div>
+
+      {expanded && (
+        <div className="mb-4 space-y-3 pt-3" style={{ borderTop: '1px solid var(--border-soft)' }}>
+          {[
+            { key: 'essential', label: 'Essential', desc: 'Required for core functionality. Cannot be disabled.', locked: true },
+            { key: 'analytics', label: 'Analytics', desc: 'Help us understand how the app is used.' },
+            { key: 'personalisation', label: 'Personalisation', desc: 'Remember your preferences and settings.' },
+          ].map((item) => (
+            <div key={item.key} className="flex items-start justify-between gap-3">
+              <div className="flex-1">
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <Shield size={12} style={{ color: item.locked ? 'var(--success)' : 'var(--text-muted)' }} />
+                  <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>{item.label}</span>
+                  {item.locked && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'var(--surface-3)', color: 'var(--success)' }}>
+                      Always On
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{item.desc}</p>
+              </div>
+              <button
+                disabled={item.locked}
+                onClick={() => {
+                  if (item.key === 'analytics') setConsent(p => ({ ...p, analytics: !p.analytics }));
+                  if (item.key === 'personalisation') setConsent(p => ({ ...p, personalisation: !p.personalisation }));
+                }}
+                className="shrink-0 w-10 h-5 rounded-full transition-colors duration-200 relative disabled:opacity-60"
+                style={{
+                  background: (item.locked || consent[item.key as keyof ConsentState]) ? 'var(--accent-primary)' : 'var(--surface-3)',
+                }}
+              >
+                <span
+                  className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform duration-200"
+                  style={{ transform: (item.locked || consent[item.key as keyof ConsentState]) ? 'translateX(20px)' : 'translateX(2px)' }}
+                />
+              </button>
+            </div>
+          ))}
+          <button
+            onClick={savePreferences}
+            className="w-full text-xs font-bold py-2 rounded-lg transition-colors"
+            style={{ background: 'var(--surface-3)', color: 'var(--text-primary)' }}
+          >
+            Save Preferences
+          </button>
+        </div>
+      )}
+
+      <div className="flex gap-2 mt-3">
+        <button
+          onClick={rejectOptional}
+          className="flex-1 text-xs font-bold py-2 rounded-lg transition-colors"
+          style={{ background: 'var(--surface-3)', color: 'var(--text-secondary)' }}
+        >
+          Reject
+        </button>
+        <button
+          onClick={() => setExpanded(p => !p)}
+          className="flex items-center gap-1 text-xs py-2 px-3 rounded-lg transition-colors"
+          style={{ background: 'var(--surface-3)', color: 'var(--text-muted)' }}
+        >
+          Options {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+        </button>
+        <button
+          onClick={acceptAll}
+          className="flex-1 text-xs font-bold py-2 rounded-lg transition-colors"
+          style={{ background: 'var(--accent-primary)', color: '#fff' }}
+        >
+          Accept All
+        </button>
       </div>
     </div>
   );
