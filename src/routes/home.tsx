@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { LibraryBig, Gamepad2, Cpu, Save, MessageCircle, Settings2, Upload, Wifi } from "lucide-react";
+import { LibraryBig, Gamepad2, Cpu, Save, MessageCircle, Upload, Wifi } from "lucide-react";
 
 /* From Uiverse.io by TemRevil — Pong animation, colour-matched, slowed */
 const PONG_CSS = `

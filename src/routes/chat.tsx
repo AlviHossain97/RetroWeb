@@ -8,6 +8,7 @@ interface Message {
 
 const OLLAMA_BASE = "http://localhost:11434";
 const KOKORO_BASE = "http://localhost:8787";
+const WHISPER_BASE = "http://localhost:8786";
 
 /* ── Exact Cobp CSS (From Uiverse.io by Cobp) ── */
 const COBP_CSS = `
@@ -623,7 +624,8 @@ export default function Chat() {
   const [streaming, setStreaming] = useState(false);
   const [ollamaOnline, setOllamaOnline] = useState(false);
   const [kokoroOnline, setKokoroOnline] = useState(false);
-  const selectedModel = "llava:7b";
+  const [selectedModel, setSelectedModel] = useState("llava:7b");
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [listening, setListening] = useState(false);
   const [pendingImages, setPendingImages] = useState<string[]>([]); // base64 images
@@ -649,7 +651,14 @@ export default function Chat() {
     const check = async () => {
       try {
         const tagsRes = await fetch(`${OLLAMA_BASE}/api/tags`, { signal: AbortSignal.timeout(3000) });
-        if (!cancelled) setOllamaOnline(tagsRes.ok);
+        if (!cancelled) {
+          setOllamaOnline(tagsRes.ok);
+          if (tagsRes.ok) {
+            const data = await tagsRes.json();
+            const names: string[] = (data.models || []).map((m: { name: string }) => m.name);
+            setAvailableModels(names);
+          }
+        }
       } catch { if (!cancelled) setOllamaOnline(false); }
       try {
         const kRes = await fetch(`${KOKORO_BASE}/health`, { signal: AbortSignal.timeout(3000) });
@@ -708,10 +717,10 @@ export default function Chat() {
   const speakChunk = useCallback(async (text: string): Promise<void> => {
     if (!kokoroOnline || !voiceEnabled || !text.trim()) return;
     try {
-      const res = await fetch(`${KOKORO_BASE}/tts`, {
+      const res = await fetch(`${KOKORO_BASE}/v1/audio/speech`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, voice: "af_heart", speed: 1.2 }),
+        body: JSON.stringify({ model: "kokoro", input: text, voice: "af_heart", speed: 1.2, response_format: "mp3" }),
       });
       if (res.ok) {
         const blob = await res.blob();
@@ -724,9 +733,6 @@ export default function Chat() {
       }
     } catch { /* silent fail */ }
   }, [kokoroOnline, voiceEnabled]);
-
-  // Speak full text (legacy, for non-streaming use)
-  const speak = speakChunk;
 
   // Send message — accepts optional directText for voice mode
   const sendMessageDirect = useCallback(async (directText?: string) => {
@@ -836,11 +842,12 @@ export default function Chat() {
 
   const sendMessage = useCallback(() => { sendMessageDirect(); }, [sendMessageDirect]);
 
-  // Whisper STT: record audio chunk, send to /stt, get transcript
+  // Whisper STT: record audio, send to local Whisper server
   const transcribeChunk = useCallback(async (blob: Blob): Promise<string> => {
     const form = new FormData();
-    form.append("audio", blob, "audio.wav");
-    const res = await fetch(`${KOKORO_BASE}/stt`, { method: "POST", body: form });
+    form.append("file", blob, "audio.webm");
+    form.append("model", "Systran/faster-whisper-small");
+    const res = await fetch(`${WHISPER_BASE}/v1/audio/transcriptions`, { method: "POST", body: form });
     if (!res.ok) return "";
     const data = await res.json();
     return (data.text || "").trim();
@@ -966,6 +973,17 @@ export default function Chat() {
             RetroWeb AI
           </h2>
           <div className="flex items-center gap-2">
+            {availableModels.length > 1 && (
+              <select
+                value={selectedModel}
+                onChange={(e) => setSelectedModel(e.target.value)}
+                className="text-xs px-2 py-1 rounded-full bg-zinc-700 text-white border border-zinc-600 outline-none cursor-pointer"
+              >
+                {availableModels.map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            )}
             {messages.length > 0 && (
               <button
                 onClick={() => setMessages([])}
