@@ -1,13 +1,19 @@
 import { Outlet, Link, useLocation, Navigate, useNavigate } from "react-router";
 import type { ReactNode } from "react";
-import { Gamepad2, LibraryBig, Settings2, Cpu, Save, LogOut, MessageCircle, Home } from "lucide-react";
-import { useState, useCallback, useEffect } from "react";
+import { Gamepad2, LibraryBig, Settings2, Cpu, Save, LogOut, MessageCircle, Home, Download, X } from "lucide-react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Toaster, toast } from "sonner";
 import LegalModal from "./components/LegalModal";
 import CookieConsent from "./components/CookieConsent";
 import PacmanGhostEasterEgg from "./components/PacmanGhostEasterEgg";
 import PongBackground from "./components/PongBackground";
+import OnboardingTutorial from "./components/OnboardingTutorial";
+import NotificationCenter from "./components/NotificationCenter";
 import { validateBiosFilename, saveBIOS } from "./lib/storage/db";
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt(): Promise<void>;
+}
 
 interface NavItem {
   to: string;
@@ -117,9 +123,7 @@ const LOGOUT_CSS = `
   border: none;
   border-radius: 50%;
   cursor: pointer;
-  position: fixed;
-  top: 1rem;
-  right: 1rem;
+  position: relative;
   z-index: 30;
   overflow: hidden;
   transition-duration: .3s;
@@ -181,8 +185,43 @@ const LOGOUT_CSS = `
 
 export default function App() {
   const [isGlobalDragging, setIsGlobalDragging] = useState(false);
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
+  const deferredPromptRef = useRef<BeforeInstallPromptEvent | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Apply saved theme + accessibility on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("retroweb.settings.v1");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed.theme) document.documentElement.setAttribute("data-theme", parsed.theme);
+        if (parsed.highContrast) document.documentElement.classList.add("a11y-high-contrast");
+        if (parsed.largeText) document.documentElement.classList.add("a11y-large-text");
+        if (parsed.reducedMotion) document.documentElement.classList.add("a11y-reduced-motion");
+      }
+    } catch { /* noop */ }
+  }, []);
+
+  // PWA install prompt
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault();
+      deferredPromptRef.current = e as BeforeInstallPromptEvent;
+      setShowInstallBanner(true);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  const handleInstallPWA = async () => {
+    const prompt = deferredPromptRef.current;
+    if (!prompt) return;
+    await prompt.prompt();
+    deferredPromptRef.current = null;
+    setShowInstallBanner(false);
+  };
 
   const isPlaying = location.pathname === "/play";
   const isLoggedIn = sessionStorage.getItem("retroweb.loggedIn") === "true";
@@ -287,23 +326,40 @@ export default function App() {
         </div>
       )}
 
+      {/* PWA Install Banner */}
+      {showInstallBanner && !isPlaying && (
+        <div className="fixed bottom-20 md:bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-80 z-40 rounded-xl p-4 flex items-center gap-3 shadow-lg" style={{ background: 'var(--surface-1)', border: '1px solid var(--border-soft)' }}>
+          <Download size={24} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Install RetroWeb</p>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Add to home screen for the best experience</p>
+          </div>
+          <button onClick={() => void handleInstallPWA()} className="px-3 py-1.5 rounded-lg text-xs font-bold" style={{ background: 'var(--accent-primary)', color: '#fff' }}>Install</button>
+          <button onClick={() => setShowInstallBanner(false)} style={{ color: 'var(--text-muted)' }}><X size={16} /></button>
+        </div>
+      )}
+
       <Toaster theme="dark" position="bottom-right" />
       <LegalModal />
       <CookieConsent />
+      <OnboardingTutorial />
       <PacmanGhostEasterEgg frightenThreshold={5} frightenDuration={4000} />
 
-      <main className={
-        isPlaying
-          ? "w-full h-screen bg-black"
-          : "flex-1 flex flex-col relative overflow-hidden bg-background pt-20"
-      }>
+      <main
+        key={location.pathname}
+        className={
+          isPlaying
+            ? "w-full h-screen bg-black"
+            : "flex-1 flex flex-col relative overflow-hidden bg-background pt-20 pb-16 md:pb-0 page-transition"
+        }
+      >
         {!isPlaying && <PongBackground />}
         <Outlet />
       </main>
 
-      {/* Fixed top-left nav — Uiverse by Admin12121 */}
+      {/* Fixed top-left nav — Uiverse by Admin12121 (hidden on mobile) */}
       {!isPlaying && (
-        <nav className="rw-menu">
+        <nav className="rw-menu hidden md:flex">
           {navItems.map(item => (
             <Link
               key={item.to}
@@ -317,14 +373,40 @@ export default function App() {
         </nav>
       )}
 
-      {/* Fixed top-right logout — Uiverse by vinodjangid07 */}
+      {/* Mobile bottom tab bar */}
       {!isPlaying && (
-        <button className="rw-logout-btn" onClick={handleLogout}>
-          <span className="rw-logout-sign">
-            <LogOut size={17} color="white" />
-          </span>
-          <span className="rw-logout-text">Logout</span>
-        </button>
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 flex justify-around items-center py-2 px-1" style={{ background: 'var(--surface-1)', borderTop: '1px solid var(--border-soft)' }}>
+          {[
+            { to: "/", label: "Home", icon: <Home size={20} /> },
+            { to: "/library", label: "Library", icon: <LibraryBig size={20} /> },
+            { to: "/chat", label: "Chat", icon: <MessageCircle size={20} /> },
+            { to: "/saves", label: "Saves", icon: <Save size={20} /> },
+            { to: "/settings", label: "Settings", icon: <Settings2 size={20} /> },
+          ].map(item => (
+            <Link
+              key={item.to}
+              to={item.to}
+              className="flex flex-col items-center gap-0.5 text-[10px] transition-colors"
+              style={{ color: location.pathname === item.to ? 'var(--accent-primary)' : 'var(--text-muted)' }}
+            >
+              {item.icon}
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+      )}
+
+      {/* Fixed top-right controls */}
+      {!isPlaying && (
+        <div className="fixed top-4 right-4 z-40 flex items-center gap-2">
+          <NotificationCenter />
+          <button className="rw-logout-btn" onClick={handleLogout}>
+            <span className="rw-logout-sign">
+              <LogOut size={17} color="white" />
+            </span>
+            <span className="rw-logout-text">Logout</span>
+          </button>
+        </div>
       )}
     </div>
   );

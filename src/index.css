@@ -149,6 +149,128 @@
   --sidebar-ring: #cc0000;
 }
 
+/* ── Theme: NES Classic ── */
+[data-theme="nes"] {
+  --background: #e0e0e0;
+  --foreground: #1a1a1a;
+  --card: #c8c8c8;
+  --card-foreground: #1a1a1a;
+  --primary: #cc0000;
+  --primary-foreground: #ffffff;
+  --secondary: #b0b0b0;
+  --secondary-foreground: #1a1a1a;
+  --muted: #d0d0d0;
+  --muted-foreground: #555555;
+  --accent: #cc0000;
+  --accent-foreground: #ffffff;
+  --border: rgba(0,0,0,0.12);
+  --input: #d0d0d0;
+  --ring: #cc0000;
+  --bg-primary: #e0e0e0;
+  --surface-1: #c8c8c8;
+  --surface-2: #d0d0d0;
+  --surface-3: #b8b8b8;
+  --text-primary: #1a1a1a;
+  --text-secondary: #444444;
+  --text-muted: #777777;
+  --accent-primary: #cc0000;
+  --accent-secondary: #ff4444;
+  --border-soft: rgba(0,0,0,0.08);
+  --border-strong: rgba(0,0,0,0.18);
+}
+
+/* ── Theme: Game Boy ── */
+[data-theme="gameboy"] {
+  --background: #9bbc0f;
+  --foreground: #0f380f;
+  --card: #8bac0f;
+  --card-foreground: #0f380f;
+  --primary: #306230;
+  --primary-foreground: #9bbc0f;
+  --secondary: #8bac0f;
+  --secondary-foreground: #0f380f;
+  --muted: #8bac0f;
+  --muted-foreground: #306230;
+  --accent: #306230;
+  --accent-foreground: #9bbc0f;
+  --border: rgba(15,56,15,0.2);
+  --input: #8bac0f;
+  --ring: #306230;
+  --bg-primary: #9bbc0f;
+  --surface-1: #8bac0f;
+  --surface-2: #7b9c0f;
+  --surface-3: #6b8c0f;
+  --text-primary: #0f380f;
+  --text-secondary: #1f4f1f;
+  --text-muted: #306230;
+  --accent-primary: #306230;
+  --accent-secondary: #0f380f;
+  --border-soft: rgba(15,56,15,0.12);
+  --border-strong: rgba(15,56,15,0.25);
+}
+
+/* ── Theme: SNES Purple ── */
+[data-theme="snes"] {
+  --background: #1a1030;
+  --foreground: #e8e0f8;
+  --card: #2a1a48;
+  --card-foreground: #e8e0f8;
+  --primary: #8b5cf6;
+  --primary-foreground: #ffffff;
+  --secondary: #352560;
+  --secondary-foreground: #e8e0f8;
+  --muted: #2a1a48;
+  --muted-foreground: #a89cc8;
+  --accent: #8b5cf6;
+  --accent-foreground: #ffffff;
+  --border: rgba(139,92,246,0.15);
+  --input: #2a1a48;
+  --ring: #8b5cf6;
+  --bg-primary: #1a1030;
+  --surface-1: #2a1a48;
+  --surface-2: #352560;
+  --surface-3: #3f2f70;
+  --text-primary: #e8e0f8;
+  --text-secondary: #c4b8e8;
+  --text-muted: #8878a8;
+  --accent-primary: #8b5cf6;
+  --accent-secondary: #a78bfa;
+  --accent-glow: rgba(139,92,246,0.4);
+  --border-soft: rgba(139,92,246,0.08);
+  --border-strong: rgba(139,92,246,0.2);
+}
+
+/* ── Theme: Terminal Green ── */
+[data-theme="terminal"] {
+  --background: #0a0a0a;
+  --foreground: #00ff00;
+  --card: #111111;
+  --card-foreground: #00ff00;
+  --primary: #00ff00;
+  --primary-foreground: #000000;
+  --secondary: #1a1a1a;
+  --secondary-foreground: #00ff00;
+  --muted: #1a1a1a;
+  --muted-foreground: #008800;
+  --accent: #00ff00;
+  --accent-foreground: #000000;
+  --border: rgba(0,255,0,0.15);
+  --input: #1a1a1a;
+  --ring: #00ff00;
+  --bg-primary: #0a0a0a;
+  --surface-1: #111111;
+  --surface-2: #1a1a1a;
+  --surface-3: #222222;
+  --text-primary: #00ff00;
+  --text-secondary: #00cc00;
+  --text-muted: #008800;
+  --accent-primary: #00ff00;
+  --accent-secondary: #44ff44;
+  --accent-glow: rgba(0,255,0,0.3);
+  --border-soft: rgba(0,255,0,0.08);
+  --border-strong: rgba(0,255,0,0.2);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -191,6 +313,26 @@
   .flicker-anim { animation: none; }
   .shimmer-anim { animation: none; }
   .carousel-anim { animation: none; }
+  .page-transition { animation: none; }
+}
+
+/* Page transition */
+@keyframes pageEnter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.page-transition {
+  animation: pageEnter 0.25s ease-out;
+}
+
+/* Accessibility modes */
+.a11y-high-contrast { --text-primary: #ffffff !important; --text-secondary: #e0e0e0 !important; --border-soft: #888 !important; }
+.a11y-high-contrast * { border-color: #888 !important; }
+.a11y-large-text { font-size: 18px !important; }
+.a11y-reduced-motion *, .a11y-reduced-motion *::before, .a11y-reduced-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
 }
 
 .neon-upload-circle {

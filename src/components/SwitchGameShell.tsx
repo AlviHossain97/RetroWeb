@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
-import { Save, Download, RotateCcw, Expand, LogOut, AlertTriangle, Maximize } from 'lucide-react';
+import { Save, Download, RotateCcw, Expand, LogOut, AlertTriangle, Maximize, MessageCircle, Users } from 'lucide-react';
 import type { ControllerButton, ControllerVisualState } from '../gamepad/types';
 
 interface BootState { message: string; percent: number; }
@@ -18,9 +18,20 @@ interface SwitchGameShellProps {
   onExit: () => void;
   onMenu: () => void;
   onRetry: () => void;
+  onAskAI?: () => void;
+  onCycleSpeed?: () => void;
+  onToggleFps?: () => void;
+  speedMultiplier?: number;
+  showFps?: boolean;
+  fps?: number;
   showOverlay: boolean;
   onOverlayToggle: () => void;
   controllerState?: ControllerVisualState | null;
+  onNetplay?: () => void;
+  netplayConnected?: boolean;
+  onToggleTurbo?: () => void;
+  turboEnabled?: boolean;
+  rewindActive?: boolean;
   children: ReactNode;
 }
 
@@ -528,8 +539,9 @@ function JoyCon_Joystick({ x = 0, y = 0, pressed = false }: { x?: number; y?: nu
 /* ── Main component ─────────────────────────────────────────────── */
 export default function SwitchGameShell({
   title, bootState, runtimeError, showSaveIndicator,
-  onSave, onLoad, onReset, onFullscreen, onExit, onMenu, onRetry,
-  controllerState, children,
+  onSave, onLoad, onReset, onFullscreen, onExit, onMenu, onRetry, onAskAI,
+  onCycleSpeed, onToggleFps, speedMultiplier = 1, showFps: showFpsOverlay, fps,
+  controllerState, onNetplay, netplayConnected, onToggleTurbo, turboEnabled, rewindActive, children,
 }: SwitchGameShellProps) {
   const [showTechnical, setShowTechnical] = useState(false);
 
@@ -676,13 +688,23 @@ export default function SwitchGameShell({
 
       {/* ── Controls bar ────────────────────────────── */}
       <div className="sw-ctrl-bar">
-        <span className="sw-game-title">{title}</span>
+        <span className="sw-game-title">
+          {title}
+          {speedMultiplier !== 1 && <span style={{ marginLeft: 6, color: '#ff4444', fontSize: 10 }}>{speedMultiplier}x</span>}
+          {showFpsOverlay && fps !== undefined && <span style={{ marginLeft: 6, color: '#4ade80', fontSize: 10 }}>{fps} FPS</span>}
+        </span>
         <div style={{ display: 'flex', gap: 4, flexWrap: 'nowrap' }}>
           <button className="sw-ctrl-btn" onClick={onSave}       title="Save state (F1)"><Save size={12} /> Save</button>
           <button className="sw-ctrl-btn" onClick={onLoad}       title="Load state (F4)"><Download size={12} /> Load</button>
           <button className="sw-ctrl-btn" onClick={onReset}      title="Reset"><RotateCcw size={12} /></button>
+          {onCycleSpeed && <button className="sw-ctrl-btn" onClick={onCycleSpeed} title="Speed (F2)" style={speedMultiplier !== 1 ? { color: '#ff4444' } : {}}>{speedMultiplier}x</button>}
+          {onToggleFps && <button className="sw-ctrl-btn" onClick={onToggleFps} title="FPS overlay (F3)" style={showFpsOverlay ? { color: '#4ade80' } : {}}>FPS</button>}
+          {onToggleTurbo && <button className="sw-ctrl-btn" onClick={onToggleTurbo} title="Turbo A/B (F4)" style={turboEnabled ? { color: '#f6c90e' } : {}}>TRB</button>}
+          <button className="sw-ctrl-btn" title="Rewind (hold F5)" style={rewindActive ? { color: '#60a5fa' } : {}}>⏪</button>
           <button className="sw-ctrl-btn" onClick={onMenu}       title="Save slots"><Maximize size={12} /></button>
           <button className="sw-ctrl-btn" onClick={onFullscreen} title="Fullscreen (F11)"><Expand size={12} /></button>
+          {onAskAI && <button className="sw-ctrl-btn" onClick={onAskAI} title="Ask AI about this"><MessageCircle size={12} /></button>}
+          {onNetplay && <button className="sw-ctrl-btn" onClick={onNetplay} title="Netplay" style={netplayConnected ? { color: '#22c55e' } : {}}><Users size={12} /></button>}
           <button className="sw-ctrl-btn sw-exit" onClick={onExit} title="Exit to Library"><LogOut size={12} /></button>
         </div>
       </div>

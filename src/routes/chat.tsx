@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { saveChatMessages, loadChatMessages, clearChatMessages, type ChatMessage } from "../lib/storage/db";
+import { checkAndUnlock } from "../lib/achievements";
 
 interface Message {
   role: "user" | "assistant";
@@ -694,6 +696,9 @@ export default function Chat() {
   const [listening, setListening] = useState(false);
   const [pendingImages, setPendingImages] = useState<string[]>([]);
   const [pendingFiles, setPendingFiles] = useState<{ name: string; content: string }[]>([]);
+  const [persona, setPersona] = useState<string>("default");
+  const [walkthroughMode, setWalkthroughMode] = useState(false);
+  const walkthroughRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const chatDisplayRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -732,6 +737,41 @@ export default function Chat() {
     check();
     const interval = setInterval(check, 15000);
     return () => { cancelled = true; clearInterval(interval); };
+  }, []);
+
+  // Load chat history from IndexedDB on mount
+  useEffect(() => {
+    loadChatMessages().then((saved) => {
+      if (saved.length > 0) {
+        setMessages(saved.map((m) => ({ role: m.role, content: m.content, images: m.images })));
+      }
+    });
+  }, []);
+
+  // Persist chat messages when they change
+  useEffect(() => {
+    if (messages.length === 0) return;
+    const toSave: ChatMessage[] = messages.map((m, i) => ({
+      role: m.role,
+      content: m.content,
+      images: m.images,
+      timestamp: i,
+    }));
+    saveChatMessages(toSave);
+  }, [messages]);
+
+  // Pick up screenshot from emulator if navigated from Play page
+  useEffect(() => {
+    const screenshot = sessionStorage.getItem("retroweb.screenshotForAI");
+    if (screenshot) {
+      sessionStorage.removeItem("retroweb.screenshotForAI");
+      setPendingImages((prev) => [...prev, screenshot]);
+    }
+  }, []);
+
+  // Cleanup walkthrough interval
+  useEffect(() => {
+    return () => { if (walkthroughRef.current) clearInterval(walkthroughRef.current); };
   }, []);
 
   // File upload handlers
@@ -800,6 +840,10 @@ export default function Chat() {
     setMessages(prev => [...prev, userMsg, assistantMsg]);
     setStreaming(true);
 
+    // Achievement triggers
+    void checkAndUnlock("ai_chat");
+    if (images && images.length > 0) void checkAndUnlock("screenshot_ai");
+
     // TTS queue for clause-level streaming in voice mode
     // Flushes on sentence ends, clause boundaries, or max length so speech starts ASAP
     const isVoice = voiceModeRef.current && voiceEnabled;
@@ -853,16 +897,34 @@ export default function Chat() {
     };
 
     try {
+      // Build game-aware system context with persona
+      const lastGame = sessionStorage.getItem("retroweb.lastPlayedGame");
+      const personaPrompts: Record<string, string> = {
+        default: "You are a helpful retro gaming assistant for RetroWeb, a browser-based emulator platform.",
+        clerk: "You are a friendly retro game store clerk from the 90s. You speak with nostalgia and enthusiasm about classic games. Use casual language and occasionally reference the era.",
+        speedrunner: "You are an expert speedrunner who knows every trick, glitch, and shortcut in retro games. Be technical and precise, mention frame data and strats.",
+        historian: "You are a retro gaming historian and collector. You focus on the cultural context, development history, and legacy of games and consoles. Share interesting trivia.",
+        comedian: "You are a witty retro gaming comedian. You make jokes and puns about classic games while still being helpful. Keep it light and fun.",
+      };
+      const personaBase = personaPrompts[persona] || personaPrompts.default;
+      const gameContext = lastGame ? ` The user recently played: ${lastGame}.` : "";
+      const systemPrompt = `${personaBase}${gameContext} You can help with tips, cheats, walkthroughs, and general retro gaming knowledge. Be concise and helpful.`;
+
+      const apiMessages = [
+        { role: "system", content: systemPrompt },
+        ...[...messages, userMsg].map(m => {
+          const msg: Record<string, unknown> = { role: m.role, content: m.content };
+          if (m.images && m.images.length > 0) msg.images = m.images;
+          return msg;
+        }),
+      ];
+
       const res = await fetch(`${OLLAMA_BASE}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           model: selectedModel,
-          messages: [...messages, userMsg].map(m => {
-            const msg: Record<string, unknown> = { role: m.role, content: m.content };
-            if (m.images && m.images.length > 0) msg.images = m.images;
-            return msg;
-          }),
+          messages: apiMessages,
           stream: true,
           think: false,
         }),
@@ -1046,6 +1108,7 @@ export default function Chat() {
       // Start voice mode
       voiceModeRef.current = true;
       setListening(true);
+      void checkAndUnlock("voice_mode");
       startRecRef.current();
     }
   }, []);
@@ -1089,7 +1152,7 @@ export default function Chat() {
                 Cancel
               </button>
               <button
-                onClick={() => { setMessages([]); setShowClearConfirm(false); }}
+                onClick={() => { setMessages([]); clearChatMessages(); setShowClearConfirm(false); }}
                 className="bg-red-500 hover:bg-transparent px-4 py-2 text-xs shadow-sm hover:shadow-lg font-medium tracking-wider border-2 border-red-500 hover:border-red-500 text-white hover:text-red-500 rounded-full transition ease-in duration-300"
               >
                 Confirm
@@ -1115,6 +1178,24 @@ export default function Chat() {
                   <img src={MODEL_ICONS[selectedModel].icon} alt="" className="w-3.5 h-3.5 object-contain" />
                 )}
                 {MODEL_ICONS[selectedModel]?.label || selectedModel}
+              </button>
+            )}
+            {messages.length > 0 && (
+              <button
+                onClick={() => {
+                  const md = messages.map(m => `**${m.role === "user" ? "You" : "AI"}:**\n${m.content}`).join("\n\n---\n\n");
+                  const blob = new Blob([`# RetroWeb AI Chat\n\n${md}`], { type: "text/markdown" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `retroweb-chat-${new Date().toISOString().slice(0, 10)}.md`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                className="text-xs px-2 py-1 rounded-full bg-zinc-700 text-white border border-zinc-600 hover:bg-zinc-600 transition-colors"
+                title="Export chat as Markdown"
+              >
+                📥
               </button>
             )}
             {messages.length > 0 && (
@@ -1212,6 +1293,55 @@ export default function Chat() {
           </div>
         </div>
       )}
+
+      {/* Persona + Quick Actions */}
+      <div className="px-4 py-2 border-b dark:border-zinc-700 flex items-center gap-2 flex-wrap">
+        <select
+          className="text-xs bg-zinc-800 border border-zinc-600 text-white rounded-full px-2 py-1"
+          value={persona}
+          onChange={(e) => setPersona(e.target.value)}
+          title="AI Persona"
+        >
+          <option value="default">🤖 Assistant</option>
+          <option value="clerk">🏪 Store Clerk</option>
+          <option value="speedrunner">⚡ Speedrunner</option>
+          <option value="historian">📚 Historian</option>
+          <option value="comedian">😄 Comedian</option>
+        </select>
+        <button
+          onClick={() => { void sendMessageDirect("Based on my recently played games and gaming preferences, what retro game should I play next? Give me 3 recommendations with brief reasons."); }}
+          className="text-xs px-2 py-1 rounded-full bg-emerald-600 text-white hover:bg-emerald-500 transition-colors"
+          title="Get AI game recommendations"
+        >
+          🎲 Recommend
+        </button>
+        <button
+          onClick={() => {
+            setWalkthroughMode(w => {
+              if (!w) {
+                // Start walkthrough — periodically grab screenshot and ask for tips
+                const iv = setInterval(() => {
+                  const ss = sessionStorage.getItem("retroweb.screenshotForAI");
+                  if (ss) {
+                    sessionStorage.removeItem("retroweb.screenshotForAI");
+                    setPendingImages([ss]);
+                    void sendMessageDirect("I'm playing right now. Look at this screenshot and give me a quick tip or hint about what I should do next. Keep it brief (1-2 sentences).");
+                  }
+                }, 30000);
+                walkthroughRef.current = iv;
+              } else {
+                if (walkthroughRef.current) clearInterval(walkthroughRef.current);
+                walkthroughRef.current = null;
+              }
+              return !w;
+            });
+          }}
+          className={`text-xs px-2 py-1 rounded-full transition-colors ${walkthroughMode ? "bg-amber-500 text-black" : "bg-zinc-700 text-white hover:bg-zinc-600"}`}
+          title="Auto-analyze screenshots every 30s while playing"
+        >
+          🗺️ {walkthroughMode ? "Walkthrough ON" : "Walkthrough"}
+        </button>
+      </div>
 
       {/* Messages */}
       <div

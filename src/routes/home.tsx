@@ -1,5 +1,14 @@
-import { Link } from "react-router";
-import { LibraryBig, Gamepad2, Cpu, Save, MessageCircle, Upload, Wifi } from "lucide-react";
+import { Link, useNavigate } from "react-router";
+import { LibraryBig, Gamepad2, Cpu, Save, MessageCircle, Upload, Wifi, Clock, Play } from "lucide-react";
+import { useEffect, useState } from "react";
+import { getRecentGames, type Game } from "../lib/storage/db";
+
+function formatPlaytime(seconds?: number) {
+  if (!seconds) return "";
+  if (seconds < 60) return `${seconds}s`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+  return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
+}
 
 const features = [
   {
@@ -53,6 +62,13 @@ const features = [
 ];
 
 export default function Home() {
+  const [recentGames, setRecentGames] = useState<Game[]>([]);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    getRecentGames(6).then(setRecentGames);
+  }, []);
+
   return (
     <div className="flex-1 overflow-y-auto">
       {/* Hero */}
@@ -82,6 +98,45 @@ export default function Home() {
           </Link>
         </div>
       </section>
+
+      {/* Continue Playing */}
+      {recentGames.length > 0 && (
+        <section className="px-6 pb-8 max-w-6xl mx-auto">
+          <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+            <Clock size={22} className="text-purple-400" /> Continue Playing
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {recentGames.map((game) => (
+              <button
+                key={game.id}
+                onClick={() => navigate("/library")}
+                className="group relative rounded-xl overflow-hidden border border-zinc-800 hover:border-purple-500/50 transition-all duration-300 text-left"
+                style={{ background: "var(--surface-1)" }}
+              >
+                <div className="aspect-[3/4] w-full relative">
+                  {game.coverUrl ? (
+                    <img src={game.coverUrl} alt={game.displayTitle || game.title} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center" style={{ background: "var(--surface-2)" }}>
+                      <Gamepad2 size={32} className="text-zinc-600" />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center">
+                    <Play size={32} className="text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                </div>
+                <div className="p-2">
+                  <p className="text-xs font-semibold text-white truncate">{game.displayTitle || game.title}</p>
+                  <p className="text-[10px] text-zinc-500">
+                    {game.system.toUpperCase()}
+                    {game.playtime ? ` · ${formatPlaytime(game.playtime)}` : ""}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Features grid */}
       <section className="px-6 pb-20 max-w-6xl mx-auto">

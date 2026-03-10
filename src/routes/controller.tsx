@@ -1,8 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
-import { Gamepad2, Link2, RotateCcw } from "lucide-react";
+import { Gamepad2, Keyboard, Link2, RotateCcw } from "lucide-react";
 import { useGamepadVisualizer } from "../hooks/useGamepadVisualizer";
 import type { ControllerButton, MappingOverrides } from "../gamepad/types";
 import { loadMappingOverrides, saveMappingOverrides } from "../gamepad/overrides";
+import {
+  getDefaultKeyboardMap,
+  getEffectiveKeyboardMap,
+  keyCodeToLabel,
+  loadKeyboardOverrides,
+  saveKeyboardOverrides,
+  type KeyboardOverrides,
+} from "../gamepad/keyboard-overrides";
 
 const REMAPPABLE_BUTTONS: ControllerButton[] = [
   "a", "b", "x", "y",
@@ -20,6 +28,12 @@ export default function ControllerTest() {
   const [waitingFor, setWaitingFor] = useState<ControllerButton | null>(null);
   const [message, setMessage] = useState<string>("");
 
+  // Keyboard mapping state
+  const [kbOverrides, setKbOverrides] = useState<KeyboardOverrides>(() => loadKeyboardOverrides());
+  const [kbWaitingFor, setKbWaitingFor] = useState<ControllerButton | null>(null);
+  const [kbMessage, setKbMessage] = useState<string>("");
+  const effectiveKb = useMemo(() => ({ ...getDefaultKeyboardMap(), ...kbOverrides }), [kbOverrides]);
+
   const {
     supported,
     connectedPads,
@@ -33,6 +47,24 @@ export default function ControllerTest() {
   useEffect(() => {
     saveMappingOverrides(overrides);
   }, [overrides]);
+
+  // Persist keyboard overrides
+  useEffect(() => {
+    saveKeyboardOverrides(kbOverrides);
+  }, [kbOverrides]);
+
+  // Listen for keyboard press when remapping
+  useEffect(() => {
+    if (!kbWaitingFor) return;
+    const handler = (e: KeyboardEvent) => {
+      e.preventDefault();
+      setKbOverrides((prev) => ({ ...prev, [kbWaitingFor]: e.code }));
+      setKbMessage(`${prettyButtonName(kbWaitingFor)} mapped to ${keyCodeToLabel(e.code)}`);
+      setKbWaitingFor(null);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [kbWaitingFor]);
 
   useEffect(() => {
     if (!waitingFor || !activePadRaw) return;
@@ -167,6 +199,54 @@ export default function ControllerTest() {
                 </button>
               ))}
             </div>
+          </div>
+        </section>
+
+        {/* Keyboard Mapping Section */}
+        <section className="rounded-xl p-4" style={{ background: 'var(--surface-1)', border: '1px solid var(--border-soft)' }}>
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
+                <Keyboard size={18} className="inline mr-2" />Keyboard Mapping
+              </h2>
+              <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+                Click a button then press a key to remap. These are the keys used during emulation.
+              </p>
+            </div>
+            <button
+              className="px-3 py-2 rounded-lg text-xs font-medium"
+              style={{ background: 'var(--surface-3)', border: '1px solid var(--border-soft)', color: 'var(--text-secondary)' }}
+              onClick={() => {
+                setKbOverrides({});
+                setKbMessage("Keyboard mappings reset to defaults.");
+              }}
+            >
+              <RotateCcw size={14} className="inline mr-1" /> Reset to defaults
+            </button>
+          </div>
+          {kbMessage && <p className="mt-3 text-xs" style={{ color: '#22c55e' }}><Link2 size={12} className="inline mr-1" />{kbMessage}</p>}
+
+          <div className="mt-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+            {REMAPPABLE_BUTTONS.map((btn) => (
+              <button
+                key={btn}
+                onClick={() => setKbWaitingFor(btn)}
+                className="rounded-md px-3 py-2 text-xs text-left flex items-center justify-between"
+                style={{
+                  background: kbWaitingFor === btn ? 'rgba(204,0,0,0.14)' : 'var(--surface-2)',
+                  border: kbWaitingFor === btn ? '1px solid rgba(204,0,0,0.35)' : '1px solid var(--border-soft)',
+                  color: 'var(--text-secondary)',
+                }}
+              >
+                <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{prettyButtonName(btn)}</span>
+                <span>
+                  <span className="px-2 py-0.5 rounded text-[11px] font-mono" style={{ background: 'var(--surface-3)', color: 'var(--text-primary)' }}>
+                    {keyCodeToLabel(effectiveKb[btn] ?? '')}
+                  </span>
+                  {kbWaitingFor === btn && <span className="ml-2 text-[10px]" style={{ color: '#ff6666' }}>Press a key…</span>}
+                </span>
+              </button>
+            ))}
           </div>
         </section>
       </div>

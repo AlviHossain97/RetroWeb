@@ -69,12 +69,43 @@ export interface Game {
   romHash?: string;
   lastAutoSaveAt?: number;
   lastSessionStartedAt?: number;
+  collectionIds?: string[];
+  rating?: number; // 1-5 stars, undefined = unrated
+  perGameSettings?: Record<string, string>;
+  cheats?: string[];
+}
+
+export interface ChatMessage {
+  id?: number;
+  role: "user" | "assistant";
+  content: string;
+  images?: string[];
+  timestamp: number;
+}
+
+export interface Collection {
+  id: string;
+  name: string;
+  description?: string;
+  coverUrl?: string;
+  createdAt: number;
+}
+
+export interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  unlockedAt?: number;
 }
 
 class RetroWebDatabase extends Dexie {
   saves!: EntityTable<SaveData, "id">;
   bios!: EntityTable<BIOSFile, "filename">;
   games!: EntityTable<Game, "id">;
+  chatMessages!: EntityTable<ChatMessage, "id">;
+  collections!: EntityTable<Collection, "id">;
+  achievements!: EntityTable<Achievement, "id">;
 
   constructor() {
     super("RetroWebDB");
@@ -106,6 +137,14 @@ class RetroWebDatabase extends Dexie {
           });
         }
       });
+    this.version(4).stores({
+      saves: "++id, [filename+type], filename, system, type, slot, timestamp",
+      bios: "filename, system, hashMd5, verifiedHash, installedAt",
+      games: "id, title, system, addedAt, lastPlayed, isFavorite, romHash, lastAutoSaveAt",
+      chatMessages: "++id, timestamp",
+      collections: "id, name, createdAt",
+      achievements: "id, unlockedAt",
+    });
   }
 }
 
@@ -441,4 +480,82 @@ export async function removeRomFromOPFS(id: string) {
   } catch {
     // noop
   }
+}
+
+// ── Recently Played ──
+export async function getRecentGames(limit = 8): Promise<Game[]> {
+  return db.games
+    .where("lastPlayed")
+    .above(0)
+    .reverse()
+    .sortBy("lastPlayed")
+    .then((games) => games.slice(0, limit));
+}
+
+// ── Chat Messages ──
+export async function saveChatMessages(messages: ChatMessage[]) {
+  await db.chatMessages.clear();
+  await db.chatMessages.bulkAdd(messages);
+}
+
+export async function loadChatMessages(): Promise<ChatMessage[]> {
+  return db.chatMessages.orderBy("timestamp").toArray();
+}
+
+export async function clearChatMessages() {
+  await db.chatMessages.clear();
+}
+
+// ── Collections ──
+export async function getAllCollections(): Promise<Collection[]> {
+  return db.collections.orderBy("createdAt").reverse().toArray();
+}
+
+export async function saveCollection(collection: Collection) {
+  await db.collections.put(collection);
+}
+
+export async function removeCollection(id: string) {
+  await db.collections.delete(id);
+  // Remove collection reference from games
+  const games = await db.games.toArray();
+  for (const game of games) {
+    if (game.collectionIds?.includes(id)) {
+      await db.games.update(game.id, {
+        collectionIds: game.collectionIds.filter((cid) => cid !== id),
+      });
+    }
+  }
+}
+
+export async function addGameToCollection(gameId: string, collectionId: string) {
+  const game = await db.games.get(gameId);
+  if (!game) return;
+  const ids = new Set(game.collectionIds ?? []);
+  ids.add(collectionId);
+  await db.games.update(gameId, { collectionIds: [...ids] });
+}
+
+export async function removeGameFromCollection(gameId: string, collectionId: string) {
+  const game = await db.games.get(gameId);
+  if (!game) return;
+  await db.games.update(gameId, {
+    collectionIds: (game.collectionIds ?? []).filter((id) => id !== collectionId),
+  });
+}
+
+// ── Achievements ──
+export async function getAllAchievements(): Promise<Achievement[]> {
+  return db.achievements.toArray();
+}
+
+export async function unlockAchievement(achievement: Achievement) {
+  const existing = await db.achievements.get(achievement.id);
+  if (existing?.unlockedAt) return false; // already unlocked
+  await db.achievements.put({ ...achievement, unlockedAt: Date.now() });
+  return true;
+}
+
+export async function getUnlockedAchievements(): Promise<Achievement[]> {
+  return db.achievements.where("unlockedAt").above(0).toArray();
 }

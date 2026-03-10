@@ -10,11 +10,17 @@ import {
   loadRomFromOPFS,
   removeRomFromOPFS,
   type Game,
+  type Collection,
   updateGameMetadata,
+  getAllCollections,
+  saveCollection,
+  removeCollection,
+  addGameToCollection,
+  removeGameFromCollection,
 } from "../lib/storage/db";
 import { normalizeROM, NormalizeError, type ZipRomCandidate } from "../lib/emulation/rom-normalizer";
 import coreMap from "../data/coreMap.json";
-import { UploadCloud, AlertCircle, Save, HardDrive, Search, ArrowUpDown, Gamepad2 } from "lucide-react";
+import { UploadCloud, AlertCircle, Save, HardDrive, Search, ArrowUpDown, Gamepad2, FolderPlus, Folder, X, ImageDown } from "lucide-react";
 import { toast } from "sonner";
 import LibraryGrid from "../components/LibraryGrid";
 import GameDetailsDrawer from "../components/GameDetailsDrawer";
@@ -22,8 +28,9 @@ import LoaderOverlay from "../components/LoaderOverlay";
 import { cleanGameTitleFromFilename, getSystemLabel } from "../lib/library/title-utils";
 import { md5FromUint8Array } from "../lib/hash/md5";
 import { SYSTEMS } from "../data/systemBrowserData";
+import { scrapeGameMetadata, scrapeAllMissingMetadata } from "../lib/metadata/scraper";
 
-type SortKey = "name" | "system" | "lastPlayed" | "dateAdded" | "playtime";
+type SortKey = "name" | "system" | "lastPlayed" | "dateAdded" | "playtime" | "rating";
 
 /* From Uiverse.io by akshat-patel28 — neon upload circle, colour-matched */
 const UPLOAD_CSS = `
@@ -125,7 +132,7 @@ export default function Library() {
   });
   const [sortBy, setSortBy] = useState<SortKey>(() => {
     const stored = localStorage.getItem(SORT_STORAGE_KEY);
-    return stored === "name" || stored === "system" || stored === "lastPlayed" || stored === "dateAdded" || stored === "playtime"
+    return stored === "name" || stored === "system" || stored === "lastPlayed" || stored === "dateAdded" || stored === "playtime" || stored === "rating"
       ? stored
       : "dateAdded";
   });
@@ -133,6 +140,13 @@ export default function Library() {
   const [zipPicker, setZipPicker] = useState<ZipPickerState | null>(null);
   const [coverTargetGameId, setCoverTargetGameId] = useState<string | null>(null);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
+
+  // Collections
+  const [collections, setCollections] = useState<Collection[]>([]);
+  const [activeCollectionId, setActiveCollectionId] = useState<string | null>(null);
+  const [showNewCollection, setShowNewCollection] = useState(false);
+  const [newCollectionName, setNewCollectionName] = useState("");
+  const [scrapingArt, setScrapingArt] = useState(false);
 
   const coverInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
@@ -151,8 +165,14 @@ export default function Library() {
     setGames(allGames);
   };
 
+  const fetchCollections = async () => {
+    const cols = await getAllCollections();
+    setCollections(cols);
+  };
+
   useEffect(() => {
     fetchGames();
+    fetchCollections();
   }, []);
 
   useEffect(() => {
@@ -288,6 +308,10 @@ export default function Library() {
         await saveRomToOPFS(dbId, actualFile);
         await saveGameMetadata(newGame);
         await fetchGames();
+        // Auto-scrape cover art in background
+        void scrapeGameMetadata(newGame).then((found) => {
+          if (found) fetchGames();
+        });
       } catch (error) {
         console.error(error);
         dbId = undefined;
@@ -508,6 +532,49 @@ export default function Library() {
     }
   };
 
+  const handleCreateCollection = async () => {
+    const name = newCollectionName.trim();
+    if (!name) return;
+    const col: Collection = { id: crypto.randomUUID(), name, createdAt: Date.now() };
+    await saveCollection(col);
+    setNewCollectionName("");
+    setShowNewCollection(false);
+    await fetchCollections();
+    toast.success(`Collection "${name}" created`);
+  };
+
+  const handleDeleteCollection = async (id: string) => {
+    await removeCollection(id);
+    if (activeCollectionId === id) setActiveCollectionId(null);
+    await fetchCollections();
+    await fetchGames();
+  };
+
+  const handleAddToCollection = async (gameId: string, collectionId: string) => {
+    await addGameToCollection(gameId, collectionId);
+    await fetchGames();
+    toast.success("Added to collection");
+  };
+
+  const handleRemoveFromCollection = async (gameId: string, collectionId: string) => {
+    await removeGameFromCollection(gameId, collectionId);
+    await fetchGames();
+  };
+
+  const handleScrapeAllArt = async () => {
+    setScrapingArt(true);
+    try {
+      const count = await scrapeAllMissingMetadata(games, (done, total) => {
+        toast.loading(`Fetching artwork... ${done}/${total}`, { id: "scrape-art" });
+      });
+      toast.dismiss("scrape-art");
+      toast.success(count > 0 ? `Found artwork for ${count} game${count > 1 ? "s" : ""}` : "No new artwork found");
+      if (count > 0) await fetchGames();
+    } finally {
+      setScrapingArt(false);
+    }
+  };
+
   const searchSuggestions = useMemo(() => {
     if (searchQuery.trim().length < 2) return [];
     const q = searchQuery.toLowerCase();
@@ -515,15 +582,33 @@ export default function Library() {
   }, [searchQuery]);
 
   const filteredGames = useMemo(() => {
-    if (!searchQuery.trim()) return games;
+    let result = games;
+    // Smart playlists
+    if (activeCollectionId === "__unplayed") {
+      result = result.filter((game) => !game.lastPlayed);
+    } else if (activeCollectionId === "__most_played") {
+      result = [...result].sort((a, b) => (b.playtime ?? 0) - (a.playtime ?? 0)).slice(0, 20);
+    } else if (activeCollectionId === "__stale") {
+      const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+      result = result.filter((game) => game.lastPlayed && game.lastPlayed < thirtyDaysAgo);
+    } else if (activeCollectionId === "__top_rated") {
+      result = result.filter((game) => (game.rating ?? 0) >= 4);
+    } else if (activeCollectionId === "__duplicates") {
+      const hashCounts = new Map<string, number>();
+      for (const g of result) { if (g.romHash) hashCounts.set(g.romHash, (hashCounts.get(g.romHash) ?? 0) + 1); }
+      result = result.filter((g) => g.romHash && (hashCounts.get(g.romHash) ?? 0) > 1);
+    } else if (activeCollectionId) {
+      result = result.filter((game) => game.collectionIds?.includes(activeCollectionId));
+    }
+    if (!searchQuery.trim()) return result;
     const q = searchQuery.toLowerCase();
-    return games.filter((game) => {
+    return result.filter((game) => {
       const systemName = SYSTEMS.find((system) => system.id === game.system)?.name ?? game.system;
       return [game.title, game.displayTitle, game.system, systemName, game.filename]
         .filter(Boolean)
         .some((token) => token!.toLowerCase().includes(q));
     });
-  }, [games, searchQuery]);
+  }, [games, searchQuery, activeCollectionId]);
 
   const sortedGames = useMemo(() => {
     const list = [...filteredGames];
@@ -537,6 +622,8 @@ export default function Library() {
           return (b.lastPlayed ?? 0) - (a.lastPlayed ?? 0);
         case "playtime":
           return (b.playtime ?? 0) - (a.playtime ?? 0);
+        case "rating":
+          return (b.rating ?? 0) - (a.rating ?? 0);
         case "dateAdded":
         default:
           return b.addedAt - a.addedAt;
@@ -632,7 +719,23 @@ export default function Library() {
         <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm p-4 flex items-center justify-center">
           <div className="w-full max-w-xl bg-card border border-border p-8 shadow-2xl animate-in fade-in zoom-in duration-300">
             <h3 className="text-3xl font-serif text-foreground mb-4">Multiple ROMs found in ZIP</h3>
-            <p className="font-sans text-[15px] text-muted-foreground mb-8">Choose one file to import from {zipPicker.sourceFile.name}.</p>
+            <p className="font-sans text-[15px] text-muted-foreground mb-8">Choose one file or import all from {zipPicker.sourceFile.name}.</p>
+            {zipPicker.candidates.length > 1 && (
+              <button
+                className="w-full mb-4 p-3 border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 text-sm font-medium transition-colors rounded-lg"
+                onClick={async () => {
+                  const source = zipPicker.sourceFile;
+                  const candidates = zipPicker.candidates;
+                  setZipPicker(null);
+                  for (const candidate of candidates) {
+                    await processFile(source, { autoLaunch: false, selectedZipEntry: candidate.id });
+                  }
+                  toast.success(`Imported ${candidates.length} ROMs from ${source.name}`);
+                }}
+              >
+                📦 Import All ({zipPicker.candidates.length} ROMs)
+              </button>
+            )}
             <div className="max-h-80 overflow-y-auto space-y-3 pr-2 scrollbar-thin">
               {zipPicker.candidates.map((candidate) => (
                 <button
@@ -714,8 +817,20 @@ export default function Library() {
               <option value="system">Sort: System</option>
               <option value="lastPlayed">Sort: Last Played</option>
               <option value="playtime">Sort: Playtime</option>
+              <option value="rating">Sort: Rating</option>
             </select>
           </div>
+
+          <button
+            onClick={() => void handleScrapeAllArt()}
+            disabled={scrapingArt || games.filter(g => !g.coverUrl).length === 0}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-40"
+            style={{background: 'var(--surface-2)', border: '1px solid var(--border-soft)', color: 'var(--text-primary)'}}
+            title="Auto-fetch cover art from LibRetro"
+          >
+            <ImageDown size={15} style={{color: 'var(--text-muted)'}} />
+            {scrapingArt ? "Fetching..." : "Fetch Art"}
+          </button>
 
           <div className="flex items-center gap-3 p-1 rounded-xl w-full sm:w-auto" style={{background: 'var(--surface-2)', border: '1px solid var(--border-soft)'}}>
             <button
@@ -752,6 +867,80 @@ export default function Library() {
                   <p className="text-xs mt-0.5" style={{color: 'var(--text-muted)'}}>{stat.label}</p>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Collections filter bar */}
+          {!searchQuery.trim() && (
+            <div className="flex items-center gap-2 flex-wrap mb-2">
+              <button
+                onClick={() => setActiveCollectionId(null)}
+                className="px-3 py-1.5 text-xs rounded-lg font-medium transition-colors"
+                style={!activeCollectionId ? {background: 'var(--accent-primary)', color: '#fff'} : {background: 'var(--surface-2)', color: 'var(--text-muted)', border: '1px solid var(--border-soft)'}}
+              >
+                All Games
+              </button>
+              {/* Smart playlists */}
+              {[
+                { id: "__unplayed", label: "Unplayed" },
+                { id: "__most_played", label: "Most Played" },
+                { id: "__stale", label: "Forgotten (30d+)" },
+                { id: "__top_rated", label: "Top Rated ★" },
+                { id: "__duplicates", label: "Duplicates" },
+              ].map(sp => (
+                <button
+                  key={sp.id}
+                  onClick={() => setActiveCollectionId(activeCollectionId === sp.id ? null : sp.id)}
+                  className="px-3 py-1.5 text-xs rounded-lg font-medium transition-colors italic"
+                  style={activeCollectionId === sp.id ? {background: 'var(--accent-primary)', color: '#fff'} : {background: 'var(--surface-2)', color: 'var(--text-muted)', border: '1px solid var(--border-soft)'}}
+                >
+                  {sp.label}
+                </button>
+              ))}
+              {collections.map(col => (
+                <div key={col.id} className="flex items-center gap-0.5">
+                  <button
+                    onClick={() => setActiveCollectionId(activeCollectionId === col.id ? null : col.id)}
+                    className="px-3 py-1.5 text-xs rounded-l-lg font-medium transition-colors flex items-center gap-1"
+                    style={activeCollectionId === col.id ? {background: 'var(--accent-primary)', color: '#fff'} : {background: 'var(--surface-2)', color: 'var(--text-muted)', border: '1px solid var(--border-soft)'}}
+                  >
+                    <Folder size={12} /> {col.name}
+                  </button>
+                  <button
+                    onClick={() => handleDeleteCollection(col.id)}
+                    className="px-1.5 py-1.5 text-xs rounded-r-lg transition-colors"
+                    style={{background: 'var(--surface-2)', color: 'var(--text-muted)', border: '1px solid var(--border-soft)', borderLeft: 'none'}}
+                    title="Delete collection"
+                  >
+                    <X size={10} />
+                  </button>
+                </div>
+              ))}
+              {showNewCollection ? (
+                <div className="flex items-center gap-1">
+                  <input
+                    autoFocus
+                    value={newCollectionName}
+                    onChange={(e) => setNewCollectionName(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleCreateCollection()}
+                    placeholder="Name..."
+                    className="px-2 py-1 text-xs rounded-lg w-32"
+                    style={{background: 'var(--surface-2)', color: 'var(--text-primary)', border: '1px solid var(--border-soft)'}}
+                  />
+                  <button onClick={handleCreateCollection} className="px-2 py-1 text-xs rounded-lg" style={{background: 'var(--accent-primary)', color: '#fff'}}>Add</button>
+                  <button onClick={() => setShowNewCollection(false)} className="px-1 py-1 text-xs" style={{color: 'var(--text-muted)'}}>
+                    <X size={12} />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowNewCollection(true)}
+                  className="px-2 py-1.5 text-xs rounded-lg transition-colors flex items-center gap-1"
+                  style={{background: 'var(--surface-2)', color: 'var(--text-muted)', border: '1px dashed var(--border-soft)'}}
+                >
+                  <FolderPlus size={12} /> New Collection
+                </button>
+              )}
             </div>
           )}
 
@@ -835,6 +1024,12 @@ export default function Library() {
         onToggleFavorite={handleToggleFavorite}
         onRemove={handleRemoveGame}
         onSetCover={handleSetCover}
+        collections={collections}
+        onAddToCollection={handleAddToCollection}
+        onRemoveFromCollection={handleRemoveFromCollection}
+        onRate={async (gameId, rating) => { await updateGameMetadata(gameId, { rating: rating || undefined }); await fetchGames(); }}
+        onUpdateSettings={async (gameId, settings) => { await updateGameMetadata(gameId, { perGameSettings: settings }); await fetchGames(); }}
+        onUpdateCheats={async (gameId, cheats) => { await updateGameMetadata(gameId, { cheats }); await fetchGames(); }}
       />
     </div>
   );
