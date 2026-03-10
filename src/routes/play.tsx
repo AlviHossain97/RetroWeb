@@ -77,6 +77,10 @@ export default function Play() {
   const [netplayConnected, setNetplayConnected] = useState(false);
   const [turboEnabled, setTurboEnabled] = useState(false);
   const [rewindActive, setRewindActive] = useState(false);
+  const [speedrunTimer, setSpeedrunTimer] = useState(false);
+  const [speedrunTime, setSpeedrunTime] = useState(0);
+  const [speedrunSplits, setSpeedrunSplits] = useState<number[]>([]);
+  const speedrunIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -234,6 +238,22 @@ export default function Play() {
     }
   }, []);
 
+  const handlePiP = useCallback(async () => {
+    try {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      // @ts-expect-error - requestPictureInPicture not yet in canvas types
+      if (document.pictureInPictureElement) { await document.exitPictureInPicture(); return; }
+      const video = document.createElement("video");
+      video.srcObject = canvas.captureStream(30);
+      video.muted = true;
+      await video.play();
+      await video.requestPictureInPicture();
+    } catch {
+      toast.error("Picture-in-Picture unavailable.");
+    }
+  }, []);
+
   const handleAskAI = useCallback(async () => {
     if (!canvasRef.current) return;
     const thumbnail = await captureThumbnail();
@@ -354,6 +374,29 @@ export default function Play() {
           try { emulator.sendCommand("REWIND"); } catch { /* rewind may not be supported */ }
         }
       }
+
+      // F6: Toggle speedrun timer
+      if (event.key === "F6") {
+        event.preventDefault();
+        setSpeedrunTimer((on) => {
+          if (!on) {
+            setSpeedrunTime(0);
+            setSpeedrunSplits([]);
+            const iv = setInterval(() => setSpeedrunTime((t) => t + 10), 10);
+            speedrunIntervalRef.current = iv;
+            return true;
+          } else {
+            if (speedrunIntervalRef.current) clearInterval(speedrunIntervalRef.current);
+            speedrunIntervalRef.current = null;
+            return false;
+          }
+        });
+      }
+      // F7: Record split
+      if (event.key === "F7") {
+        event.preventDefault();
+        if (speedrunTimer) setSpeedrunSplits((s) => [...s, speedrunTime]);
+      }
     };
 
     const onKeyUp = (event: KeyboardEvent) => {
@@ -417,7 +460,16 @@ export default function Play() {
           }
         }
 
-        setBootState({ message: `Loading ${activeCoreId.toUpperCase()} core...`, percent: 82 });
+        setBootState({ message: `Downloading ${activeCoreId.toUpperCase()} core…`, percent: 78 });
+        // Check if core is cached already
+        const coreUrl = `${activeCorePath}.wasm`;
+        const coreCache = await caches.open("retroweb-cores").catch(() => null);
+        const cached = coreCache ? await coreCache.match(coreUrl).catch(() => null) : null;
+        if (cached) {
+          setBootState({ message: `${activeCoreId.toUpperCase()} core loaded (cached)`, percent: 85 });
+        } else {
+          setBootState({ message: `First-time download: ${activeCoreId.toUpperCase()} core…`, percent: 80 });
+        }
         const launchArgs = {
           core: activeCoreId,
           rom: new File([normalized.blob], normalized.filename),
@@ -553,6 +605,22 @@ export default function Play() {
   ]);
 
   const playingTitle = routeState?.filename || romFile?.name || "Emulator";
+  const isPSX = requestedCoreId?.includes("pcsx") || requestedCoreId?.includes("beetle_psx") || requestedCoreId?.includes("mednafen_psx");
+
+  const handleDiscSwap = useCallback(() => {
+    const emulator = emulatorRef.current;
+    if (!emulator) return;
+    try {
+      emulator.sendCommand("DISK_EJECT_TOGGLE");
+      setTimeout(() => {
+        emulator.sendCommand("DISK_NEXT");
+        setTimeout(() => emulator.sendCommand("DISK_EJECT_TOGGLE"), 200);
+      }, 200);
+      toast.success("Disc swapped to next disc");
+    } catch {
+      toast.error("Disc swap failed");
+    }
+  }, []);
 
   return (
     <>
@@ -582,6 +650,11 @@ export default function Play() {
         onToggleTurbo={() => setTurboEnabled(p => !p)}
         turboEnabled={turboEnabled}
         rewindActive={rewindActive}
+        onPiP={() => void handlePiP()}
+        speedrunTimer={speedrunTimer}
+        speedrunTime={speedrunTime}
+        speedrunSplits={speedrunSplits}
+        onDiscSwap={isPSX ? handleDiscSwap : undefined}
       >
         {/* iOS tap-to-start overlay */}
         {requiresTapToStart && !didTapToStart && (

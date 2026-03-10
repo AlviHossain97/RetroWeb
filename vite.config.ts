@@ -36,7 +36,17 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,wasm,json}'],
-        maximumFileSizeToCacheInBytes: 50 * 1024 * 1024, // 50MB for cores
+        maximumFileSizeToCacheInBytes: 50 * 1024 * 1024,
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/raw\.githubusercontent\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'github-thumbnails',
+              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 7 },
+            },
+          },
+        ],
       }
     }),
     {
@@ -60,6 +70,20 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+    },
+  },
+  build: {
+    target: 'esnext',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router'],
+          'vendor-ui': ['lucide-react', 'sonner', 'clsx', 'tailwind-merge', 'class-variance-authority'],
+          'vendor-data': ['dexie', 'zustand', 'date-fns'],
+          'vendor-zip': ['@zip.js/zip.js'],
+          'emulator': ['nostalgist'],
+        },
+      },
     },
   },
 })

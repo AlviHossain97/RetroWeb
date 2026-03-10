@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, memo } from "react";
 import { Link } from "react-router";
 import { type SystemInfo } from "../data/systemBrowserData";
 import { saveBIOS, validateBiosFilename } from "../lib/storage/db";
@@ -18,7 +18,7 @@ const SYSTEM_ACCENT_COLORS: Record<string, string> = {
   default: '#cc0000',
 };
 
-export default function SystemCard({ sys, biosStatus, gameCount, onBiosChange }: SystemCardProps) {
+function SystemCard({ sys, biosStatus, gameCount, onBiosChange }: SystemCardProps) {
   const isDoable = sys.tier === "doable";
   const needsBios = sys.bios.length > 0;
   const isBiosReady = !needsBios || sys.bios.every(b => biosStatus[b]);
@@ -150,3 +150,5 @@ export default function SystemCard({ sys, biosStatus, gameCount, onBiosChange }:
     </div>
   );
 }
+
+export default memo(SystemCard);

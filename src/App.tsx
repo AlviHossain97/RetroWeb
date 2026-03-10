@@ -1,15 +1,17 @@
 import { Outlet, Link, useLocation, Navigate, useNavigate } from "react-router";
 import type { ReactNode } from "react";
 import { Gamepad2, LibraryBig, Settings2, Cpu, Save, LogOut, MessageCircle, Home, Download, X } from "lucide-react";
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo, lazy, Suspense } from "react";
 import { Toaster, toast } from "sonner";
-import LegalModal from "./components/LegalModal";
-import CookieConsent from "./components/CookieConsent";
-import PacmanGhostEasterEgg from "./components/PacmanGhostEasterEgg";
-import PongBackground from "./components/PongBackground";
-import OnboardingTutorial from "./components/OnboardingTutorial";
-import NotificationCenter from "./components/NotificationCenter";
 import { validateBiosFilename, saveBIOS } from "./lib/storage/db";
+
+// Lazy-load heavy shell components (not on critical render path)
+const LegalModal = lazy(() => import("./components/LegalModal"));
+const CookieConsent = lazy(() => import("./components/CookieConsent"));
+const PacmanGhostEasterEgg = lazy(() => import("./components/PacmanGhostEasterEgg"));
+const PongBackground = lazy(() => import("./components/PongBackground"));
+const OnboardingTutorial = lazy(() => import("./components/OnboardingTutorial"));
+const NotificationCenter = lazy(() => import("./components/NotificationCenter"));
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -223,8 +225,44 @@ export default function App() {
     setShowInstallBanner(false);
   };
 
+  // PWA auto-update notification
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+    const handleControllerChange = () => {
+      toast.info("🔄 New version available! Refreshing…", { duration: 3000 });
+      setTimeout(() => window.location.reload(), 2000);
+    };
+    navigator.serviceWorker.addEventListener("controllerchange", handleControllerChange);
+    // Also check for waiting service worker
+    navigator.serviceWorker.ready.then(reg => {
+      reg.addEventListener("updatefound", () => {
+        const newSW = reg.installing;
+        if (!newSW) return;
+        newSW.addEventListener("statechange", () => {
+          if (newSW.state === "installed" && navigator.serviceWorker.controller) {
+            toast("🆕 Update available!", {
+              action: { label: "Refresh", onClick: () => window.location.reload() },
+              duration: 10000,
+            });
+          }
+        });
+      });
+    }).catch(() => {});
+    return () => navigator.serviceWorker.removeEventListener("controllerchange", handleControllerChange);
+  }, []);
+
   const isPlaying = location.pathname === "/play";
   const isLoggedIn = sessionStorage.getItem("retroweb.loggedIn") === "true";
+
+  // Offline mode indicator
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  useEffect(() => {
+    const goOffline = () => setIsOffline(true);
+    const goOnline = () => setIsOffline(false);
+    window.addEventListener("offline", goOffline);
+    window.addEventListener("online", goOnline);
+    return () => { window.removeEventListener("offline", goOffline); window.removeEventListener("online", goOnline); };
+  }, []);
 
   if (!isLoggedIn) {
     return <Navigate to="/login" replace />;
@@ -298,7 +336,7 @@ export default function App() {
     return () => window.removeEventListener("drop", handleWindowDrop);
   }, []);
 
-  const navItems = [
+  const navItems = useMemo(() => [
     { to: "/", label: "Home", icon: <Home size={18} /> },
     { to: "/library", label: "Library", icon: <LibraryBig size={18} /> },
     { to: "/systems", label: "Supported Systems", icon: <Gamepad2 size={18} /> },
@@ -307,7 +345,7 @@ export default function App() {
     { to: "/controller", label: "Controller Test", icon: <Gamepad2 size={18} /> },
     { to: "/chat", label: "AI Chat", icon: <MessageCircle size={18} /> },
     { to: "/settings", label: "Settings", icon: <Settings2 size={18} /> },
-  ] satisfies NavItem[];
+  ] satisfies NavItem[], []);
 
   return (
     <div
@@ -339,11 +377,20 @@ export default function App() {
         </div>
       )}
 
+      {/* Offline mode indicator */}
+      {isOffline && (
+        <div className="fixed top-0 left-0 right-0 z-50 text-center py-1.5 text-xs font-bold tracking-wider" style={{ background: '#b91c1c', color: '#fff' }}>
+          ⚠️ You are offline — AI features and cloud sync are unavailable. Local games still work!
+        </div>
+      )}
+
       <Toaster theme="dark" position="bottom-right" />
-      <LegalModal />
-      <CookieConsent />
-      <OnboardingTutorial />
-      <PacmanGhostEasterEgg frightenThreshold={5} frightenDuration={4000} />
+      <Suspense fallback={null}>
+        <LegalModal />
+        <CookieConsent />
+        <OnboardingTutorial />
+        <PacmanGhostEasterEgg frightenThreshold={5} frightenDuration={4000} />
+      </Suspense>
 
       <main
         key={location.pathname}
@@ -353,7 +400,7 @@ export default function App() {
             : "flex-1 flex flex-col relative overflow-hidden bg-background pt-20 pb-16 md:pb-0 page-transition"
         }
       >
-        {!isPlaying && <PongBackground />}
+        {!isPlaying && <Suspense fallback={null}><PongBackground /></Suspense>}
         <Outlet />
       </main>
 
@@ -399,7 +446,7 @@ export default function App() {
       {/* Fixed top-right controls */}
       {!isPlaying && (
         <div className="fixed top-4 right-4 z-40 flex items-center gap-2">
-          <NotificationCenter />
+          <Suspense fallback={null}><NotificationCenter /></Suspense>
           <button className="rw-logout-btn" onClick={handleLogout}>
             <span className="rw-logout-sign">
               <LogOut size={17} color="white" />

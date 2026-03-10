@@ -1027,16 +1027,14 @@ export default function Chat() {
         let silenceStart = 0;
         const SILENCE_THRESHOLD = 5; // frequency avg below this = silence
         const SILENCE_DURATION = 1500; // ms of silence after speech before auto-stop
-        const MIN_SPEECH_DURATION = 500; // minimum recording time before silence can stop
-        const MAX_DURATION = 15000; // hard cap
+        const MIN_SPEECH_DURATION = 500;
+        const MAX_DURATION = 15000;
         const startTime = Date.now();
-        let logCounter = 0;
 
         const checkSilence = () => {
           if (recorder.state !== "recording") return;
           if (!voiceModeRef.current) { recorder.stop(); return; }
           if (Date.now() - startTime > MAX_DURATION) {
-            console.log("[Voice] Max duration reached, stopping");
             recorder.stop();
             return;
           }
@@ -1044,18 +1042,12 @@ export default function Chat() {
           analyser.getByteFrequencyData(dataArray);
           const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
 
-          // Log every ~30 frames (~0.5s) for debugging
-          if (logCounter++ % 30 === 0) {
-            console.log(`[Voice] avg=${avg.toFixed(1)} speechDetected=${speechDetected} elapsed=${Date.now() - startTime}ms`);
-          }
-
           if (avg > SILENCE_THRESHOLD) {
             speechDetected = true;
             silenceStart = 0;
           } else if (speechDetected && (Date.now() - startTime > MIN_SPEECH_DURATION)) {
             if (!silenceStart) silenceStart = Date.now();
             else if (Date.now() - silenceStart > SILENCE_DURATION) {
-              console.log("[Voice] Silence detected after speech, stopping");
               recorder.stop();
               return;
             }
@@ -1067,19 +1059,13 @@ export default function Chat() {
 
       if (!voiceModeRef.current) return;
 
-      // Transcribe with Whisper
-      console.log(`[Voice] Sending ${audioBlob.size} bytes to STT`);
       const transcript = await transcribeChunk(audioBlob);
-      console.log(`[Voice] Transcript: "${transcript}"`);
 
       if (!transcript || !voiceModeRef.current) {
-        console.log("[Voice] Empty transcript or voice mode off, restarting loop");
         if (voiceModeRef.current) startRecRef.current();
         return;
       }
 
-      // Send to AI
-      console.log(`[Voice] Sending to AI: "${transcript}"`);
       sendDirectRef.current(transcript);
     } catch (err) {
       console.error("[Whisper] Error:", err);

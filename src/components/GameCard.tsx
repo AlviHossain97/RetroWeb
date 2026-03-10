@@ -1,6 +1,6 @@
 import { Star, Play, Settings, Trash, Gamepad2, MoreVertical } from "lucide-react";
 import type { Game } from "../lib/storage/db";
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, memo } from "react";
 import { getSystemLabel, hasRecentAutoSave } from "../lib/library/title-utils";
 
 interface GameCardProps {
@@ -34,7 +34,7 @@ const SYSTEM_GRADIENTS: Record<string, string> = {
   n64: 'linear-gradient(135deg, #276749 0%, #38a169 100%)',
 };
 
-export default function GameCard({ game, onLaunch, onToggleFavorite, onRemove, onSetCover, onSelect }: GameCardProps) {
+function GameCard({ game, onLaunch, onToggleFavorite, onRemove, onSetCover, onSelect }: GameCardProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [spotlightStyle, setSpotlightStyle] = useState<React.CSSProperties>({});
   const [tiltStyle, setTiltStyle] = useState<React.CSSProperties>({});
@@ -209,3 +209,5 @@ export default function GameCard({ game, onLaunch, onToggleFavorite, onRemove, o
     </div>
   );
 }
+
+export default memo(GameCard);

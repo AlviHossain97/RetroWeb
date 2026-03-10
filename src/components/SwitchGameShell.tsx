@@ -32,6 +32,11 @@ interface SwitchGameShellProps {
   onToggleTurbo?: () => void;
   turboEnabled?: boolean;
   rewindActive?: boolean;
+  onPiP?: () => void;
+  speedrunTimer?: boolean;
+  speedrunTime?: number;
+  speedrunSplits?: number[];
+  onDiscSwap?: () => void;
   children: ReactNode;
 }
 
@@ -42,6 +47,8 @@ interface SwitchGameShellProps {
 ─────────────────────────────────────────────────────────────────────── */
 const CSS = `
 @keyframes sw-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes sw-cartridge-drop { from { transform: translateY(-40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes sw-pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
 
 .sw-outer {
   position: fixed;
@@ -541,7 +548,7 @@ export default function SwitchGameShell({
   title, bootState, runtimeError, showSaveIndicator,
   onSave, onLoad, onReset, onFullscreen, onExit, onMenu, onRetry, onAskAI,
   onCycleSpeed, onToggleFps, speedMultiplier = 1, showFps: showFpsOverlay, fps,
-  controllerState, onNetplay, netplayConnected, onToggleTurbo, turboEnabled, rewindActive, children,
+  controllerState, onNetplay, netplayConnected, onToggleTurbo, turboEnabled, rewindActive, onPiP, speedrunTimer, speedrunTime, speedrunSplits, onDiscSwap, children,
 }: SwitchGameShellProps) {
   const [showTechnical, setShowTechnical] = useState(false);
 
@@ -595,15 +602,44 @@ export default function SwitchGameShell({
             <div className="screen" style={{ position: 'relative' }}>
               {children}
 
-              {/* Boot overlay */}
+              {/* Speedrun timer overlay */}
+              {speedrunTimer && (
+                <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 8, background: 'rgba(0,0,0,0.75)', borderRadius: 6, padding: '4px 10px', fontFamily: 'monospace', color: '#4ade80', fontSize: 16, fontWeight: 700, backdropFilter: 'blur(4px)', border: '1px solid rgba(74,222,128,0.3)' }}>
+                  {(() => {
+                    const ms = speedrunTime ?? 0;
+                    const m = Math.floor(ms / 60000);
+                    const s = Math.floor((ms % 60000) / 1000);
+                    const cs = Math.floor((ms % 1000) / 10);
+                    return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}.${String(cs).padStart(2, "0")}`;
+                  })()}
+                  {(speedrunSplits ?? []).length > 0 && (
+                    <div style={{ fontSize: 9, color: '#a1a1aa', marginTop: 2 }}>
+                      {(speedrunSplits ?? []).slice(-3).map((t, i) => {
+                        const m = Math.floor(t / 60000), s = Math.floor((t % 60000) / 1000);
+                        return <div key={i}>Split {(speedrunSplits ?? []).length - 2 + i > 0 ? (speedrunSplits ?? []).length - 2 + i : i + 1}: {m}:{String(s).padStart(2, "0")}</div>;
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Boot overlay with launch animation */}
               {bootState && !runtimeError && (
-                <div style={{ position: 'absolute', inset: 0, zIndex: 10, background: 'rgba(0,0,0,0.93)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-                  <div style={{ fontFamily: 'monospace', fontSize: 24, fontWeight: 900, color: '#cc0000', letterSpacing: 4 }}>RETROWEB</div>
-                  <div style={{ width: 36, height: 36, border: '3px solid #333', borderTopColor: '#cc0000', borderRadius: '50%', animation: 'sw-spin 0.8s linear infinite' }} />
-                  <p style={{ color: '#aaa', fontSize: 13, margin: 0 }}>{bootState.message}</p>
-                  <div style={{ width: 200, height: 3, background: '#222', borderRadius: 2, overflow: 'hidden' }}>
-                    <div style={{ width: `${Math.max(4, bootState.percent)}%`, height: '100%', background: 'linear-gradient(90deg, #cc0000, #ff4400)', transition: 'width 0.3s ease' }} />
+                <div style={{ position: 'absolute', inset: 0, zIndex: 10, background: 'rgba(0,0,0,0.96)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+                  {/* Animated cartridge icon */}
+                  <div style={{ animation: 'sw-cartridge-drop 0.6s ease-out', marginBottom: 8 }}>
+                    <div style={{ width: 48, height: 56, background: 'linear-gradient(180deg, #555 0%, #333 100%)', borderRadius: '4px 4px 0 0', position: 'relative', border: '2px solid #666', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ width: 20, height: 6, background: '#cc0000', borderRadius: 1 }} />
+                      <div style={{ position: 'absolute', bottom: -4, left: 8, right: 8, height: 4, background: '#444', borderRadius: '0 0 2px 2px' }} />
+                    </div>
                   </div>
+                  <div style={{ fontFamily: 'monospace', fontSize: 24, fontWeight: 900, color: '#cc0000', letterSpacing: 4, textShadow: '0 0 20px rgba(204,0,0,0.5)' }}>RETROWEB</div>
+                  <div style={{ width: 36, height: 36, border: '3px solid #333', borderTopColor: '#cc0000', borderRadius: '50%', animation: 'sw-spin 0.8s linear infinite' }} />
+                  <p style={{ color: '#aaa', fontSize: 13, margin: 0, animation: 'sw-pulse 1.5s ease-in-out infinite' }}>{bootState.message}</p>
+                  <div style={{ width: 200, height: 3, background: '#222', borderRadius: 2, overflow: 'hidden' }}>
+                    <div style={{ width: `${Math.max(4, bootState.percent)}%`, height: '100%', background: 'linear-gradient(90deg, #cc0000, #ff4400)', transition: 'width 0.3s ease', boxShadow: '0 0 8px rgba(204,0,0,0.5)' }} />
+                  </div>
+                  <p style={{ color: '#555', fontSize: 10, fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: 2 }}>Inserting Cartridge...</p>
                 </div>
               )}
 
@@ -703,6 +739,8 @@ export default function SwitchGameShell({
           <button className="sw-ctrl-btn" title="Rewind (hold F5)" style={rewindActive ? { color: '#60a5fa' } : {}}>⏪</button>
           <button className="sw-ctrl-btn" onClick={onMenu}       title="Save slots"><Maximize size={12} /></button>
           <button className="sw-ctrl-btn" onClick={onFullscreen} title="Fullscreen (F11)"><Expand size={12} /></button>
+          {onPiP && <button className="sw-ctrl-btn" onClick={onPiP} title="Picture-in-Picture">PiP</button>}
+          {onDiscSwap && <button className="sw-ctrl-btn" onClick={onDiscSwap} title="Swap Disc (PS1 multi-disc)">💿</button>}
           {onAskAI && <button className="sw-ctrl-btn" onClick={onAskAI} title="Ask AI about this"><MessageCircle size={12} /></button>}
           {onNetplay && <button className="sw-ctrl-btn" onClick={onNetplay} title="Netplay" style={netplayConnected ? { color: '#22c55e' } : {}}><Users size={12} /></button>}
           <button className="sw-ctrl-btn sw-exit" onClick={onExit} title="Exit to Library"><LogOut size={12} /></button>
