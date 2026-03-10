@@ -20,6 +20,9 @@ import { normalizeROM, NormalizeError } from "../lib/emulation/rom-normalizer";
 import SwitchGameShell from "../components/SwitchGameShell";
 import { useGamepadVisualizer } from "../hooks/useGamepadVisualizer";
 import { loadMappingOverrides } from "../gamepad/overrides";
+import { checkAndUnlock } from "../lib/achievements";
+import NetplayPanel from "../components/NetplayPanel";
+import { NetplaySession, type NetplayInput } from "../lib/netplay/session";
 
 interface PlayLocationState {
   romFile?: File;
@@ -64,8 +67,16 @@ export default function Play() {
   const [requiresTapToStart, setRequiresTapToStart] = useState(false);
   const [didTapToStart, setDidTapToStart] = useState(false);
   const [showOverlay, setShowOverlay] = useState(true);
+  const [speedMultiplier, setSpeedMultiplier] = useState(1);
+  const [showFps, setShowFps] = useState(false);
+  const [fps, setFps] = useState(0);
   const [mappingOverrides] = useState(() => loadMappingOverrides());
   const { visualState } = useGamepadVisualizer({ overrides: mappingOverrides });
+  const [showNetplay, setShowNetplay] = useState(false);
+  const netplaySessionRef = useRef<NetplaySession | null>(null);
+  const [netplayConnected, setNetplayConnected] = useState(false);
+  const [turboEnabled, setTurboEnabled] = useState(false);
+  const [rewindActive, setRewindActive] = useState(false);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -159,6 +170,7 @@ export default function Play() {
       await refreshSlots();
       toast.success(`Saved to slot ${slotIndex}`);
       showAutosavePulse();
+      void checkAndUnlock("first_save");
     } catch (error) {
       console.error("Failed to save state", error);
       toast.error("Could not save state.");
@@ -222,6 +234,68 @@ export default function Play() {
     }
   }, []);
 
+  const handleAskAI = useCallback(async () => {
+    if (!canvasRef.current) return;
+    const thumbnail = await captureThumbnail();
+    if (thumbnail) {
+      const base64 = thumbnail.replace(/^data:image\/\w+;base64,/, "");
+      sessionStorage.setItem("retroweb.screenshotForAI", base64);
+    }
+    navigate("/chat");
+  }, [captureThumbnail, navigate]);
+
+  const cycleSpeed = useCallback(() => {
+    setSpeedMultiplier((prev) => {
+      const speeds = [0.5, 1, 2, 4];
+      const idx = speeds.indexOf(prev);
+      const next = speeds[(idx + 1) % speeds.length];
+      if (next > 1) void checkAndUnlock("speed_demon");
+      return next;
+    });
+  }, []);
+
+  // Apply speed multiplier to emulator via RetroArch
+  useEffect(() => {
+    const emulator = emulatorRef.current as unknown as {
+      sendCommand?: (cmd: string) => void;
+    } | null;
+    if (emulator?.sendCommand) {
+      emulator.sendCommand(`SET fastforward_ratio ${speedMultiplier}`);
+    }
+  }, [speedMultiplier]);
+
+  // FPS counter
+  useEffect(() => {
+    if (!showFps || !canvasRef.current) return;
+    let frameCount = 0;
+    let lastTime = performance.now();
+    let rafId: number;
+    const measure = () => {
+      frameCount++;
+      const now = performance.now();
+      if (now - lastTime >= 1000) {
+        setFps(frameCount);
+        frameCount = 0;
+        lastTime = now;
+      }
+      rafId = requestAnimationFrame(measure);
+    };
+    rafId = requestAnimationFrame(measure);
+    return () => cancelAnimationFrame(rafId);
+  }, [showFps]);
+
+  // Netplay callbacks
+  const handleNetplayRemoteInput = useCallback((_input: NetplayInput) => {
+    // In a full implementation, this would inject input into the emulator's Player 2 port.
+    // Nostalgist.js doesn't expose per-player input injection directly,
+    // so this serves as the integration point for future implementation.
+  }, []);
+
+  const handleNetplaySessionChange = useCallback((session: NetplaySession | null) => {
+    netplaySessionRef.current = session;
+    setNetplayConnected(!!session?.isConnected);
+  }, []);
+
   useEffect(() => {
     const userAgent = navigator.userAgent;
     const isIOS = /iPad|iPhone|iPod/.test(userAgent);
@@ -256,11 +330,42 @@ export default function Play() {
         event.preventDefault();
         void handleFullscreenToggle();
       }
+
+      if (event.key === "F2") {
+        event.preventDefault();
+        cycleSpeed();
+      }
+
+      if (event.key === "F3") {
+        event.preventDefault();
+        setShowFps((p) => !p);
+      }
+
+      if (event.key === "F4") {
+        event.preventDefault();
+        setTurboEnabled((p) => !p);
+      }
+
+      if (event.key === "F5") {
+        event.preventDefault();
+        setRewindActive(true);
+        const emulator = emulatorRef.current;
+        if (emulator) {
+          try { emulator.sendCommand("REWIND"); } catch { /* rewind may not be supported */ }
+        }
+      }
+    };
+
+    const onKeyUp = (event: KeyboardEvent) => {
+      if (event.key === "F5") {
+        setRewindActive(false);
+      }
     };
 
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [handleFullscreenToggle, handleLoadState, handleSaveState, isMenuOpen]);
+    window.addEventListener("keyup", onKeyUp);
+    return () => { window.removeEventListener("keydown", onKeyDown); window.removeEventListener("keyup", onKeyUp); };
+  }, [handleFullscreenToggle, handleLoadState, handleSaveState, isMenuOpen, cycleSpeed]);
 
   useEffect(() => {
     let isMounted = true;
@@ -342,6 +447,13 @@ export default function Play() {
         // Focus canvas so keyboard input reaches RetroArch
         setTimeout(() => canvasRef.current?.focus(), 100);
         await refreshSlots();
+
+        // Store last played game for AI chat context
+        const gameName = routeState?.filename || normalized.filename;
+        sessionStorage.setItem("retroweb.lastPlayedGame", gameName);
+
+        // Achievement: first game
+        void checkAndUnlock("first_game");
 
         if (gameId) {
           void updateGameMetadata(gameId, { lastSessionStartedAt: sessionStartedAtRef.current });
@@ -456,9 +568,20 @@ export default function Play() {
         onExit={() => navigate("/library")}
         onMenu={() => setIsMenuOpen(true)}
         onRetry={() => { setRuntimeError(null); setRetryToken(p => p + 1); }}
+        onAskAI={() => void handleAskAI()}
+        onCycleSpeed={cycleSpeed}
+        onToggleFps={() => setShowFps((p) => !p)}
+        speedMultiplier={speedMultiplier}
+        showFps={showFps}
+        fps={fps}
         showOverlay={showOverlay}
         onOverlayToggle={() => setShowOverlay(p => !p)}
         controllerState={visualState}
+        onNetplay={() => setShowNetplay(p => !p)}
+        netplayConnected={netplayConnected}
+        onToggleTurbo={() => setTurboEnabled(p => !p)}
+        turboEnabled={turboEnabled}
+        rewindActive={rewindActive}
       >
         {/* iOS tap-to-start overlay */}
         {requiresTapToStart && !didTapToStart && (
@@ -546,6 +669,22 @@ export default function Play() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Netplay panel */}
+      {showNetplay && (
+        <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 360, zIndex: 65, background: 'var(--bg-primary)', borderLeft: '1px solid var(--border-soft)', padding: 16, overflowY: 'auto' }}>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Netplay</h2>
+            <button onClick={() => setShowNetplay(false)} className="p-1" style={{ color: 'var(--text-muted)' }}>
+              <X size={18} />
+            </button>
+          </div>
+          <NetplayPanel
+            onRemoteInput={handleNetplayRemoteInput}
+            onSessionChange={handleNetplaySessionChange}
+          />
         </div>
       )}
     </>

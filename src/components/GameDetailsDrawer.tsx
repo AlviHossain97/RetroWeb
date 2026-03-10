@@ -1,5 +1,6 @@
-import { X, Heart, Trash2, ImageIcon, FileText, HardDrive, Clock, Calendar, Gamepad2, Download } from "lucide-react";
-import type { Game } from "../lib/storage/db";
+import { useState } from "react";
+import { X, Heart, Trash2, ImageIcon, FileText, HardDrive, Clock, Calendar, Gamepad2, Download, FolderPlus, Star, Settings2, Code } from "lucide-react";
+import type { Game, Collection } from "../lib/storage/db";
 import SessionStartButton from "./SessionStartButton";
 import DownloadButton from "./DownloadButton";
 import { getSystemLabel } from "../lib/library/title-utils";
@@ -14,6 +15,12 @@ interface GameDetailsDrawerProps {
   onToggleFavorite: (id: string, isFavorite: boolean) => void;
   onRemove: (id: string) => void;
   onSetCover?: (id: string) => void;
+  collections?: Collection[];
+  onAddToCollection?: (gameId: string, collectionId: string) => void;
+  onRemoveFromCollection?: (gameId: string, collectionId: string) => void;
+  onRate?: (gameId: string, rating: number) => void;
+  onUpdateSettings?: (gameId: string, settings: Record<string, string>) => void;
+  onUpdateCheats?: (gameId: string, cheats: string[]) => void;
 }
 
 function formatBytes(bytes: number): string {
@@ -46,9 +53,10 @@ const SYSTEM_GRADIENTS: Record<string, string> = {
   n64: 'linear-gradient(135deg, #276749, #38a169)',
 };
 
-export default function GameDetailsDrawer({ game, onClose, onLaunch, onToggleFavorite, onRemove, onSetCover }: GameDetailsDrawerProps) {
+export default function GameDetailsDrawer({ game, onClose, onLaunch, onToggleFavorite, onRemove, onSetCover, collections, onAddToCollection, onRemoveFromCollection, onRate, onUpdateSettings, onUpdateCheats }: GameDetailsDrawerProps) {
   const isOpen = game !== null;
   const gradient = game ? (SYSTEM_GRADIENTS[game.system] || 'linear-gradient(135deg, #2d3748, #4a5568)') : '';
+  const [cheatInput, setCheatInput] = useState("");
 
   return (
     <>
@@ -125,6 +133,17 @@ export default function GameDetailsDrawer({ game, onClose, onLaunch, onToggleFav
                     </span>
                   )}
                 </div>
+                {/* Star Rating */}
+                {onRate && (
+                  <div className="flex items-center gap-1 mt-2">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button key={star} onClick={() => onRate(game.id, game.rating === star ? 0 : star)} className="p-0.5 transition-transform hover:scale-110">
+                        <Star size={18} fill={(game.rating ?? 0) >= star ? '#f6c90e' : 'none'} stroke={(game.rating ?? 0) >= star ? '#f6c90e' : 'var(--text-muted)'} />
+                      </button>
+                    ))}
+                    {game.rating ? <span className="text-xs ml-1" style={{ color: 'var(--text-muted)' }}>{game.rating}/5</span> : null}
+                  </div>
+                )}
               </div>
 
               {/* Primary action */}
@@ -164,6 +183,93 @@ export default function GameDetailsDrawer({ game, onClose, onLaunch, onToggleFav
                 <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>File Info</p>
                 <p className="text-xs font-mono break-all" style={{ color: 'var(--text-secondary)' }}>{game.filename}</p>
               </div>
+
+              {/* Per-Game Settings */}
+              {onUpdateSettings && (
+                <div className="mb-5 p-3 rounded-lg" style={{ background: 'var(--surface-2)', border: '1px solid var(--border-soft)' }}>
+                  <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>
+                    <Settings2 size={12} className="inline mr-1" />Game Overrides
+                  </p>
+                  <div className="space-y-2">
+                    {[
+                      { key: "shader", label: "Shader", options: ["default", "none", "crt", "scanlines", "sharp"] },
+                      { key: "aspectRatio", label: "Aspect Ratio", options: ["default", "original", "stretch", "integer"] },
+                      { key: "speed", label: "Default Speed", options: ["default", "0.5x", "1x", "2x", "4x"] },
+                    ].map((setting) => (
+                      <div key={setting.key} className="flex items-center justify-between gap-2">
+                        <label className="text-xs" style={{ color: 'var(--text-secondary)' }}>{setting.label}</label>
+                        <select
+                          value={game.perGameSettings?.[setting.key] ?? "default"}
+                          onChange={(e) => onUpdateSettings(game.id, { ...game.perGameSettings, [setting.key]: e.target.value })}
+                          className="text-xs px-2 py-1 rounded bg-transparent"
+                          style={{ color: 'var(--text-primary)', border: '1px solid var(--border-soft)' }}
+                        >
+                          {setting.options.map((opt) => <option key={opt} value={opt}>{opt.charAt(0).toUpperCase() + opt.slice(1)}</option>)}
+                        </select>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Collections */}
+              {collections && collections.length > 0 && onAddToCollection && onRemoveFromCollection && (
+                <div className="mb-5">
+                  <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>
+                    <FolderPlus size={12} className="inline mr-1" />Collections
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {collections.map(col => {
+                      const inCol = game.collectionIds?.includes(col.id);
+                      return (
+                        <button
+                          key={col.id}
+                          onClick={() => inCol ? onRemoveFromCollection(game.id, col.id) : onAddToCollection(game.id, col.id)}
+                          className="px-3 py-1.5 text-xs rounded-lg transition-colors"
+                          style={inCol
+                            ? { background: 'var(--accent-primary)', color: '#fff' }
+                            : { background: 'var(--surface-2)', color: 'var(--text-muted)', border: '1px solid var(--border-soft)' }
+                          }
+                        >
+                          {col.name} {inCol ? '✓' : '+'}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Cheat Codes */}
+              {onUpdateCheats && (
+                <div className="mb-5 p-3 rounded-lg" style={{ background: 'var(--surface-2)', border: '1px solid var(--border-soft)' }}>
+                  <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>
+                    <Code size={12} className="inline mr-1" />Cheat Codes
+                  </p>
+                  {(game.cheats ?? []).map((cheat, i) => (
+                    <div key={i} className="flex items-center justify-between text-xs mb-1 px-2 py-1 rounded" style={{ background: 'var(--surface-1)' }}>
+                      <span className="font-mono" style={{ color: 'var(--text-primary)' }}>{cheat}</span>
+                      <button onClick={() => onUpdateCheats(game.id, (game.cheats ?? []).filter((_, j) => j !== i))} style={{ color: 'var(--text-muted)' }}>
+                        <X size={10} />
+                      </button>
+                    </div>
+                  ))}
+                  <div className="flex gap-1 mt-2">
+                    <input
+                      value={cheatInput}
+                      onChange={(e) => setCheatInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && cheatInput.trim()) {
+                          onUpdateCheats(game.id, [...(game.cheats ?? []), cheatInput.trim()]);
+                          setCheatInput("");
+                        }
+                      }}
+                      placeholder="Game Genie / Action Replay..."
+                      className="flex-1 px-2 py-1 text-xs rounded font-mono"
+                      style={{ background: 'var(--surface-1)', color: 'var(--text-primary)', border: '1px solid var(--border-soft)' }}
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Quick actions */}
               <div className="flex flex-col gap-2">

@@ -13,6 +13,8 @@ import SavesVault from './routes/saves.tsx'
 import Login from './routes/login.tsx'
 import ControllerTest from './routes/controller.tsx'
 import Chat from './routes/chat.tsx'
+import AchievementsPage from './routes/achievements.tsx'
+import StatsPage from './routes/stats.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -29,6 +31,8 @@ createRoot(document.getElementById('root')!).render(
           <Route path="saves" element={<SavesVault />} />
           <Route path="controller" element={<ControllerTest />} />
           <Route path="chat" element={<Chat />} />
+          <Route path="achievements" element={<AchievementsPage />} />
+          <Route path="stats" element={<StatsPage />} />
           <Route path="settings" element={<Settings />} />
           <Route path="help/chd" element={<div>CHD Conversion Guide</div>} />
         </Route>

@@ -3,7 +3,9 @@ import { Copy, RefreshCcw, Search, HardDrive, Cpu, Monitor, Volume2, Gamepad, Sa
 import { toast } from "sonner";
 import { getStorageEstimate } from "../lib/capability/storage-quota";
 import { getThreadingCapability } from "../lib/capability/capability-check";
-import { db, getAllBIOSFiles, getAllGames, getAllSaves, removeRomFromOPFS } from "../lib/storage/db";
+import { db, getAllBIOSFiles, getAllGames, getAllSaves, removeRomFromOPFS, getAllCollections, getUnlockedAchievements, loadChatMessages, type Collection, type Achievement, type ChatMessage } from "../lib/storage/db";
+import { checkAndUnlock } from "../lib/achievements";
+import { useI18n, LANGUAGE_LABELS, type Lang } from "../lib/i18n";
 
 type SettingsState = {
   displayShader: "none" | "crt" | "scanlines" | "sharp";
@@ -16,6 +18,10 @@ type SettingsState = {
   defaultSaveSlot: number;
   touchOpacity: number;
   touchSize: number;
+  theme: "default" | "nes" | "gameboy" | "snes" | "terminal";
+  highContrast: boolean;
+  largeText: boolean;
+  reducedMotion: boolean;
 };
 
 const SETTINGS_KEY = "retroweb.settings.v1";
@@ -31,9 +37,13 @@ const DEFAULT_SETTINGS: SettingsState = {
   defaultSaveSlot: 0,
   touchOpacity: 80,
   touchSize: 100,
+  theme: "default",
+  highContrast: false,
+  largeText: false,
+  reducedMotion: false,
 };
 
-type SectionId = "storage" | "performance" | "display" | "audio" | "input" | "saves" | "data" | "about";
+type SectionId = "storage" | "performance" | "display" | "audio" | "input" | "saves" | "data" | "accessibility" | "about";
 type BackupPayload = {
   version: 1;
   createdAt: string;
@@ -61,6 +71,9 @@ type BackupPayload = {
     coreId?: string;
     coreVersion?: string;
   }>;
+  collections?: Collection[];
+  achievements?: Achievement[];
+  chatMessages?: ChatMessage[];
 };
 
 function bytesToBase64(data: Uint8Array): string {
@@ -96,6 +109,7 @@ export default function Settings() {
   const [searchQuery, setSearchQuery] = useState("");
   const [debugInfo, setDebugInfo] = useState("");
   const importInputRef = useRef<HTMLInputElement>(null);
+  const { lang, setLang } = useI18n();
 
   const capability = getThreadingCapability();
   const refreshStorageEstimate = useCallback(async () => {
@@ -130,6 +144,10 @@ export default function Settings() {
 
   useEffect(() => {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    // Apply accessibility classes to root
+    document.documentElement.classList.toggle("a11y-high-contrast", settings.highContrast);
+    document.documentElement.classList.toggle("a11y-large-text", settings.largeText);
+    document.documentElement.classList.toggle("a11y-reduced-motion", settings.reducedMotion);
   }, [settings]);
 
   useEffect(() => {
@@ -171,6 +189,14 @@ export default function Settings() {
       });
     }
 
+    if (section === "accessibility") {
+      updateSettings({
+        highContrast: DEFAULT_SETTINGS.highContrast,
+        largeText: DEFAULT_SETTINGS.largeText,
+        reducedMotion: DEFAULT_SETTINGS.reducedMotion,
+      });
+    }
+
     toast.success("Section reset to defaults");
   };
 
@@ -188,6 +214,7 @@ export default function Settings() {
     input: sectionMatches("Input", ["controller", "touch", "mapping"]),
     saves: sectionMatches("Saves", ["autosave", "slot", "sram"]),
     data: sectionMatches("Data Management", ["clear", "backup", "import", "export"]),
+    accessibility: sectionMatches("Accessibility", ["contrast", "large text", "reduced motion", "a11y"]),
     about: sectionMatches("About & Debug", ["debug", "copy", "environment"]),
   };
 
@@ -201,7 +228,9 @@ export default function Settings() {
   };
 
   const handleExportBackup = async () => {
-    const [bios, saves, games] = await Promise.all([db.bios.toArray(), getAllSaves(), getAllGames()]);
+    const [bios, saves, games, collections, achievements, chatMessages] = await Promise.all([
+      db.bios.toArray(), getAllSaves(), getAllGames(), getAllCollections(), getUnlockedAchievements(), loadChatMessages(),
+    ]);
     const payload: BackupPayload = {
       version: 1,
       createdAt: new Date().toISOString(),
@@ -229,6 +258,9 @@ export default function Settings() {
         coreId: entry.coreId,
         coreVersion: entry.coreVersion,
       })),
+      collections,
+      achievements,
+      chatMessages,
     };
 
     const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
@@ -287,6 +319,20 @@ export default function Settings() {
           coreVersion: entry.coreVersion,
         }))
       );
+
+      // Restore new tables if present
+      if (backup.collections?.length) {
+        await db.collections.clear();
+        await db.collections.bulkPut(backup.collections);
+      }
+      if (backup.achievements?.length) {
+        await db.achievements.clear();
+        await db.achievements.bulkPut(backup.achievements);
+      }
+      if (backup.chatMessages?.length) {
+        await db.chatMessages.clear();
+        await db.chatMessages.bulkPut(backup.chatMessages);
+      }
 
       toast.success("Backup imported.");
       await Promise.all([refreshStorageEstimate(), refreshDebugInfo()]);
@@ -389,6 +435,18 @@ export default function Settings() {
                 <option value="scanlines">Scanlines</option>
                 <option value="sharp">Sharp</option>
               </select>
+              {/* Shader preview */}
+              <div className="mt-2 h-16 rounded-md overflow-hidden relative" style={{ background: 'linear-gradient(45deg, #e53e3e, #805ad5, #2b6cb0)', imageRendering: settings.displayShader === 'sharp' ? 'pixelated' : 'auto' }}>
+                {settings.displayShader === 'scanlines' && (
+                  <div className="absolute inset-0" style={{ background: 'repeating-linear-gradient(0deg, rgba(0,0,0,0.3) 0px, rgba(0,0,0,0.3) 1px, transparent 1px, transparent 3px)' }} />
+                )}
+                {settings.displayShader === 'crt' && (
+                  <div className="absolute inset-0" style={{ background: 'repeating-linear-gradient(0deg, rgba(0,0,0,0.25) 0px, rgba(0,0,0,0.25) 1px, transparent 1px, transparent 3px)', borderRadius: '40%/8%', boxShadow: 'inset 0 0 30px rgba(0,0,0,0.5)' }} />
+                )}
+                <div className="absolute inset-0 flex items-center justify-center text-white/70 text-[10px] font-bold uppercase tracking-widest">
+                  {settings.displayShader === 'none' ? 'No Effect' : settings.displayShader.toUpperCase()}
+                </div>
+              </div>
             </label>
 
             <label className="text-sm font-sans">
@@ -412,6 +470,26 @@ export default function Settings() {
                 onChange={(event) => updateSettings({ showFps: event.target.checked })}
               />
               Show FPS counter
+            </label>
+
+            <label className="text-sm font-sans">
+              <span className="block text-xs font-bold text-muted-foreground mb-2 uppercase tracking-widest">Theme</span>
+              <select
+                className="w-full bg-[#111111] border border-border rounded-sm px-3 py-2 focus:outline-none focus:border-primary text-foreground"
+                value={settings.theme}
+                onChange={(event) => {
+                  const theme = event.target.value as SettingsState["theme"];
+                  updateSettings({ theme });
+                  document.documentElement.setAttribute("data-theme", theme);
+                  if (theme !== "default") void checkAndUnlock("theme_changed");
+                }}
+              >
+                <option value="default">Default (Dark)</option>
+                <option value="nes">NES Classic</option>
+                <option value="gameboy">Game Boy</option>
+                <option value="snes">SNES Purple</option>
+                <option value="terminal">Terminal Green</option>
+              </select>
             </label>
           </div>
         </section>
@@ -548,6 +626,53 @@ export default function Settings() {
             <button onClick={() => void handleClearEverything()} className="text-xs font-sans tracking-widest uppercase font-bold rounded-sm px-4 py-3 bg-[#1A0A0A] border border-destructive/30 text-destructive hover:bg-destructive hover:text-white transition-colors text-left">Clear Everything</button>
           </div>
           <input ref={importInputRef} type="file" accept="application/json,.json" className="hidden" onChange={handleImportBackup} />
+        </section>
+      )}
+
+      {visibleSections.accessibility && (
+        <section className="mb-10" aria-label="Accessibility settings">
+          <div className="flex items-center justify-between mb-4 pb-2" style={{borderBottom: '1px solid var(--border-soft)'}}>
+            <h2 className="text-base font-bold flex items-center gap-2" style={{color: 'var(--text-primary)'}}>♿ Accessibility</h2>
+            <button onClick={() => resetSection("accessibility")} className="text-xs px-3 py-1 rounded-md hover:bg-zinc-700" style={{color: 'var(--text-secondary)'}}>Reset</button>
+          </div>
+          <div className="rounded-md shadow-sm p-6 grid gap-4" style={{background: 'var(--surface-1)', border: '1px solid var(--border-soft)'}}>
+            <label className="flex items-center justify-between cursor-pointer">
+              <div>
+                <span className="text-sm font-medium" style={{color: 'var(--text-primary)'}}>High Contrast</span>
+                <p className="text-xs" style={{color: 'var(--text-secondary)'}}>Increase contrast for better visibility</p>
+              </div>
+              <input type="checkbox" checked={settings.highContrast} onChange={(e) => updateSettings({ highContrast: e.target.checked })} className="w-5 h-5 accent-blue-500" />
+            </label>
+            <label className="flex items-center justify-between cursor-pointer">
+              <div>
+                <span className="text-sm font-medium" style={{color: 'var(--text-primary)'}}>Large Text</span>
+                <p className="text-xs" style={{color: 'var(--text-secondary)'}}>Increase base font size for readability</p>
+              </div>
+              <input type="checkbox" checked={settings.largeText} onChange={(e) => updateSettings({ largeText: e.target.checked })} className="w-5 h-5 accent-blue-500" />
+            </label>
+            <label className="flex items-center justify-between cursor-pointer">
+              <div>
+                <span className="text-sm font-medium" style={{color: 'var(--text-primary)'}}>Reduced Motion</span>
+                <p className="text-xs" style={{color: 'var(--text-secondary)'}}>Disable animations and transitions</p>
+              </div>
+              <input type="checkbox" checked={settings.reducedMotion} onChange={(e) => updateSettings({ reducedMotion: e.target.checked })} className="w-5 h-5 accent-blue-500" />
+            </label>
+            <label className="flex items-center justify-between">
+              <div>
+                <span className="text-sm font-medium" style={{color: 'var(--text-primary)'}}>Language</span>
+                <p className="text-xs" style={{color: 'var(--text-secondary)'}}>Interface language</p>
+              </div>
+              <select
+                className="bg-zinc-800 border border-zinc-600 text-white rounded-lg px-3 py-1.5 text-sm"
+                value={lang}
+                onChange={(e) => setLang(e.target.value as Lang)}
+              >
+                {(Object.entries(LANGUAGE_LABELS) as [Lang, string][]).map(([code, label]) => (
+                  <option key={code} value={code}>{label}</option>
+                ))}
+              </select>
+            </label>
+          </div>
         </section>
       )}
 
