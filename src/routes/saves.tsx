@@ -208,10 +208,16 @@ export default function SavesVault() {
                   onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--accent-primary)'; (e.currentTarget as HTMLElement).style.background = 'var(--surface-2)'; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-soft)'; (e.currentTarget as HTMLElement).style.background = idx % 2 === 0 ? 'var(--surface-1)' : 'var(--bg-primary)'; }}
                 >
-                  {/* Icon */}
-                  <div className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: save.type === 'state' ? 'rgba(139,92,246,0.15)' : 'rgba(204,0,0,0.15)', border: `1px solid ${save.type === 'state' ? 'rgba(139,92,246,0.3)' : 'rgba(204,0,0,0.3)'}` }}>
-                    <Save size={14} style={{ color: save.type === 'state' ? '#8b5cf6' : 'var(--accent-primary)' }} />
-                  </div>
+                  {/* Thumbnail or Icon */}
+                  {save.image ? (
+                    <div className="shrink-0 w-12 h-8 rounded overflow-hidden border" style={{ borderColor: 'var(--border-soft)' }}>
+                      <img src={save.image} alt="" className="w-full h-full object-cover" />
+                    </div>
+                  ) : (
+                    <div className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: save.type === 'state' ? 'rgba(139,92,246,0.15)' : 'rgba(204,0,0,0.15)', border: `1px solid ${save.type === 'state' ? 'rgba(139,92,246,0.3)' : 'rgba(204,0,0,0.3)'}` }}>
+                      <Save size={14} style={{ color: save.type === 'state' ? '#8b5cf6' : 'var(--accent-primary)' }} />
+                    </div>
+                  )}
 
                   {/* Filename */}
                   <span className="font-medium text-sm flex-1 truncate" style={{ color: 'var(--text-primary)' }}>{save.filename}</span>

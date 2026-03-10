@@ -15,6 +15,7 @@ import ControllerTest from './routes/controller.tsx'
 import Chat from './routes/chat.tsx'
 import AchievementsPage from './routes/achievements.tsx'
 import StatsPage from './routes/stats.tsx'
+import RomHacksPage from './routes/romhacks.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -33,6 +34,7 @@ createRoot(document.getElementById('root')!).render(
           <Route path="chat" element={<Chat />} />
           <Route path="achievements" element={<AchievementsPage />} />
           <Route path="stats" element={<StatsPage />} />
+          <Route path="romhacks" element={<RomHacksPage />} />
           <Route path="settings" element={<Settings />} />
           <Route path="help/chd" element={<div>CHD Conversion Guide</div>} />
         </Route>

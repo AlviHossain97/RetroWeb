@@ -99,18 +99,18 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Continue Playing */}
+      {/* Continue Playing — Carousel */}
       {recentGames.length > 0 && (
         <section className="px-6 pb-8 max-w-6xl mx-auto">
           <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
             <Clock size={22} className="text-purple-400" /> Continue Playing
           </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-thin" style={{ scrollbarColor: 'var(--accent-primary) transparent' }}>
             {recentGames.map((game) => (
               <button
                 key={game.id}
                 onClick={() => navigate("/library")}
-                className="group relative rounded-xl overflow-hidden border border-zinc-800 hover:border-purple-500/50 transition-all duration-300 text-left"
+                className="group relative flex-shrink-0 w-40 rounded-xl overflow-hidden border border-zinc-800 hover:border-purple-500/50 transition-all duration-300 text-left snap-start hover:scale-105 hover:z-10"
                 style={{ background: "var(--surface-1)" }}
               >
                 <div className="aspect-[3/4] w-full relative">
@@ -121,8 +121,8 @@ export default function Home() {
                       <Gamepad2 size={32} className="text-zinc-600" />
                     </div>
                   )}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center">
-                    <Play size={32} className="text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/0 to-transparent opacity-0 group-hover:opacity-100 transition-all flex items-end justify-center pb-3">
+                    <Play size={28} className="text-white drop-shadow-lg" />
                   </div>
                 </div>
                 <div className="p-2">

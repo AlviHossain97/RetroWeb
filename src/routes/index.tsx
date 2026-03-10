@@ -604,7 +604,7 @@ export default function Library() {
     const q = searchQuery.toLowerCase();
     return result.filter((game) => {
       const systemName = SYSTEMS.find((system) => system.id === game.system)?.name ?? game.system;
-      return [game.title, game.displayTitle, game.system, systemName, game.filename]
+      return [game.title, game.displayTitle, game.system, systemName, game.filename, ...(game.tags ?? [])]
         .filter(Boolean)
         .some((token) => token!.toLowerCase().includes(q));
     });
@@ -639,6 +639,16 @@ export default function Library() {
   );
 
   const hasGames = games.length > 0;
+
+  // Dynamic background glow based on dominant system
+  const SYSTEM_GLOW: Record<string, string> = { nes: '#e53e3e', snes: '#805ad5', gb: '#2b6cb0', gbc: '#276749', gba: '#2c5282', genesis: '#2d3748', psx: '#1a365d', n64: '#276749' };
+  const dominantSystem = useMemo(() => {
+    if (!sortedGames.length) return null;
+    const counts: Record<string, number> = {};
+    for (const g of sortedGames) counts[g.system] = (counts[g.system] ?? 0) + 1;
+    return Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+  }, [sortedGames]);
+  const glowColor = dominantSystem ? SYSTEM_GLOW[dominantSystem] : null;
 
   if (pendingRom && missingBiosList.length > 0) {
     return (
@@ -700,6 +710,9 @@ export default function Library() {
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
+      {glowColor && (
+        <div className="absolute top-0 left-0 right-0 h-48 pointer-events-none opacity-15" style={{ background: `radial-gradient(ellipse at 50% 0%, ${glowColor}, transparent 70%)` }} />
+      )}
       <style dangerouslySetInnerHTML={{ __html: UPLOAD_CSS }} />
       {isDragging && (
         <div className="absolute inset-0 z-40 bg-black/85 backdrop-blur-sm border border-dashed border-muted-foreground m-8 flex flex-col items-center justify-center pointer-events-none">
@@ -1030,6 +1043,8 @@ export default function Library() {
         onRate={async (gameId, rating) => { await updateGameMetadata(gameId, { rating: rating || undefined }); await fetchGames(); }}
         onUpdateSettings={async (gameId, settings) => { await updateGameMetadata(gameId, { perGameSettings: settings }); await fetchGames(); }}
         onUpdateCheats={async (gameId, cheats) => { await updateGameMetadata(gameId, { cheats }); await fetchGames(); }}
+        onUpdateNotes={async (gameId, notes) => { await updateGameMetadata(gameId, { notes }); await fetchGames(); }}
+        onUpdateTags={async (gameId, tags) => { await updateGameMetadata(gameId, { tags }); await fetchGames(); }}
       />
     </div>
   );

@@ -1316,6 +1316,13 @@ export default function Chat() {
           🎲 Recommend
         </button>
         <button
+          onClick={() => { void sendMessageDirect("Give me a fun retro gaming trivia question! Make it multiple choice (A/B/C/D) and don't reveal the answer until I guess. Pick from any classic game or console."); }}
+          className="text-xs px-2 py-1 rounded-full bg-purple-600 text-white hover:bg-purple-500 transition-colors"
+          title="Retro gaming trivia quiz"
+        >
+          🎯 Quiz
+        </button>
+        <button
           onClick={() => {
             setWalkthroughMode(w => {
               if (!w) {
