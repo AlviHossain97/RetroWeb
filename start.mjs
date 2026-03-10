@@ -5,6 +5,7 @@ import { fileURLToPath } from "url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ollamaPath = resolve(process.env.LOCALAPPDATA, "Programs", "Ollama", "ollama.exe");
 const kokoroScript = resolve(__dirname, "scripts", "kokoro-tts-server.py");
+const whisperScript = resolve(__dirname, "scripts", "whisper-server.py");
 
 const services = [];
 
@@ -54,17 +55,21 @@ startService("Ollama", ollamaPath, ["serve"], {
   env: { OLLAMA_ORIGINS: "*" },
 });
 
-// 2. Kokoro TTS/STT
+// 2. Kokoro TTS
 startService("Kokoro", "py", [kokoroScript]);
 
-// 3. Vite dev server
+// 3. Whisper STT (OpenAI-compatible)
+startService("Whisper", "py", [whisperScript]);
+
+// 4. Vite dev server
 startService("Vite", "npx", ["vite", "--host", "0.0.0.0", "--port", "5173"]);
 
 console.log(`
   Services starting:
     Vite    → http://localhost:5173
     Ollama  → http://localhost:11434
-    Kokoro  → http://localhost:8787
+    Kokoro  → http://localhost:8787  (TTS)
+    Whisper → http://localhost:8786  (STT)
 
   Press Ctrl+C to stop all services.
 `);

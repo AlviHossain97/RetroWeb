@@ -6,6 +6,7 @@ import { Toaster, toast } from "sonner";
 import LegalModal from "./components/LegalModal";
 import CookieConsent from "./components/CookieConsent";
 import PacmanGhostEasterEgg from "./components/PacmanGhostEasterEgg";
+import PongBackground from "./components/PongBackground";
 import { validateBiosFilename, saveBIOS } from "./lib/storage/db";
 
 interface NavItem {
@@ -296,6 +297,7 @@ export default function App() {
           ? "w-full h-screen bg-black"
           : "flex-1 flex flex-col relative overflow-hidden bg-background pt-20"
       }>
+        {!isPlaying && <PongBackground />}
         <Outlet />
       </main>
 
