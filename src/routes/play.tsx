@@ -306,9 +306,8 @@ export default function Play() {
 
   // Netplay callbacks
   const handleNetplayRemoteInput = useCallback((_input: NetplayInput) => {
-    // In a full implementation, this would inject input into the emulator's Player 2 port.
-    // Nostalgist.js doesn't expose per-player input injection directly,
-    // so this serves as the integration point for future implementation.
+    // Integration point for future per-player input injection
+    void _input;
   }, []);
 
   const handleNetplaySessionChange = useCallback((session: NetplaySession | null) => {
@@ -664,7 +663,7 @@ export default function Play() {
               try {
                 const Ctx = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
                 if (Ctx) { const c = new Ctx(); if (c.state === 'suspended') await c.resume(); }
-              } catch {}
+              } catch { /* audio context init may fail on some browsers */ }
               setDidTapToStart(true);
             }}>Start Game</button>
           </div>

@@ -128,7 +128,7 @@ export default function LoaderOverlay({ visible, mode = 'session', message, game
   const displayMessage = message || messages[msgIndex];
 
   useEffect(() => {
-    if (!visible) { setMsgIndex(0); return; }
+    if (!visible) return;
     const interval = setInterval(() => {
       setMsgIndex(i => (i + 1) % messages.length);
     }, 1800);
