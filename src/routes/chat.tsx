@@ -778,26 +778,6 @@ export default function Chat() {
   const removePendingFile = useCallback((idx: number) => {
     setPendingFiles(prev => prev.filter((_, i) => i !== idx));
   }, []);
-  const speakChunk = useCallback(async (text: string): Promise<void> => {
-    if (!kokoroOnline || !voiceEnabled || !text.trim()) return;
-    try {
-      const res = await fetch(`${KOKORO_BASE}/v1/audio/speech`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "kokoro", input: text, voice: "af_heart", speed: 1.2, response_format: "mp3" }),
-      });
-      if (res.ok) {
-        const blob = await res.blob();
-        const audio = new Audio(URL.createObjectURL(blob));
-        await new Promise<void>((resolve) => {
-          audio.onended = () => resolve();
-          audio.onerror = () => resolve();
-          audio.play().catch(() => resolve());
-        });
-      }
-    } catch { /* silent fail */ }
-  }, [kokoroOnline, voiceEnabled]);
-
   // Send message — accepts optional directText for voice mode
   const sendMessageDirect = useCallback(async (directText?: string) => {
     let text = (directText ?? input).trim();
