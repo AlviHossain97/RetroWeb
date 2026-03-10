@@ -73,6 +73,9 @@ export interface Game {
   rating?: number; // 1-5 stars, undefined = unrated
   perGameSettings?: Record<string, string>;
   cheats?: string[];
+  notes?: string;
+  tags?: string[];
+  description?: string;
 }
 
 export interface ChatMessage {

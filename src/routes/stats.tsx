@@ -50,7 +50,27 @@ export default function StatsPage() {
     const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const maxDayActivity = Math.max(...dayActivity, 1);
 
-    return { totalPlaytime, playedGames: playedGames.length, systemStats, topGames, avgRating, dayActivity, dayNames, maxDayActivity };
+    // Heatmap: 52 weeks of daily play activity
+    const heatmapWeeks: { date: string; count: number }[][] = [];
+    const dayCounts = new Map<string, number>();
+    for (const g of playedGames) {
+      if (g.lastPlayed) {
+        const dateStr = new Date(g.lastPlayed).toISOString().slice(0, 10);
+        dayCounts.set(dateStr, (dayCounts.get(dateStr) ?? 0) + 1);
+      }
+    }
+    const today = new Date();
+    const startDay = new Date(today);
+    startDay.setDate(startDay.getDate() - 52 * 7 - startDay.getDay());
+    let week: { date: string; count: number }[] = [];
+    for (let d = new Date(startDay); d <= today; d.setDate(d.getDate() + 1)) {
+      const dateStr = d.toISOString().slice(0, 10);
+      week.push({ date: dateStr, count: dayCounts.get(dateStr) ?? 0 });
+      if (week.length === 7) { heatmapWeeks.push(week); week = []; }
+    }
+    if (week.length) heatmapWeeks.push(week);
+
+    return { totalPlaytime, playedGames: playedGames.length, systemStats, topGames, avgRating, dayActivity, dayNames, maxDayActivity, heatmapWeeks };
   }, [games]);
 
   return (
@@ -127,6 +147,36 @@ export default function StatsPage() {
                 <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>{stats.dayNames[i]}</span>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* Play Calendar Heatmap */}
+        <div className="rounded-xl p-5 lg:col-span-2" style={{ background: "var(--surface-1)", border: "1px solid var(--border-soft)" }}>
+          <h2 className="text-sm font-bold uppercase tracking-wider mb-4" style={{ color: "var(--text-muted)" }}>Play Calendar (Last 52 Weeks)</h2>
+          <div className="overflow-x-auto">
+            <div className="flex gap-[3px]" style={{ minWidth: 700 }}>
+              {stats.heatmapWeeks.map((week, wi) => (
+                <div key={wi} className="flex flex-col gap-[3px]">
+                  {week.map((day, di) => (
+                    <div
+                      key={di}
+                      className="w-[11px] h-[11px] rounded-[2px]"
+                      title={day.date ? `${day.date}: ${day.count} session${day.count !== 1 ? "s" : ""}` : ""}
+                      style={{
+                        background: !day.date ? "transparent" : day.count === 0 ? "var(--surface-2)" : day.count <= 1 ? "#0e4429" : day.count <= 3 ? "#006d32" : day.count <= 6 ? "#26a641" : "#39d353",
+                      }}
+                    />
+                  ))}
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center gap-2 mt-3 text-[10px]" style={{ color: "var(--text-muted)" }}>
+              <span>Less</span>
+              {["var(--surface-2)", "#0e4429", "#006d32", "#26a641", "#39d353"].map((c, i) => (
+                <div key={i} className="w-[11px] h-[11px] rounded-[2px]" style={{ background: c }} />
+              ))}
+              <span>More</span>
+            </div>
           </div>
         </div>
       </div>

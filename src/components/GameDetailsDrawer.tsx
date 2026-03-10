@@ -21,6 +21,8 @@ interface GameDetailsDrawerProps {
   onRate?: (gameId: string, rating: number) => void;
   onUpdateSettings?: (gameId: string, settings: Record<string, string>) => void;
   onUpdateCheats?: (gameId: string, cheats: string[]) => void;
+  onUpdateNotes?: (gameId: string, notes: string) => void;
+  onUpdateTags?: (gameId: string, tags: string[]) => void;
 }
 
 function formatBytes(bytes: number): string {
@@ -53,7 +55,7 @@ const SYSTEM_GRADIENTS: Record<string, string> = {
   n64: 'linear-gradient(135deg, #276749, #38a169)',
 };
 
-export default function GameDetailsDrawer({ game, onClose, onLaunch, onToggleFavorite, onRemove, onSetCover, collections, onAddToCollection, onRemoveFromCollection, onRate, onUpdateSettings, onUpdateCheats }: GameDetailsDrawerProps) {
+export default function GameDetailsDrawer({ game, onClose, onLaunch, onToggleFavorite, onRemove, onSetCover, collections, onAddToCollection, onRemoveFromCollection, onRate, onUpdateSettings, onUpdateCheats, onUpdateNotes, onUpdateTags }: GameDetailsDrawerProps) {
   const isOpen = game !== null;
   const gradient = game ? (SYSTEM_GRADIENTS[game.system] || 'linear-gradient(135deg, #2d3748, #4a5568)') : '';
   const [cheatInput, setCheatInput] = useState("");
@@ -183,7 +185,36 @@ export default function GameDetailsDrawer({ game, onClose, onLaunch, onToggleFav
                 <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>File Info</p>
                 <p className="text-xs font-mono break-all" style={{ color: 'var(--text-secondary)' }}>{game.filename}</p>
               </div>
-
+
+              {/* AI Description */}
+              {game.description ? (
+                <div className="mb-5 p-3 rounded-lg" style={{ background: 'var(--surface-2)', border: '1px solid var(--border-soft)' }}>
+                  <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>📖 About</p>
+                  <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{game.description}</p>
+                </div>
+              ) : (
+                <button
+                  onClick={async () => {
+                    try {
+                      const res = await fetch("http://localhost:11434/api/generate", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ model: "llama3.2", prompt: `Write a brief 2-3 sentence description of the retro video game "${game.displayTitle || game.title}" for the ${getSystemLabel(game.system)} system. Focus on what makes it notable. If you don't know the game, make a plausible description based on its name and system. No disclaimers.`, stream: false }),
+                      });
+                      const data = await res.json();
+                      if (data.response) {
+                        const { updateGameMetadata } = await import("../lib/storage/db");
+                        await updateGameMetadata(game.id, { description: data.response.trim() });
+                      }
+                    } catch { /* AI offline */ }
+                  }}
+                  className="w-full mb-5 p-2 text-xs rounded-lg transition-colors"
+                  style={{ background: 'var(--surface-2)', color: 'var(--text-muted)', border: '1px solid var(--border-soft)' }}
+                >
+                  ✨ Generate AI Description
+                </button>
+              )}
+
               {/* Per-Game Settings */}
               {onUpdateSettings && (
                 <div className="mb-5 p-3 rounded-lg" style={{ background: 'var(--surface-2)', border: '1px solid var(--border-soft)' }}>
@@ -271,8 +302,88 @@ export default function GameDetailsDrawer({ game, onClose, onLaunch, onToggleFav
                 </div>
               )}
 
+              {/* Notes / Journal */}
+              {onUpdateNotes && (
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>📝 Notes</h4>
+                  <textarea
+                    value={game.notes ?? ""}
+                    onChange={(e) => onUpdateNotes(game.id, e.target.value)}
+                    placeholder="Passwords, strategies, map notes..."
+                    rows={3}
+                    className="w-full px-3 py-2 text-xs rounded-lg resize-y"
+                    style={{ background: 'var(--surface-1)', color: 'var(--text-primary)', border: '1px solid var(--border-soft)' }}
+                  />
+                </div>
+              )}
+
+              {/* Custom Tags */}
+              {onUpdateTags && (
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>🏷️ Tags</h4>
+                  <div className="flex flex-wrap gap-1 mb-2">
+                    {(game.tags ?? []).map((tag, i) => (
+                      <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ background: 'var(--accent-primary)', color: '#fff' }}>
+                        {tag}
+                        <button onClick={() => onUpdateTags(game.id, (game.tags ?? []).filter((_, j) => j !== i))} className="hover:opacity-70">×</button>
+                      </span>
+                    ))}
+                  </div>
+                  <input
+                    placeholder="Add tag + Enter"
+                    className="w-full px-2 py-1 text-xs rounded"
+                    style={{ background: 'var(--surface-1)', color: 'var(--text-primary)', border: '1px solid var(--border-soft)' }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        const val = (e.target as HTMLInputElement).value.trim();
+                        if (val && !(game.tags ?? []).includes(val)) {
+                          onUpdateTags(game.id, [...(game.tags ?? []), val]);
+                          (e.target as HTMLInputElement).value = "";
+                        }
+                      }
+                    }}
+                  />
+                </div>
+              )}
+
               {/* Quick actions */}
               <div className="flex flex-col gap-2">
+                <button
+                  onClick={() => {
+                    const canvas = document.createElement("canvas");
+                    canvas.width = 600; canvas.height = 315;
+                    const ctx = canvas.getContext("2d")!;
+                    // Background gradient
+                    const grad = ctx.createLinearGradient(0, 0, 600, 315);
+                    grad.addColorStop(0, "#1a1a2e"); grad.addColorStop(1, "#16213e");
+                    ctx.fillStyle = grad; ctx.fillRect(0, 0, 600, 315);
+                    // Title
+                    ctx.fillStyle = "#ffffff"; ctx.font = "bold 28px sans-serif";
+                    ctx.fillText(game.displayTitle || game.title, 30, 60);
+                    // System
+                    ctx.fillStyle = "#60a5fa"; ctx.font = "16px sans-serif";
+                    ctx.fillText(getSystemLabel(game.system), 30, 90);
+                    // Stats
+                    ctx.fillStyle = "#a1a1aa"; ctx.font = "14px sans-serif";
+                    ctx.fillText(`⏱ ${formatPlaytime(game.playtime)} played`, 30, 140);
+                    if (game.rating) ctx.fillText(`⭐ ${game.rating}/5 rating`, 30, 165);
+                    // Branding
+                    ctx.fillStyle = "#4a5568"; ctx.font = "12px sans-serif";
+                    ctx.fillText("RetroWeb — Browser-Based Retro Gaming", 30, 290);
+                    // Download
+                    canvas.toBlob((blob) => {
+                      if (!blob) return;
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url; a.download = `retroweb-${game.title.replace(/\W+/g, "-")}.png`;
+                      a.click(); URL.revokeObjectURL(url);
+                    });
+                  }}
+                  className="flex items-center gap-2 w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
+                  style={{ background: 'var(--surface-2)', color: 'var(--text-secondary)' }}
+                >
+                  📤 Share Card
+                </button>
                 {onSetCover && (
                   <button
                     onClick={() => onSetCover(game.id)}
