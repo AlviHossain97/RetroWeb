@@ -18,16 +18,14 @@ const AchievementsPage = lazy(() => import('./routes/achievements.tsx'))
 const StatsPage = lazy(() => import('./routes/stats.tsx'))
 const RomHacksPage = lazy(() => import('./routes/romhacks.tsx'))
 
-const RouteFallback = () => (
-  <div className="flex items-center justify-center h-64">
-    <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--accent-primary)', borderTopColor: 'transparent' }} />
-  </div>
-)
-
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
-      <Suspense fallback={<RouteFallback />}>
+      <Suspense fallback={
+        <div className="flex items-center justify-center h-64">
+          <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--accent-primary)', borderTopColor: 'transparent' }} />
+        </div>
+      }>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<App />}>

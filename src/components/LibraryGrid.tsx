@@ -38,7 +38,6 @@ function CarouselView({ games, onSelect, onLaunch }: { games: Game[]; onSelect: 
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const innerRef = useRef<HTMLDivElement>(null);
   const quantity = Math.min(games.length, 12);
-  if (quantity === 0) return null;
   const visibleGames = games.slice(0, quantity);
 
   // Keyboard navigation
@@ -51,6 +50,8 @@ function CarouselView({ games, onSelect, onLaunch }: { games: Game[]; onSelect: 
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
   }, [quantity, selectedIndex, visibleGames, onLaunch]);
+
+  if (quantity === 0) return null;
 
   // Check for reduced motion
   const prefersReducedMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
