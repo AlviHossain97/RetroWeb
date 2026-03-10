@@ -1,6 +1,6 @@
 import { unlockAchievement, type Achievement } from "./storage/db";
 import { toast } from "sonner";
-import { pushNotification } from "../components/NotificationCenter";
+import { pushNotification } from "../lib/notifications";
 
 const ACHIEVEMENT_DEFS: Achievement[] = [
   { id: "first_game", title: "First Steps", description: "Play your first game", icon: "🎮" },

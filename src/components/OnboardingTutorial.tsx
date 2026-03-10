@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 const STORAGE_KEY = "retroweb.onboardingDone";
 
@@ -12,14 +12,8 @@ const STEPS = [
 ];
 
 export default function OnboardingTutorial() {
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState(() => !localStorage.getItem(STORAGE_KEY));
   const [step, setStep] = useState(0);
-
-  useEffect(() => {
-    if (!localStorage.getItem(STORAGE_KEY)) {
-      setVisible(true);
-    }
-  }, []);
 
   const finish = () => {
     localStorage.setItem(STORAGE_KEY, "true");

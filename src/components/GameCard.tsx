@@ -69,7 +69,7 @@ function GameCard({ game, onLaunch, onToggleFavorite, onRemove, onSetCover, onSe
     setTiltStyle({ transform: 'perspective(600px) rotateX(0) rotateY(0) scale(1)', transition: 'transform 0.4s ease' });
   }, []);
 
-  const handleClick = (_e: React.MouseEvent) => {
+  const handleClick = () => {
     if (onSelect) {
       onSelect(game);
     } else {

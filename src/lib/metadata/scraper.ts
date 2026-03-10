@@ -17,7 +17,7 @@ const THUMBNAIL_BASE = "https://raw.githubusercontent.com/libretro-thumbnails";
 function cleanForLibretro(filename: string): string {
   return filename
     .replace(/\.[^.]+$/, "")
-    .replace(/[\[\{].*?[\]\}]/g, "")
+    .replace(/[[{].*?[}\]]/g, "")
     .replace(/\s+/g, " ")
     .trim();
 }
