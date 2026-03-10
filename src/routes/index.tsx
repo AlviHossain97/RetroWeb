@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import {
   hasBIOS,
@@ -122,6 +122,13 @@ export default function Library() {
   const [isDragging, setIsDragging] = useState(false);
   const [games, setGames] = useState<Game[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchQuery(value);
+    clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => setDebouncedSearch(value), 200);
+  }, []);
   const [persistGame, setPersistGame] = useState(true);
   const [pendingRom, setPendingRom] = useState<PendingROM | null>(null);
   const [missingBiosList, setMissingBiosList] = useState<string[]>([]);
@@ -576,10 +583,10 @@ export default function Library() {
   };
 
   const searchSuggestions = useMemo(() => {
-    if (searchQuery.trim().length < 2) return [];
-    const q = searchQuery.toLowerCase();
+    if (debouncedSearch.trim().length < 2) return [];
+    const q = debouncedSearch.toLowerCase();
     return SYSTEMS.filter((system) => system.name.toLowerCase().includes(q)).slice(0, 4);
-  }, [searchQuery]);
+  }, [debouncedSearch]);
 
   const filteredGames = useMemo(() => {
     let result = games;
@@ -600,15 +607,15 @@ export default function Library() {
     } else if (activeCollectionId) {
       result = result.filter((game) => game.collectionIds?.includes(activeCollectionId));
     }
-    if (!searchQuery.trim()) return result;
-    const q = searchQuery.toLowerCase();
+    if (!debouncedSearch.trim()) return result;
+    const q = debouncedSearch.toLowerCase();
     return result.filter((game) => {
       const systemName = SYSTEMS.find((system) => system.id === game.system)?.name ?? game.system;
       return [game.title, game.displayTitle, game.system, systemName, game.filename, ...(game.tags ?? [])]
         .filter(Boolean)
         .some((token) => token!.toLowerCase().includes(q));
     });
-  }, [games, searchQuery, activeCollectionId]);
+  }, [games, debouncedSearch, activeCollectionId]);
 
   const sortedGames = useMemo(() => {
     const list = [...filteredGames];
@@ -783,7 +790,7 @@ export default function Library() {
                   type="text"
                   placeholder="Search library..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => handleSearchChange(e.target.value)}
                   className="w-full rounded-xl text-sm focus:outline-none focus:ring-2 transition-colors placeholder:opacity-50"
                   style={{ background: 'var(--surface-2)', border: '1px solid var(--border-soft)', color: 'var(--text-primary)', padding: '10px 12px 10px 40px' }}
                 />
@@ -796,7 +803,7 @@ export default function Library() {
                 <button
                   key={system.id}
                   className="text-xs px-2 py-1 rounded-sm border border-border text-muted-foreground hover:text-foreground hover:border-primary"
-                  onClick={() => setSearchQuery(system.name)}
+                  onClick={() => handleSearchChange(system.name)}
                 >
                   {system.name}
                 </button>
@@ -868,7 +875,7 @@ export default function Library() {
 
       {hasGames ? (
         <div className="w-full flex-1 flex flex-col gap-6">
-          {!searchQuery.trim() && (
+          {!debouncedSearch.trim() && (
             <div className="grid grid-cols-3 gap-4 mb-6">
               {[
                 { label: 'Total Games', value: games.length, color: 'var(--text-primary)' },
@@ -884,7 +891,7 @@ export default function Library() {
           )}
 
           {/* Collections filter bar */}
-          {!searchQuery.trim() && (
+          {!debouncedSearch.trim() && (
             <div className="flex items-center gap-2 flex-wrap mb-2">
               <button
                 onClick={() => setActiveCollectionId(null)}
@@ -957,7 +964,7 @@ export default function Library() {
             </div>
           )}
 
-          {!searchQuery.trim() && recentGames.length > 0 && (
+          {!debouncedSearch.trim() && recentGames.length > 0 && (
             <div className="mb-6">
               <h3 className="text-sm font-bold uppercase tracking-wider mb-3" style={{color: 'var(--text-muted)'}}>Recently Played</h3>
               <div className="flex gap-3 overflow-x-auto pb-2">
@@ -983,7 +990,7 @@ export default function Library() {
 
           <div className="w-full flex-1">
             <div className="flex items-end gap-3 mb-4">
-              <h2 className="text-xl font-bold text-neutral-300">{searchQuery.trim() ? "Search Results" : "All Games"}</h2>
+              <h2 className="text-xl font-bold text-neutral-300">{debouncedSearch.trim() ? "Search Results" : "All Games"}</h2>
             </div>
             {sortedGames.length > 0 ? (
               <LibraryGrid

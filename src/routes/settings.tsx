@@ -624,8 +624,101 @@ export default function Settings() {
             <button onClick={() => void handleExportBackup()} className="text-xs font-sans tracking-widest uppercase font-bold rounded-sm px-4 py-3 bg-muted border border-border text-foreground hover:bg-secondary transition-colors text-left flex items-center justify-between">Export Backup <span className="text-[10px] text-muted-foreground font-normal normal-case tracking-normal">.json</span></button>
             <button onClick={() => importInputRef.current?.click()} className="text-xs font-sans tracking-widest uppercase font-bold rounded-sm px-4 py-3 bg-muted border border-border text-foreground hover:bg-secondary transition-colors text-left flex items-center justify-between">Import Backup <span className="text-[10px] text-muted-foreground font-normal normal-case tracking-normal">.json</span></button>
             <button onClick={() => void handleClearEverything()} className="text-xs font-sans tracking-widest uppercase font-bold rounded-sm px-4 py-3 bg-[#1A0A0A] border border-destructive/30 text-destructive hover:bg-destructive hover:text-white transition-colors text-left">Clear Everything</button>
+            <button
+              onClick={() => {
+                const input = document.createElement("input");
+                input.type = "file";
+                input.accept = ".srm,.state,.sav";
+                input.multiple = true;
+                input.webkitdirectory = true;
+                input.onchange = async (e) => {
+                  const files = (e.target as HTMLInputElement).files;
+                  if (!files) return;
+                  let count = 0;
+                  for (const file of Array.from(files)) {
+                    const name = file.name.toLowerCase();
+                    if (name.endsWith(".srm") || name.endsWith(".sav") || name.endsWith(".state")) {
+                      try {
+                        const buffer = await file.arrayBuffer();
+                        const type = name.endsWith(".state") ? "state" as const : "sram" as const;
+                        const baseName = file.name.replace(/\.(srm|sav|state)$/i, "");
+                        await db.saves.add({ filename: baseName, system: "imported", type, data: new Uint8Array(buffer), timestamp: new Date(), slot: type === "state" ? 0 : undefined });
+                        count++;
+                      } catch { /* skip duplicates */ }
+                    }
+                  }
+                  if (count > 0) toast.success(`Imported ${count} RetroArch save(s)`);
+                  else toast.info("No compatible saves found");
+                };
+                input.click();
+              }}
+              className="text-xs font-sans tracking-widest uppercase font-bold rounded-sm px-4 py-3 bg-muted border border-border text-foreground hover:bg-secondary transition-colors text-left flex items-center justify-between sm:col-span-2"
+            >Import RetroArch Saves <span className="text-[10px] text-muted-foreground font-normal normal-case tracking-normal">.srm .state .sav</span></button>
           </div>
           <input ref={importInputRef} type="file" accept="application/json,.json" className="hidden" onChange={handleImportBackup} />
+
+          {/* Cloud Save Sync via GitHub Gists */}
+          <div className="mt-4 rounded-md shadow-sm p-6" style={{background: 'var(--surface-1)', border: '1px solid var(--border-soft)'}}>
+            <h3 className="text-sm font-bold mb-3 flex items-center gap-2" style={{color: 'var(--text-primary)'}}>☁️ Cloud Save Sync (GitHub Gists)</h3>
+            <div className="flex flex-col gap-3">
+              <input
+                type="password"
+                placeholder="GitHub Personal Access Token (gist scope)"
+                className="w-full bg-[#111111] border border-border rounded-sm px-3 py-2 text-xs focus:outline-none focus:border-primary text-foreground"
+                value={localStorage.getItem("gist_pat") || ""}
+                onChange={(e) => { localStorage.setItem("gist_pat", e.target.value); }}
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={async () => {
+                    const pat = localStorage.getItem("gist_pat");
+                    if (!pat) { toast.error("Enter a GitHub PAT first"); return; }
+                    try {
+                      const saves = await getAllSaves();
+                      const games = await getAllGames();
+                      const payload = JSON.stringify({ saves: saves.map(s => ({ ...s, data: Array.from(s.data) })), games, exportedAt: new Date().toISOString() });
+                      const resp = await fetch("https://api.github.com/gists", {
+                        method: "POST",
+                        headers: { Authorization: `Bearer ${pat}`, "Content-Type": "application/json" },
+                        body: JSON.stringify({ description: "PiStation Cloud Save", public: false, files: { "pistation-saves.json": { content: payload } } })
+                      });
+                      if (!resp.ok) throw new Error(await resp.text());
+                      const gist = await resp.json();
+                      localStorage.setItem("gist_id", gist.id);
+                      toast.success(`Synced to Gist ${gist.id.slice(0, 8)}…`);
+                    } catch (err) { toast.error("Upload failed: " + (err instanceof Error ? err.message : "Unknown")); }
+                  }}
+                  className="text-xs font-bold rounded-sm px-3 py-2 bg-muted border border-border text-foreground hover:bg-secondary transition-colors"
+                >⬆️ Upload to Gist</button>
+                <button
+                  onClick={async () => {
+                    const pat = localStorage.getItem("gist_pat");
+                    const gistId = localStorage.getItem("gist_id") || prompt("Enter Gist ID:");
+                    if (!pat || !gistId) { toast.error("Need PAT + Gist ID"); return; }
+                    try {
+                      const resp = await fetch(`https://api.github.com/gists/${gistId}`, { headers: { Authorization: `Bearer ${pat}` } });
+                      if (!resp.ok) throw new Error(await resp.text());
+                      const gist = await resp.json();
+                      const data = JSON.parse(gist.files["pistation-saves.json"].content);
+                      let count = 0;
+                      for (const s of data.saves) {
+                        try {
+                          await db.saves.add({ ...s, data: new Uint8Array(s.data), timestamp: new Date(s.timestamp) });
+                          count++;
+                        } catch { /* skip duplicates */ }
+                      }
+                      localStorage.setItem("gist_id", gistId);
+                      toast.success(`Downloaded ${count} save(s) from Gist`);
+                    } catch (err) { toast.error("Download failed: " + (err instanceof Error ? err.message : "Unknown")); }
+                  }}
+                  className="text-xs font-bold rounded-sm px-3 py-2 bg-muted border border-border text-foreground hover:bg-secondary transition-colors"
+                >⬇️ Download from Gist</button>
+              </div>
+              {localStorage.getItem("gist_id") && (
+                <p className="text-[10px]" style={{color: 'var(--text-secondary)'}}>Last synced Gist: {localStorage.getItem("gist_id")?.slice(0, 12)}…</p>
+              )}
+            </div>
+          </div>
         </section>
       )}
 
