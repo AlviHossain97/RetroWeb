@@ -264,14 +264,10 @@ export default function App() {
     return () => { window.removeEventListener("offline", goOffline); window.removeEventListener("online", goOnline); };
   }, []);
 
-  if (!isLoggedIn) {
-    return <Navigate to="/login" replace />;
-  }
-
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     sessionStorage.removeItem("retroweb.loggedIn");
     navigate("/login");
-  };
+  }, [navigate]);
 
   const handleDrop = useCallback(
     async (e: React.DragEvent) => {
@@ -346,6 +342,10 @@ export default function App() {
     { to: "/chat", label: "AI Chat", icon: <MessageCircle size={18} /> },
     { to: "/settings", label: "Settings", icon: <Settings2 size={18} /> },
   ] satisfies NavItem[], []);
+
+  if (!isLoggedIn) {
+    return <Navigate to="/login" replace />;
+  }
 
   return (
     <div

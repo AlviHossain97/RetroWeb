@@ -5,7 +5,6 @@ import type { ControllerButton, MappingOverrides } from "../gamepad/types";
 import { loadMappingOverrides, saveMappingOverrides } from "../gamepad/overrides";
 import {
   getDefaultKeyboardMap,
-  getEffectiveKeyboardMap,
   keyCodeToLabel,
   loadKeyboardOverrides,
   saveKeyboardOverrides,
@@ -71,9 +70,12 @@ export default function ControllerTest() {
 
     const pressedButtonIndex = activePadRaw.buttons.findIndex((value) => value > 0.65);
     if (pressedButtonIndex >= 0) {
-      setOverrides((prev) => ({ ...prev, [waitingFor]: pressedButtonIndex }));
-      setMessage(`${prettyButtonName(waitingFor)} mapped to button ${pressedButtonIndex}`);
-      setWaitingFor(null);
+      const captured = waitingFor;
+      requestAnimationFrame(() => {
+        setOverrides((prev) => ({ ...prev, [captured]: pressedButtonIndex }));
+        setMessage(`${prettyButtonName(captured)} mapped to button ${pressedButtonIndex}`);
+        setWaitingFor(null);
+      });
     }
   }, [activePadRaw, waitingFor]);
 
