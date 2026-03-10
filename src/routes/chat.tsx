@@ -600,6 +600,62 @@ const COBP_CSS = `
     transform: scale(0.97);
   }
 }
+
+.bin-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: rgb(255, 95, 95);
+  cursor: pointer;
+  border: 1.5px solid rgb(255, 201, 201);
+  transition-duration: 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+.bin-bottom {
+  width: 10px;
+  z-index: 2;
+}
+.bin-top {
+  width: 12px;
+  transform-origin: right;
+  transition-duration: 0.3s;
+  z-index: 2;
+}
+.bin-button:hover .bin-top {
+  transform: rotate(45deg);
+}
+.bin-button:hover {
+  background-color: rgb(255, 0, 0);
+}
+.bin-button:active {
+  transform: scale(0.9);
+}
+.garbage {
+  position: absolute;
+  width: 10px;
+  height: auto;
+  z-index: 1;
+  opacity: 0;
+  transition: all 0.3s;
+}
+.bin-button:hover .garbage {
+  animation: throw 0.4s linear;
+}
+@keyframes throw {
+  from {
+    transform: translate(-400%, -700%);
+    opacity: 0;
+  }
+  to {
+    transform: translate(0%, 0%);
+    opacity: 1;
+  }
+}
 `;
 
 function AIOrb() {
@@ -618,6 +674,12 @@ function AIOrb() {
   );
 }
 
+const MODEL_ICONS: Record<string, { icon: string; label: string }> = {
+  "llava:7b": { icon: "/model-icons/llava.png", label: "LLaVA 7B" },
+  "falcon3:10b": { icon: "/model-icons/falcon-edge.png", label: "Falcon 3 10B" },
+  "lfm2:24b": { icon: "/model-icons/liquid_logo_black.png", label: "LFM2 24B" },
+};
+
 export default function Chat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -626,10 +688,12 @@ export default function Chat() {
   const [kokoroOnline, setKokoroOnline] = useState(false);
   const [selectedModel, setSelectedModel] = useState("llava:7b");
   const [availableModels, setAvailableModels] = useState<string[]>([]);
+  const [showModelPicker, setShowModelPicker] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [listening, setListening] = useState(false);
-  const [pendingImages, setPendingImages] = useState<string[]>([]); // base64 images
-  const [pendingFiles, setPendingFiles] = useState<{ name: string; content: string }[]>([]); // text files
+  const [pendingImages, setPendingImages] = useState<string[]>([]);
+  const [pendingFiles, setPendingFiles] = useState<{ name: string; content: string }[]>([]);
   const chatDisplayRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -757,19 +821,48 @@ export default function Chat() {
     setStreaming(true);
 
     // TTS queue for sentence-level streaming in voice mode
+    // Pre-fetches audio for next sentence while current one plays
     const isVoice = voiceModeRef.current && voiceEnabled;
-    const ttsQueue: Promise<void>[] = [];
     let sentenceBuffer = "";
     const SENTENCE_END = /[.!?]\s*$/;
+    const audioQueue: Promise<HTMLAudioElement | null>[] = [];
+    let playChain = Promise.resolve();
+
+    const fetchAudio = (text: string): Promise<HTMLAudioElement | null> => {
+      return fetch(`${KOKORO_BASE}/v1/audio/speech`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: "kokoro", input: text, voice: "af_heart", speed: 1.2, response_format: "mp3" }),
+      }).then(res => {
+        if (!res.ok) return null;
+        return res.blob().then(blob => {
+          const audio = new Audio(URL.createObjectURL(blob));
+          return audio;
+        });
+      }).catch(() => null);
+    };
+
+    const playAudio = (audio: HTMLAudioElement): Promise<void> => {
+      return new Promise<void>(resolve => {
+        audio.onended = () => resolve();
+        audio.onerror = () => resolve();
+        audio.play().catch(() => resolve());
+      });
+    };
 
     const flushSentence = (force?: boolean) => {
       const trimmed = sentenceBuffer.trim();
-      if (!trimmed || !isVoice) return;
+      if (!trimmed || !isVoice || !kokoroOnline || !voiceEnabled) return;
       if (force || SENTENCE_END.test(trimmed)) {
         const toSpeak = trimmed;
         sentenceBuffer = "";
-        const prev = ttsQueue[ttsQueue.length - 1] || Promise.resolve();
-        ttsQueue.push(prev.then(() => speakChunk(toSpeak)));
+        // Start fetching audio immediately (parallel with playback)
+        const audioPromise = fetchAudio(toSpeak);
+        audioQueue.push(audioPromise);
+        // Chain playback sequentially but audio fetch happens in parallel
+        playChain = playChain.then(() =>
+          audioPromise.then(audio => audio ? playAudio(audio) : undefined)
+        );
       }
     };
 
@@ -818,10 +911,8 @@ export default function Chat() {
       // Flush any remaining text
       flushSentence(true);
 
-      // Wait for all TTS to finish before resuming listening
-      if (ttsQueue.length > 0) {
-        await ttsQueue[ttsQueue.length - 1];
-      }
+      // Wait for all TTS playback to finish before resuming listening
+      await playChain;
 
       if (voiceModeRef.current) {
         startRecRef.current();
@@ -838,7 +929,7 @@ export default function Chat() {
     } finally {
       setStreaming(false);
     }
-  }, [input, streaming, ollamaOnline, selectedModel, messages, speakChunk, voiceEnabled, pendingImages, pendingFiles]);
+  }, [input, streaming, ollamaOnline, selectedModel, messages, kokoroOnline, voiceEnabled, pendingImages, pendingFiles]);
 
   const sendMessage = useCallback(() => { sendMessageDirect(); }, [sendMessageDirect]);
 
@@ -982,6 +1073,46 @@ export default function Chat() {
     <div className="flex-1 flex flex-col h-full">
       <style dangerouslySetInnerHTML={{ __html: COBP_CSS }} />
 
+      {/* Clear Chat Confirmation */}
+      {showClearConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="select-none w-[280px] flex flex-col p-4 items-center justify-center bg-gray-800 border border-gray-800 shadow-lg rounded-2xl group">
+            <div className="text-center p-3 flex-auto justify-center">
+              <svg
+                fill="currentColor"
+                viewBox="0 0 20 20"
+                className="group-hover:animate-bounce w-12 h-12 flex items-center text-gray-600 fill-red-500 mx-auto"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  clipRule="evenodd"
+                  d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                  fillRule="evenodd"
+                />
+              </svg>
+              <h2 className="text-xl font-bold py-4 text-gray-200">Are you sure?</h2>
+              <p className="font-bold text-sm text-gray-500 px-2">
+                Do you really want to clear all messages? This cannot be undone.
+              </p>
+            </div>
+            <div className="p-2 mt-2 flex items-center justify-center gap-2 w-full">
+              <button
+                onClick={() => setShowClearConfirm(false)}
+                className="bg-gray-700 px-4 py-2 text-xs shadow-sm font-medium tracking-wider border-2 border-gray-600 hover:border-gray-700 text-gray-300 rounded-full hover:shadow-lg hover:bg-gray-800 transition ease-in duration-300"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => { setMessages([]); setShowClearConfirm(false); }}
+                className="bg-red-500 hover:bg-transparent px-4 py-2 text-xs shadow-sm hover:shadow-lg font-medium tracking-wider border-2 border-red-500 hover:border-red-500 text-white hover:text-red-500 rounded-full transition ease-in duration-300"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="px-4 py-3 border-b dark:border-zinc-700">
         <div className="flex justify-between items-center">
@@ -990,23 +1121,57 @@ export default function Chat() {
           </h2>
           <div className="flex items-center gap-2">
             {availableModels.length > 1 && (
-              <select
-                value={selectedModel}
-                onChange={(e) => setSelectedModel(e.target.value)}
-                className="text-xs px-2 py-1 rounded-full bg-zinc-700 text-white border border-zinc-600 outline-none cursor-pointer"
+              <button
+                onClick={() => setShowModelPicker(v => !v)}
+                className="text-xs px-2 py-1 rounded-full bg-zinc-700 text-white border border-zinc-600 hover:bg-zinc-600 transition-colors flex items-center gap-1.5"
               >
-                {availableModels.map((m) => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
-              </select>
+                {MODEL_ICONS[selectedModel] && (
+                  <img src={MODEL_ICONS[selectedModel].icon} alt="" className="w-3.5 h-3.5 object-contain" />
+                )}
+                {MODEL_ICONS[selectedModel]?.label || selectedModel}
+              </button>
             )}
             {messages.length > 0 && (
               <button
-                onClick={() => setMessages([])}
-                className="text-xs px-2 py-1 rounded-full bg-zinc-600 text-zinc-300 hover:bg-red-600 hover:text-white transition-colors"
+                onClick={() => setShowClearConfirm(true)}
+                className="bin-button"
                 title="Clear chat"
               >
-                🗑️
+                <svg
+                  className="bin-top"
+                  viewBox="0 0 39 7"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <line y1="5" x2="39" y2="5" stroke="white" strokeWidth="4" />
+                  <line x1="12" y1="1.5" x2="26.0357" y2="1.5" stroke="white" strokeWidth="3" />
+                </svg>
+                <svg
+                  className="bin-bottom"
+                  viewBox="0 0 33 39"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <mask id="path-1-inside-1_8_19" fill="white">
+                    <path d="M0 0H33V35C33 37.2091 31.2091 39 29 39H4C1.79086 39 0 37.2091 0 35V0Z" />
+                  </mask>
+                  <path
+                    d="M0 0H33H0ZM37 35C37 39.4183 33.4183 43 29 43H4C-0.418278 43 -4 39.4183 -4 35H4H29H37ZM4 43C-0.418278 43 -4 39.4183 -4 35V0H4V35V43ZM37 0V35C37 39.4183 33.4183 43 29 43V35V0H37Z"
+                    fill="white"
+                    mask="url(#path-1-inside-1_8_19)"
+                  />
+                  <line x1="12" y1="6" x2="12" y2="29" stroke="white" strokeWidth="4" />
+                  <line x1="21" y1="6" x2="21" y2="29" stroke="white" strokeWidth="4" />
+                </svg>
+                <svg
+                  className="garbage"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path d="M2 6L6 2M6 2L10 6M6 2V18" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M14 6L18 2M18 2L22 6M18 2V18" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
               </button>
             )}
             <button
@@ -1021,6 +1186,46 @@ export default function Chat() {
           </div>
         </div>
       </div>
+
+      {/* Model Picker */}
+      {showModelPicker && (
+        <div className="px-4 py-3 border-b dark:border-zinc-700">
+          <div className="flex flex-col gap-2">
+            <legend className="text-sm font-semibold text-zinc-300 select-none">Choose Model</legend>
+            {availableModels.map((m) => {
+              const info = MODEL_ICONS[m];
+              return (
+                <label
+                  key={m}
+                  htmlFor={`model-${m}`}
+                  className={`font-medium h-12 relative hover:bg-zinc-700 flex items-center px-3 gap-3 rounded-lg cursor-pointer select-none transition-all ${
+                    selectedModel === m
+                      ? "text-blue-400 bg-blue-500/10 ring-1 ring-blue-400/50"
+                      : "text-zinc-300"
+                  }`}
+                >
+                  <div className="w-5 h-5 flex-shrink-0">
+                    {info ? (
+                      <img src={info.icon} alt="" className="w-5 h-5 object-contain" />
+                    ) : (
+                      <div className="w-5 h-5 rounded-full bg-zinc-600" />
+                    )}
+                  </div>
+                  <span className="text-sm">{info?.label || m}</span>
+                  <input
+                    type="radio"
+                    name="model"
+                    id={`model-${m}`}
+                    checked={selectedModel === m}
+                    onChange={() => { setSelectedModel(m); setShowModelPicker(false); }}
+                    className="w-4 h-4 absolute accent-blue-500 right-3"
+                  />
+                </label>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Messages */}
       <div

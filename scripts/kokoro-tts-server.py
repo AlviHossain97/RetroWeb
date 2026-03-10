@@ -92,6 +92,23 @@ async def tts(req: TTSRequest):
     buf.seek(0)
     return StreamingResponse(buf, media_type="audio/wav")
 
+class SpeechRequest(BaseModel):
+    model: str = "kokoro"
+    input: str
+    voice: str = "af_heart"
+    speed: float = 1.2
+    response_format: str = "mp3"
+
+@app.post("/v1/audio/speech")
+async def speech_openai(req: SpeechRequest):
+    import soundfile as sf
+    k = get_kokoro()
+    samples, sample_rate = k.create(req.input, voice=req.voice, speed=req.speed)
+    buf = io.BytesIO()
+    sf.write(buf, samples, sample_rate, format="WAV")
+    buf.seek(0)
+    return StreamingResponse(buf, media_type="audio/wav")
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8787)
