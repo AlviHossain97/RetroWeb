@@ -800,11 +800,14 @@ export default function Chat() {
     setMessages(prev => [...prev, userMsg, assistantMsg]);
     setStreaming(true);
 
-    // TTS queue for sentence-level streaming in voice mode
-    // Pre-fetches audio for next sentence while current one plays
+    // TTS queue for clause-level streaming in voice mode
+    // Flushes on sentence ends, clause boundaries, or max length so speech starts ASAP
     const isVoice = voiceModeRef.current && voiceEnabled;
     let sentenceBuffer = "";
     const SENTENCE_END = /[.!?]\s*$/;
+    const CLAUSE_END = /[,;:\u2014\u2013]\s*$/;
+    const MAX_BUFFER_LEN = 120;
+    const MIN_CLAUSE_LEN = 30;
     const audioQueue: Promise<HTMLAudioElement | null>[] = [];
     let playChain = Promise.resolve();
 
@@ -833,7 +836,10 @@ export default function Chat() {
     const flushSentence = (force?: boolean) => {
       const trimmed = sentenceBuffer.trim();
       if (!trimmed || !isVoice || !kokoroOnline || !voiceEnabled) return;
-      if (force || SENTENCE_END.test(trimmed)) {
+      const isSentenceEnd = SENTENCE_END.test(trimmed);
+      const isClauseEnd = CLAUSE_END.test(trimmed) && trimmed.length >= MIN_CLAUSE_LEN;
+      const isOverflow = trimmed.length >= MAX_BUFFER_LEN;
+      if (force || isSentenceEnd || isClauseEnd || isOverflow) {
         const toSpeak = trimmed;
         sentenceBuffer = "";
         // Start fetching audio immediately (parallel with playback)
