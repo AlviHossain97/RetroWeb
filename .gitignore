@@ -25,3 +25,6 @@ dist-ssr
 
 # Kokoro TTS model files
 scripts/kokoro-models/
+
+# Windows reserved device names
+NUL
