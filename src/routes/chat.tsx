@@ -963,6 +963,7 @@ export default function Chat() {
       await playChain;
 
       if (voiceModeRef.current) {
+        console.log("[HEART] 🔄 Response complete, resuming listener...");
         startRecRef.current();
       }
     } catch {
@@ -972,6 +973,7 @@ export default function Chat() {
         return updated;
       });
       if (voiceModeRef.current) {
+        console.log("[HEART] 🔄 Error recovery, resuming listener...");
         startRecRef.current();
       }
     } finally {
@@ -983,13 +985,21 @@ export default function Chat() {
 
   // Whisper STT: record audio, send to local Whisper server
   const transcribeChunk = useCallback(async (blob: Blob): Promise<string> => {
+    console.log(`[HEART] 📝 Transcribing ${blob.size} bytes of audio...`);
     const form = new FormData();
     form.append("file", blob, "audio.webm");
     form.append("model", "Systran/faster-whisper-small");
+    const t0 = performance.now();
     const res = await fetch(`${WHISPER_BASE}/v1/audio/transcriptions`, { method: "POST", body: form });
-    if (!res.ok) return "";
+    if (!res.ok) {
+      console.warn(`[HEART] ❌ Whisper returned HTTP ${res.status}`);
+      return "";
+    }
     const data = await res.json();
-    return (data.text || "").trim();
+    const text = (data.text || "").trim();
+    const ms = Math.round(performance.now() - t0);
+    console.log(`[HEART] 📝 Whisper returned: '${text}' (${ms}ms)`);
+    return text;
   }, []);
 
   // Start recording a single utterance, transcribe, send, speak, loop
@@ -997,21 +1007,36 @@ export default function Chat() {
     if (!voiceModeRef.current) return;
 
     try {
+      console.log("[HEART] 🎤 Listening...");
       // Get mic stream (reuse if already open)
       if (!mediaStreamRef.current) {
+        console.log("[HEART] 🎤 Requesting microphone access...");
         mediaStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
+        console.log("[HEART] ✅ Microphone access granted");
       }
       const stream = mediaStreamRef.current;
 
+      // Verify the stream is still active
+      if (!stream.active || stream.getAudioTracks().every(t => t.readyState === "ended")) {
+        console.log("[HEART] ⚠️ Mic stream ended, re-acquiring...");
+        mediaStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
+      }
+
       // Use AudioContext for silence detection
       const audioCtx = new AudioContext();
-      const source = audioCtx.createMediaStreamSource(stream);
+      const source = audioCtx.createMediaStreamSource(mediaStreamRef.current);
       const analyser = audioCtx.createAnalyser();
       analyser.fftSize = 512;
       source.connect(analyser);
       const dataArray = new Uint8Array(analyser.frequencyBinCount);
 
-      const recorder = new MediaRecorder(stream, { mimeType: "audio/webm;codecs=opus" });
+      // Choose a supported mimeType
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : MediaRecorder.isTypeSupported("audio/webm")
+          ? "audio/webm"
+          : "";
+      const recorder = new MediaRecorder(mediaStreamRef.current, mimeType ? { mimeType } : undefined);
       mediaRecorderRef.current = recorder;
       const chunks: Blob[] = [];
       recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
@@ -1019,22 +1044,30 @@ export default function Chat() {
       const audioBlob = await new Promise<Blob>((resolve) => {
         recorder.onstop = () => {
           audioCtx.close();
-          resolve(new Blob(chunks, { type: "audio/webm" }));
+          const blob = new Blob(chunks, { type: mimeType || "audio/webm" });
+          console.log(`[HEART] 🛑 Recording stopped — ${blob.size} bytes captured`);
+          resolve(blob);
         };
-        recorder.start(100);
+        recorder.onerror = (e) => {
+          console.error("[HEART] ❌ MediaRecorder error:", e);
+          audioCtx.close();
+          resolve(new Blob([], { type: "audio/webm" }));
+        };
+        recorder.start(250); // capture data every 250ms for more reliable chunks
 
         let speechDetected = false;
         let silenceStart = 0;
-        const SILENCE_THRESHOLD = 5; // frequency avg below this = silence
+        const SILENCE_THRESHOLD = 8; // frequency avg below this = silence
         const SILENCE_DURATION = 1500; // ms of silence after speech before auto-stop
         const MIN_SPEECH_DURATION = 500;
-        const MAX_DURATION = 15000;
+        const MAX_DURATION = 30000; // 30s max
         const startTime = Date.now();
 
         const checkSilence = () => {
           if (recorder.state !== "recording") return;
           if (!voiceModeRef.current) { recorder.stop(); return; }
           if (Date.now() - startTime > MAX_DURATION) {
+            console.log("[HEART] ⏱️ Max recording duration reached, stopping...");
             recorder.stop();
             return;
           }
@@ -1043,11 +1076,15 @@ export default function Chat() {
           const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
 
           if (avg > SILENCE_THRESHOLD) {
+            if (!speechDetected) {
+              console.log("[HEART] 🗣️ Speech detected");
+            }
             speechDetected = true;
             silenceStart = 0;
           } else if (speechDetected && (Date.now() - startTime > MIN_SPEECH_DURATION)) {
             if (!silenceStart) silenceStart = Date.now();
             else if (Date.now() - silenceStart > SILENCE_DURATION) {
+              console.log("[HEART] 🔇 Silence detected after speech, stopping...");
               recorder.stop();
               return;
             }
@@ -1059,16 +1096,25 @@ export default function Chat() {
 
       if (!voiceModeRef.current) return;
 
-      const transcript = await transcribeChunk(audioBlob);
-
-      if (!transcript || !voiceModeRef.current) {
+      // Skip empty recordings
+      if (audioBlob.size < 1000) {
+        console.log("[HEART] ⚠️ Audio too small, skipping transcription");
         if (voiceModeRef.current) startRecRef.current();
         return;
       }
 
+      const transcript = await transcribeChunk(audioBlob);
+
+      if (!transcript || !voiceModeRef.current) {
+        console.log("[HEART] 🔄 No transcript or voice mode off, restarting listener...");
+        if (voiceModeRef.current) startRecRef.current();
+        return;
+      }
+
+      console.log(`[HEART] 💬 Sending: "${transcript}"`);
       sendDirectRef.current(transcript);
     } catch (err) {
-      console.error("[Whisper] Error:", err);
+      console.error("[HEART] ❌ Voice pipeline error:", err);
       if (voiceModeRef.current) {
         setTimeout(() => startRecRef.current(), 1000);
       }
@@ -1083,6 +1129,7 @@ export default function Chat() {
   const toggleListening = useCallback(() => {
     if (voiceModeRef.current) {
       // Stop voice mode
+      console.log("[HEART] 🛑 Stopping voice pipeline...");
       voiceModeRef.current = false;
       setListening(false);
       mediaRecorderRef.current?.stop();
@@ -1092,6 +1139,7 @@ export default function Chat() {
       mediaStreamRef.current = null;
     } else {
       // Start voice mode
+      console.log("[HEART] ✅ Starting voice pipeline...");
       voiceModeRef.current = true;
       setListening(true);
       void checkAndUnlock("voice_mode");
