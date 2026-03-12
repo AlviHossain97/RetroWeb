@@ -8,9 +8,9 @@ interface Message {
   images?: string[]; // base64 encoded images
 }
 
-const OLLAMA_BASE = "http://localhost:11434";
-const KOKORO_BASE = "http://localhost:8787";
-const WHISPER_BASE = "http://localhost:8786";
+const OLLAMA_BASE = "/api/ollama";
+const KOKORO_BASE = "/api/kokoro";
+const WHISPER_BASE = "/api/whisper";
 
 /* ── Exact Cobp CSS (From Uiverse.io by Cobp) ── */
 const COBP_CSS = `
