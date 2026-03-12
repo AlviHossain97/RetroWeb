@@ -1,19 +1,26 @@
 """OpenAI-compatible Whisper STT Server using faster-whisper, GPU-accelerated."""
-import os, tempfile, subprocess
-from fastapi import FastAPI, UploadFile, File, Form
+import os, tempfile, subprocess, time, traceback
+from fastapi import FastAPI, UploadFile, File, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from faster_whisper import WhisperModel
 
 app = FastAPI()
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"],
+)
 
-model = None
+whisper_model = None
 
 def get_model():
-    global model
-    if model is None:
-        model = WhisperModel("small", device="cuda", compute_type="float16")
-    return model
+    global whisper_model
+    if whisper_model is None:
+        whisper_model = WhisperModel("small", device="cuda", compute_type="float16")
+    return whisper_model
 
 @app.on_event("startup")
 async def preload():
@@ -26,45 +33,48 @@ async def preload():
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "model_loaded": model is not None}
+    return {"status": "ok", "model_loaded": whisper_model is not None}
 
 @app.post("/v1/audio/transcriptions")
 async def transcriptions(
     file: UploadFile = File(...),
     model: str = Form("Systran/faster-whisper-small"),
 ):
-    m = get_model()
-    raw = await file.read()
-    print(f"[Whisper] 📝 Received {len(raw)} bytes ({file.filename})")
-
-    with tempfile.NamedTemporaryFile(suffix=".webm", delete=False) as tmp:
-        tmp.write(raw)
-        tmp_path = tmp.name
-
     try:
-        # Convert webm to wav via ffmpeg
-        wav_path = tmp_path + ".wav"
-        proc = subprocess.run(
-            ["ffmpeg", "-y", "-i", tmp_path, "-ar", "16000", "-ac", "1", wav_path],
-            capture_output=True, timeout=10
-        )
-        if proc.returncode != 0:
-            print(f"[Whisper] ❌ ffmpeg conversion failed: {proc.stderr.decode()[:200]}")
-            return {"text": ""}
+        m = get_model()
+        raw = await file.read()
+        print(f"[Whisper] 📝 Received {len(raw)} bytes ({file.filename})")
 
-        import time
-        t0 = time.time()
-        segments, _ = m.transcribe(wav_path, language="en")
-        text = " ".join(s.text.strip() for s in segments).strip()
-        elapsed = round((time.time() - t0) * 1000)
-        print(f"[Whisper] ✅ Transcribed: '{text}' ({elapsed}ms)")
-    finally:
-        try: os.unlink(tmp_path)
-        except: pass
-        try: os.unlink(tmp_path + ".wav")
-        except: pass
+        with tempfile.NamedTemporaryFile(suffix=".webm", delete=False) as tmp:
+            tmp.write(raw)
+            tmp_path = tmp.name
 
-    return {"text": text}
+        try:
+            # Convert webm to wav via ffmpeg
+            wav_path = tmp_path + ".wav"
+            proc = subprocess.run(
+                ["ffmpeg", "-y", "-i", tmp_path, "-ar", "16000", "-ac", "1", wav_path],
+                capture_output=True, timeout=10
+            )
+            if proc.returncode != 0:
+                print(f"[Whisper] ❌ ffmpeg conversion failed: {proc.stderr.decode()[:200]}")
+                return {"text": ""}
+
+            t0 = time.time()
+            segments, _ = m.transcribe(wav_path, language="en")
+            text = " ".join(s.text.strip() for s in segments).strip()
+            elapsed = round((time.time() - t0) * 1000)
+            print(f"[Whisper] ✅ Transcribed: '{text}' ({elapsed}ms)")
+        finally:
+            try: os.unlink(tmp_path)
+            except: pass
+            try: os.unlink(tmp_path + ".wav")
+            except: pass
+
+        return {"text": text}
+    except Exception as e:
+        traceback.print_exc()
+        return JSONResponse(content={"text": "", "error": str(e)}, status_code=200)
 
 if __name__ == "__main__":
     import uvicorn
