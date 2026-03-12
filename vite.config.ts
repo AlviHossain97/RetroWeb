@@ -72,6 +72,25 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  server: {
+    proxy: {
+      '/api/ollama': {
+        target: 'http://localhost:11434',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/ollama/, ''),
+      },
+      '/api/whisper': {
+        target: 'http://localhost:8786',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/whisper/, ''),
+      },
+      '/api/kokoro': {
+        target: 'http://localhost:8787',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/kokoro/, ''),
+      },
+    },
+  },
   build: {
     target: 'esnext',
     rollupOptions: {

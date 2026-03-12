@@ -43,7 +43,7 @@ async def transcriptions(
     try:
         m = get_model()
         raw = await file.read()
-        print(f"[Whisper] 📝 Received {len(raw)} bytes ({file.filename})")
+        print(f"[Whisper] Received {len(raw)} bytes ({file.filename})")
 
         with tempfile.NamedTemporaryFile(suffix=".webm", delete=False) as tmp:
             tmp.write(raw)
@@ -57,14 +57,14 @@ async def transcriptions(
                 capture_output=True, timeout=10
             )
             if proc.returncode != 0:
-                print(f"[Whisper] ❌ ffmpeg conversion failed: {proc.stderr.decode()[:200]}")
+                print(f"[Whisper] ffmpeg conversion failed: {proc.stderr.decode()[:200]}")
                 return {"text": ""}
 
             t0 = time.time()
             segments, _ = m.transcribe(wav_path, language="en")
             text = " ".join(s.text.strip() for s in segments).strip()
             elapsed = round((time.time() - t0) * 1000)
-            print(f"[Whisper] ✅ Transcribed: '{text}' ({elapsed}ms)")
+            print(f"[Whisper] Transcribed: '{text}' ({elapsed}ms)")
         finally:
             try: os.unlink(tmp_path)
             except: pass
