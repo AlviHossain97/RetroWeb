@@ -3,15 +3,16 @@ import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ollamaPath = resolve(process.env.LOCALAPPDATA, "Programs", "Ollama", "ollama.exe");
 const kokoroScript = resolve(__dirname, "scripts", "kokoro-tts-server.py");
 const whisperScript = resolve(__dirname, "scripts", "whisper-server.py");
+const backendDir = resolve(__dirname, "backend");
 
 const services = [];
 
 function startService(name, cmd, args, opts = {}) {
   const proc = spawn(cmd, args, {
     stdio: ["ignore", "pipe", "pipe"],
+    cwd: opts.cwd || __dirname,
     env: { ...process.env, ...opts.env },
     shell: true,
   });
@@ -48,28 +49,50 @@ process.on("SIGINT", cleanup);
 process.on("SIGTERM", cleanup);
 process.on("SIGHUP", cleanup);
 
-console.log("Starting all services...\n");
+console.log("Starting all PiStation services...\n");
 
-// 1. Ollama
-startService("Ollama", ollamaPath, ["serve"], {
-  env: { OLLAMA_ORIGINS: "*" },
+// 1. Ollama — check if already running (systemd), start if not
+import { execSync } from "child_process";
+try {
+  execSync("systemctl is-active --quiet ollama", { stdio: "ignore" });
+  console.log("[Ollama] Already running via systemd");
+} catch {
+  try {
+    execSync("curl -s --max-time 2 http://localhost:11434/api/tags > /dev/null", { stdio: "ignore" });
+    console.log("[Ollama] Already running");
+  } catch {
+    startService("Ollama", "ollama", ["serve"], {
+      env: { OLLAMA_ORIGINS: "*" },
+    });
+  }
+}
+
+// 2. FastAPI backend
+startService("FastAPI", "python3", [
+  "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000",
+], { cwd: backendDir });
+
+// 3. Kokoro TTS (CUDA)
+startService("Kokoro", "python3", [kokoroScript]);
+
+// 4. Whisper STT (GPU)
+startService("Whisper", "python3", [whisperScript], {
+  env: { LD_LIBRARY_PATH: "/usr/local/lib/ollama/cuda_v12" },
 });
 
-// 2. Kokoro TTS
-startService("Kokoro", "py", [kokoroScript]);
-
-// 3. Whisper STT (OpenAI-compatible)
-startService("Whisper", "py", [whisperScript]);
-
-// 4. Vite dev server
+// 5. Vite dev server
 startService("Vite", "npx", ["vite", "--host", "0.0.0.0", "--port", "5173"]);
 
 console.log(`
-  Services starting:
-    Vite    → http://localhost:5173
-    Ollama  → http://localhost:11434
-    Kokoro  → http://localhost:8787  (TTS)
-    Whisper → http://localhost:8786  (STT)
-
-  Press Ctrl+C to stop all services.
+  ┌─────────────────────────────────────────┐
+  │         PiStation — All Services        │
+  ├─────────────────────────────────────────┤
+  │  Vite    → http://localhost:5173        │
+  │  FastAPI → http://localhost:8000        │
+  │  Ollama  → http://localhost:11434       │
+  │  Kokoro  → http://localhost:8787  (TTS) │
+  │  Whisper → http://localhost:8786  (STT) │
+  ├─────────────────────────────────────────┤
+  │  Press Ctrl+C to stop all services.     │
+  └─────────────────────────────────────────┘
 `);
