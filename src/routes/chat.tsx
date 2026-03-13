@@ -688,7 +688,7 @@ export default function Chat() {
   const [streaming, setStreaming] = useState(false);
   const [ollamaOnline, setOllamaOnline] = useState(false);
   const [kokoroOnline, setKokoroOnline] = useState(false);
-  const [selectedModel, setSelectedModel] = useState("llava:7b");
+  const [selectedModel, setSelectedModel] = useState("qwen3.5:4b");
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [showModelPicker, setShowModelPicker] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -726,6 +726,8 @@ export default function Chat() {
             const data = await tagsRes.json();
             const names: string[] = (data.models || []).map((m: { name: string }) => m.name);
             setAvailableModels(names);
+            // Auto-select first available model if current selection isn't installed
+            setSelectedModel(prev => names.includes(prev) ? prev : (names[0] || prev));
           }
         }
       } catch { if (!cancelled) setOllamaOnline(false); }
@@ -844,22 +846,29 @@ export default function Chat() {
     void checkAndUnlock("ai_chat");
     if (images && images.length > 0) void checkAndUnlock("screenshot_ai");
 
-    // TTS queue for clause-level streaming in voice mode
-    // Flushes on sentence ends, clause boundaries, or max length so speech starts ASAP
+    // TTS queue for streaming voice — fires on first word boundary for minimal latency
     const isVoice = voiceModeRef.current && voiceEnabled;
     let sentenceBuffer = "";
+    let chunkIndex = 0;
     const SENTENCE_END = /[.!?]\s*$/;
     const CLAUSE_END = /[,;:\u2014\u2013]\s*$/;
-    const MAX_BUFFER_LEN = 120;
-    const MIN_CLAUSE_LEN = 30;
     const audioQueue: Promise<HTMLAudioElement | null>[] = [];
     let playChain = Promise.resolve();
 
+    const sanitizeForTTS = (text: string): string =>
+      text
+        .replace(/\p{Emoji_Presentation}/gu, "")
+        .replace(/\p{Extended_Pictographic}/gu, "")
+        .replace(/\s{2,}/g, " ")
+        .trim();
+
     const fetchAudio = (text: string): Promise<HTMLAudioElement | null> => {
+      const cleaned = sanitizeForTTS(text);
+      if (!cleaned) return Promise.resolve(null);
       return fetch(`${KOKORO_BASE}/v1/audio/speech`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "kokoro", input: text, voice: "af_heart", speed: 1.2, response_format: "mp3" }),
+        body: JSON.stringify({ model: "kokoro", input: cleaned, voice: "af_heart", speed: 1.2, response_format: "mp3" }),
       }).then(res => {
         if (!res.ok) return null;
         return res.blob().then(blob => {
@@ -877,22 +886,29 @@ export default function Chat() {
       });
     };
 
+    const enqueueSpeak = (text: string) => {
+      sentenceBuffer = "";
+      chunkIndex++;
+      const audioPromise = fetchAudio(text);
+      audioQueue.push(audioPromise);
+      playChain = playChain.then(() =>
+        audioPromise.then(audio => audio ? playAudio(audio) : undefined)
+      );
+    };
+
     const flushSentence = (force?: boolean) => {
       const trimmed = sentenceBuffer.trim();
       if (!trimmed || !isVoice || !kokoroOnline || !voiceEnabled) return;
+      // First chunk: fire on the very first word boundary to minimize time-to-speech
+      if (chunkIndex === 0 && trimmed.includes(" ")) {
+        enqueueSpeak(trimmed);
+        return;
+      }
       const isSentenceEnd = SENTENCE_END.test(trimmed);
-      const isClauseEnd = CLAUSE_END.test(trimmed) && trimmed.length >= MIN_CLAUSE_LEN;
-      const isOverflow = trimmed.length >= MAX_BUFFER_LEN;
+      const isClauseEnd = CLAUSE_END.test(trimmed) && trimmed.length >= 10;
+      const isOverflow = trimmed.length >= 40;
       if (force || isSentenceEnd || isClauseEnd || isOverflow) {
-        const toSpeak = trimmed;
-        sentenceBuffer = "";
-        // Start fetching audio immediately (parallel with playback)
-        const audioPromise = fetchAudio(toSpeak);
-        audioQueue.push(audioPromise);
-        // Chain playback sequentially but audio fetch happens in parallel
-        playChain = playChain.then(() =>
-          audioPromise.then(audio => audio ? playAudio(audio) : undefined)
-        );
+        enqueueSpeak(trimmed);
       }
     };
 
@@ -908,7 +924,7 @@ export default function Chat() {
       };
       const personaBase = personaPrompts[persona] || personaPrompts.default;
       const gameContext = lastGame ? ` The user recently played: ${lastGame}.` : "";
-      const systemPrompt = `${personaBase}${gameContext} You can help with tips, cheats, walkthroughs, and general retro gaming knowledge. Be concise and helpful.`;
+      const systemPrompt = `${personaBase}${gameContext} You can help with tips, cheats, walkthroughs, and general retro gaming knowledge. Be concise and helpful. Do not use markdown formatting like bold, italic, headers, or bullet points. Write in plain text with emojis if you like.`;
 
       const apiMessages = [
         { role: "system", content: systemPrompt },
@@ -959,8 +975,9 @@ export default function Chat() {
       // Flush any remaining text
       flushSentence(true);
 
-      // Wait for all TTS playback to finish before resuming listening
-      await playChain;
+      // Let TTS playback continue in background, don't block on it
+      // Resume listening immediately after stream ends (TTS keeps playing)
+      playChain.catch(() => {});
 
       if (voiceModeRef.current) {
         console.log("[HEART] 🔄 Response complete, resuming listener...");
@@ -1041,23 +1058,24 @@ export default function Chat() {
       const chunks: Blob[] = [];
       recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
 
-      const audioBlob = await new Promise<Blob>((resolve) => {
+      const { blob: audioBlob, peakEnergy } = await new Promise<{ blob: Blob; peakEnergy: number }>((resolve) => {
+        let _peakEnergy = 0;
         recorder.onstop = () => {
           audioCtx.close();
           const blob = new Blob(chunks, { type: mimeType || "audio/webm" });
-          console.log(`[HEART] 🛑 Recording stopped — ${blob.size} bytes captured`);
-          resolve(blob);
+          console.log(`[HEART] 🛑 Recording stopped — ${blob.size} bytes, peak energy: ${_peakEnergy.toFixed(1)}`);
+          resolve({ blob, peakEnergy: _peakEnergy });
         };
         recorder.onerror = (e) => {
           console.error("[HEART] ❌ MediaRecorder error:", e);
           audioCtx.close();
-          resolve(new Blob([], { type: "audio/webm" }));
+          resolve({ blob: new Blob([], { type: "audio/webm" }), peakEnergy: 0 });
         };
         recorder.start(250); // capture data every 250ms for more reliable chunks
 
         let speechDetected = false;
         let silenceStart = 0;
-        const SILENCE_THRESHOLD = 8; // frequency avg below this = silence
+        const SILENCE_THRESHOLD = 15; // frequency avg below this = silence
         const SILENCE_DURATION = 1500; // ms of silence after speech before auto-stop
         const MIN_SPEECH_DURATION = 500;
         const MAX_DURATION = 30000; // 30s max
@@ -1081,6 +1099,7 @@ export default function Chat() {
             }
             speechDetected = true;
             silenceStart = 0;
+            if (avg > _peakEnergy) _peakEnergy = avg;
           } else if (speechDetected && (Date.now() - startTime > MIN_SPEECH_DURATION)) {
             if (!silenceStart) silenceStart = Date.now();
             else if (Date.now() - silenceStart > SILENCE_DURATION) {
@@ -1096,9 +1115,10 @@ export default function Chat() {
 
       if (!voiceModeRef.current) return;
 
-      // Skip empty recordings
-      if (audioBlob.size < 1000) {
-        console.log("[HEART] ⚠️ Audio too small, skipping transcription");
+      // Skip empty or too-quiet recordings (prevents phantom transcriptions)
+      const MIN_PEAK_ENERGY = 20;
+      if (audioBlob.size < 1000 || peakEnergy < MIN_PEAK_ENERGY) {
+        console.log(`[HEART] ⚠️ Audio too small or quiet (size=${audioBlob.size}, peak=${peakEnergy.toFixed(1)}), skipping`);
         if (voiceModeRef.current) startRecRef.current();
         return;
       }
