@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}PiStation Stats — Dashboard{% endblock %}
+
+{% block meta_extra %}
+<meta http-equiv="refresh" content="15">
+{% endblock %}
+
+{% block stylesheets %}
+<link rel="stylesheet" href="/static/css/kiosk.css"/>
+{% endblock %}
+
+{% block body %}
+<div class="kiosk-dashboard">
+    <div class="header">
+        <div>
+            <div class="brand">PiStation Stats</div>
+            <div class="tag">Gameplay analytics dashboard</div>
+        </div>
+        <div class="tag">Auto-refresh every 15 seconds</div>
+    </div>
+
+    <div class="grid">
+        {# ---- Currently Playing Card ---- #}
+        {% if ctx.active_session %}
+        <div class="card active-card is-playing">
+            <div class="label">Currently Playing</div>
+            <div class="title">{{ game_title_from_path(ctx.active_session['rom_path']) }}</div>
+            <div class="meta">{{ ctx.active_session.get('system_name') or 'Unknown system' }} &bull; {{ ctx.active_session.get('core') or 'Unknown core' }}</div>
+            <div class="big-number">{{ format_seconds(ctx.active_session['live_seconds']) }}</div>
+            <div class="subtle">Session live time</div>
+        </div>
+        {% else %}
+        <div class="card active-card">
+            <div class="label">Currently Playing</div>
+            <div class="title">Nothing active</div>
+            <div class="meta">Launch a game to begin tracking</div>
+        </div>
+        {% endif %}
+
+        {# ---- Total Sessions Card ---- #}
+        <div class="card">
+            <div class="label">Total Sessions</div>
+            <div class="stat-number">{{ ctx.total_sessions }}</div>
+            <div class="subtle">All recorded sessions</div>
+        </div>
+
+        {# ---- Total Playtime Card ---- #}
+        <div class="card">
+            <div class="label">Total Playtime</div>
+            <div class="stat-number">{{ format_seconds(ctx.total_seconds) }}</div>
+            <div class="subtle">Favourite system: {{ ctx.fav_system_name }}</div>
+        </div>
+    </div>
+
+    <div class="grid-bottom">
+        {# ---- Recent Sessions ---- #}
+        <div class="card">
+            <div class="section-title">Recent Sessions</div>
+            {% if ctx.recent_sessions %}
+                {% for row in ctx.recent_sessions %}
+                <div class="list-row">
+                    <div>
+                        <div class="row-title">{{ game_title_from_path(row['rom_path']) }}</div>
+                        <div class="row-sub">{{ row.get('system_name') or 'Unknown' }} &bull; {{ row.get('core') or 'Unknown core' }}</div>
+                    </div>
+                    {% if row['ended_at'] %}
+                    <div class="row-right">{{ format_seconds(row['duration_seconds']) }}</div>
+                    {% else %}
+                    <div class="row-right active-badge">Active</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">No sessions yet.</div>
+            {% endif %}
+        </div>
+
+        {# ---- Top Played Games ---- #}
+        <div class="card">
+            <div class="section-title">Top Played Games</div>
+            {% if ctx.top_games %}
+                {% for row in ctx.top_games %}
+                <div class="list-row">
+                    <div>
+                        <div class="row-title">{{ game_title_from_path(row['rom_path']) }}</div>
+                        <div class="row-sub">{{ row.get('system_name') or 'Unknown' }} &bull; {{ row.get('session_count') or 0 }} sessions</div>
+                    </div>
+                    <div class="row-right">{{ format_seconds(row['total_seconds']) }}</div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">No playtime data yet.</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="footer-note">
+        <span>PiStation Stats &mdash; Kiosk View</span>
+        <span><a href="/dashboard/admin" style="color: var(--text-muted); text-decoration: none;">Admin View &rarr;</a></span>
+    </div>
+</div>
+{% endblock %}

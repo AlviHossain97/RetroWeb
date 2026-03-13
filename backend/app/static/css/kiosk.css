@@ -1,0 +1,231 @@
+/* ============================================
+   PiStation Kiosk Dashboard Styles
+   Optimized for fullscreen EmulationStation display
+   ============================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: var(--font-family);
+    font-size: 20px;
+    background: linear-gradient(180deg, var(--bg-primary), var(--bg-secondary));
+    color: var(--text-primary);
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* ---- Fullscreen kiosk layout ---- */
+
+.kiosk-dashboard {
+    width: 100vw;
+    height: 100vh;
+    padding: 28px 36px;
+    box-sizing: border-box;
+    display: grid;
+    grid-template-rows: auto auto 1fr auto;
+    gap: 20px;
+    overflow: hidden;
+}
+
+/* ---- Header ---- */
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.brand {
+    font-size: 2.2rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--text-primary), var(--text-accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.tag {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+/* ---- Top cards grid ---- */
+
+.grid {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr 1fr;
+    gap: 20px;
+}
+
+.grid-bottom {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* ---- Cards ---- */
+
+.card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-lg);
+    padding: 20px 24px;
+    box-shadow: var(--shadow-card);
+    width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.active-card {
+    min-height: 160px;
+    position: relative;
+    overflow: hidden;
+}
+
+.active-card.is-playing {
+    border-color: var(--status-active);
+    box-shadow: var(--shadow-card), 0 0 20px rgba(52, 211, 153, 0.08);
+}
+
+.active-card.is-playing::before {
+    content: '';
+    position: absolute;
+    top: 14px;
+    right: 18px;
+    width: 12px;
+    height: 12px;
+    background: var(--status-active);
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+/* ---- Text styles (TV-readable sizes) ---- */
+
+.label {
+    color: var(--text-accent);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    line-height: 1.2;
+}
+
+.meta {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 16px;
+}
+
+.big-number {
+    font-size: 2.6rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.subtle {
+    color: var(--text-muted);
+    margin-top: 6px;
+    font-size: 0.75rem;
+}
+
+.stat-number {
+    font-size: 2.4rem;
+    font-weight: 700;
+    margin-top: 10px;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ---- Section titles ---- */
+
+.section-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+}
+
+/* ---- List rows ---- */
+
+.list-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.list-row:last-child {
+    border-bottom: none;
+}
+
+.row-title {
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.row-sub {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    margin-top: 2px;
+}
+
+.row-right {
+    color: var(--text-accent);
+    font-weight: 700;
+    font-size: 0.9rem;
+    margin-left: 16px;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.row-right.active-badge {
+    color: var(--status-active);
+}
+
+/* ---- Footer ---- */
+
+.footer-note {
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* ---- Empty state ---- */
+
+.empty-state {
+    color: var(--text-muted);
+    font-style: italic;
+    padding: 10px 0;
+    font-size: 0.85rem;
+}

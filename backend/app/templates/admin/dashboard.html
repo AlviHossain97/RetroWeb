@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}PiStation Admin — Dashboard{% endblock %}
+
+{% block meta_extra %}
+<meta http-equiv="refresh" content="30">
+{% endblock %}
+
+{% block stylesheets %}
+<link rel="stylesheet" href="/static/css/admin.css"/>
+{% endblock %}
+
+{% block body %}
+<div class="admin-wrap">
+    {# ---- Navigation ---- #}
+    <nav class="admin-nav">
+        <div class="brand">PiStation</div>
+        <a href="/dashboard/admin" class="nav-link active">Overview</a>
+        <a href="/dashboard/kiosk" class="nav-link">Kiosk View</a>
+    </nav>
+
+    {# ---- Page header ---- #}
+    <div class="admin-header">
+        <div class="page-title">Dashboard Overview</div>
+        <div class="tag">Auto-refresh every 30 seconds</div>
+    </div>
+
+    {# ---- Active Session Banner ---- #}
+    {% if ctx.active_session %}
+    <div class="card active-banner">
+        <div class="label">Now Playing</div>
+        <div class="title">{{ game_title_from_path(ctx.active_session['rom_path']) }}</div>
+        <div class="meta">
+            {{ ctx.active_session.get('system_name') or 'Unknown system' }}
+            &bull; {{ ctx.active_session.get('emulator') or 'Unknown emulator' }}
+            &bull; {{ ctx.active_session.get('core') or 'Unknown core' }}
+            &bull; {{ ctx.active_session.get('pi_hostname') or 'Unknown device' }}
+        </div>
+        <div class="big-number">{{ format_seconds(ctx.active_session['live_seconds']) }}</div>
+    </div>
+    {% endif %}
+
+    {# ---- Stat Cards ---- #}
+    <div class="stat-grid">
+        <div class="card">
+            <div class="label">Total Sessions</div>
+            <div class="stat-number">{{ ctx.total_sessions }}</div>
+            <div class="subtle">All recorded sessions</div>
+        </div>
+
+        <div class="card">
+            <div class="label">Total Playtime</div>
+            <div class="stat-number">{{ format_seconds(ctx.total_seconds) }}</div>
+            <div class="subtle">Across all games</div>
+        </div>
+
+        <div class="card">
+            <div class="label">Favourite System</div>
+            <div class="stat-number" style="font-size: 28px;">{{ ctx.fav_system_name }}</div>
+            <div class="subtle">Most playtime</div>
+        </div>
+
+        <div class="card">
+            <div class="label">Status</div>
+            {% if ctx.active_session %}
+            <div class="stat-number" style="font-size: 28px; color: var(--status-active);">Playing</div>
+            <div class="subtle">Active session detected</div>
+            {% else %}
+            <div class="stat-number" style="font-size: 28px; color: var(--text-muted);">Idle</div>
+            <div class="subtle">No active sessions</div>
+            {% endif %}
+        </div>
+    </div>
+
+    {# ---- Content: Recent + Top Games ---- #}
+    <div class="content-grid">
+        <div class="card">
+            <div class="section-title">Recent Sessions</div>
+            {% if ctx.recent_sessions %}
+                {% for row in ctx.recent_sessions %}
+                <div class="list-row">
+                    <div>
+                        <div class="row-title">{{ game_title_from_path(row['rom_path']) }}</div>
+                        <div class="row-sub">
+                            {{ row.get('system_name') or 'Unknown' }}
+                            &bull; {{ row.get('core') or 'Unknown core' }}
+                            &bull; {{ row.get('pi_hostname') or '' }}
+                        </div>
+                    </div>
+                    {% if row['ended_at'] %}
+                    <div class="row-right">{{ format_seconds(row['duration_seconds']) }}</div>
+                    {% else %}
+                    <div class="row-right active-badge">Active</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">No sessions recorded yet.</div>
+            {% endif %}
+        </div>
+
+        <div class="card">
+            <div class="section-title">Top Played Games</div>
+            {% if ctx.top_games %}
+                {% for row in ctx.top_games %}
+                <div class="list-row">
+                    <div>
+                        <div class="row-title">{{ game_title_from_path(row['rom_path']) }}</div>
+                        <div class="row-sub">
+                            {{ row.get('system_name') or 'Unknown' }}
+                            &bull; {{ row.get('session_count') or 0 }} sessions
+                        </div>
+                    </div>
+                    <div class="row-right">{{ format_seconds(row['total_seconds']) }}</div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">No playtime data yet.</div>
+            {% endif %}
+        </div>
+    </div>
+
+    {# ---- Footer ---- #}
+    <div class="admin-footer">
+        <span>PiStation Dashboard &mdash; Admin View</span>
+        <span>API: <a href="/health" style="color: var(--text-accent); text-decoration: none;">/health</a></span>
+    </div>
+</div>
+{% endblock %}
