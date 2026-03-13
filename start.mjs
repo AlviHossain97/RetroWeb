@@ -51,6 +51,19 @@ process.on("SIGHUP", cleanup);
 
 console.log("Starting all PiStation services...\n");
 
+// 0. XAMPP (MySQL/phpMyAdmin) — start if not already running
+try {
+  execSync("pgrep -x mysqld > /dev/null 2>&1", { stdio: "ignore" });
+  console.log("[XAMPP] MySQL already running");
+} catch {
+  console.log("[XAMPP] Starting XAMPP (MySQL + Apache)...");
+  try {
+    execSync("sudo /opt/lampp/lampp start", { stdio: "inherit", timeout: 15000 });
+  } catch (e) {
+    console.log("[XAMPP] Warning: could not start XAMPP —", e.message);
+  }
+}
+
 // 1. Ollama — check if already running (systemd), start if not
 import { execSync } from "child_process";
 try {
@@ -84,15 +97,16 @@ startService("Whisper", "python3", [whisperScript], {
 startService("Vite", "npx", ["vite", "--host", "0.0.0.0", "--port", "5173"]);
 
 console.log(`
-  ┌─────────────────────────────────────────┐
-  │         PiStation — All Services        │
-  ├─────────────────────────────────────────┤
-  │  Vite    → http://localhost:5173        │
-  │  FastAPI → http://localhost:8000        │
-  │  Ollama  → http://localhost:11434       │
-  │  Kokoro  → http://localhost:8787  (TTS) │
-  │  Whisper → http://localhost:8786  (STT) │
-  ├─────────────────────────────────────────┤
-  │  Press Ctrl+C to stop all services.     │
-  └─────────────────────────────────────────┘
+  ┌─────────────────────────────────────────────┐
+  │           PiStation — All Services          │
+  ├─────────────────────────────────────────────┤
+  │  XAMPP   → http://localhost/phpmyadmin      │
+  │  Vite    → http://localhost:5173            │
+  │  FastAPI → http://localhost:8000            │
+  │  Ollama  → http://localhost:11434           │
+  │  Kokoro  → http://localhost:8787  (TTS)     │
+  │  Whisper → http://localhost:8786  (STT)     │
+  ├─────────────────────────────────────────────┤
+  │  Press Ctrl+C to stop all services.         │
+  └─────────────────────────────────────────────┘
 `);
