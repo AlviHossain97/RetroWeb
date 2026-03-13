@@ -1,8 +1,15 @@
 import { spawn } from "child_process";
-import { resolve, dirname } from "path";
+import { resolve, dirname, join } from "path";
 import { fileURLToPath } from "url";
+import { existsSync } from "fs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// Ensure Node 22+ is on PATH (Vite 7 requires it)
+const node22Dir = join(process.env.HOME || "/home/alvi", ".local", "node22", "bin");
+if (existsSync(node22Dir)) {
+  process.env.PATH = `${node22Dir}:${process.env.PATH}`;
+}
 const kokoroScript = resolve(__dirname, "scripts", "kokoro-tts-server.py");
 const whisperScript = resolve(__dirname, "scripts", "whisper-server.py");
 const backendDir = resolve(__dirname, "backend");
