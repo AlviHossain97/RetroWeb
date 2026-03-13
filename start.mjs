@@ -58,7 +58,7 @@ try {
 } catch {
   console.log("[XAMPP] Starting XAMPP (MySQL + Apache)...");
   try {
-    execSync("sudo /opt/lampp/lampp start", { stdio: "inherit", timeout: 15000 });
+    execSync("/opt/lampp/lampp start", { stdio: "inherit", timeout: 15000 });
   } catch (e) {
     console.log("[XAMPP] Warning: could not start XAMPP —", e.message);
   }
