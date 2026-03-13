@@ -1,188 +1,172 @@
-import { Link, useNavigate } from "react-router";
-import { LibraryBig, Gamepad2, Cpu, Save, MessageCircle, Upload, Wifi, Clock, Play } from "lucide-react";
+import { Link } from "react-router";
+import { BarChart3, Gamepad2, Cpu, Clock, Activity, MessageCircle, Trophy, Settings, MonitorSmartphone } from "lucide-react";
 import { useEffect, useState } from "react";
-import { getRecentGames, type Game } from "../lib/storage/db";
+import { getDashboardData } from "@/lib/api/dashboard";
+import type { Session, TopGame } from "@/lib/types/api";
 
-function formatPlaytime(seconds?: number) {
-  if (!seconds) return "";
+function formatPlaytime(seconds: number): string {
+  if (!seconds || seconds <= 0) return "0m";
   if (seconds < 60) return `${seconds}s`;
   if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
-  return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  return `${h}h ${m}m`;
 }
 
-const features = [
-  {
-    icon: <LibraryBig size={28} />,
-    title: "Game Library",
-    desc: "Browse, search, and launch your retro game collection right in the browser. Upload ROMs and they're ready to play instantly.",
-    to: "/library",
-  },
-  {
-    icon: <Gamepad2 size={28} />,
-    title: "Supported Systems",
-    desc: "NES, SNES, Game Boy, GBA, N64, PlayStation, Sega Genesis, and more — all powered by RetroArch cores compiled for the web.",
-    to: "/systems",
-  },
-  {
-    icon: <Upload size={28} />,
-    title: "Drag & Drop Upload",
-    desc: "Drop ROMs directly onto the library page or BIOS files anywhere. We auto-detect the system and get everything set up for you.",
-    to: "/library",
-  },
-  {
-    icon: <Cpu size={28} />,
-    title: "BIOS Vault",
-    desc: "Some systems need BIOS files to run. Upload them once and they're stored locally in your browser — no server needed.",
-    to: "/bios",
-  },
-  {
-    icon: <Save size={28} />,
-    title: "Save States",
-    desc: "Your save states and SRAM data persist in the browser. Export and import saves to keep your progress safe.",
-    to: "/saves",
-  },
-  {
-    icon: <Gamepad2 size={28} />,
-    title: "Controller Support",
-    desc: "Plug in a gamepad and play. The controller test page lets you verify your inputs and check button mappings.",
-    to: "/controller",
-  },
-  {
-    icon: <MessageCircle size={28} />,
-    title: "AI Chat Assistant",
-    desc: "Ask the built-in AI anything about retro gaming. Supports voice conversations, image analysis, and file uploads.",
-    to: "/chat",
-  },
-  {
-    icon: <Wifi size={28} />,
-    title: "Fully Local",
-    desc: "Everything runs in your browser and on your local network. No cloud, no accounts, no tracking. Your games, your rules.",
-    to: "/settings",
-  },
+function formatTimeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
+function extractTitle(romPath: string): string {
+  const filename = romPath.split("/").pop() || romPath;
+  return filename.replace(/\.(zip|7z|nes|sfc|smc|gba|gb|gbc|bin|cue|iso|md|gen|dat)$/i, "").replace(/\s*\([^)]*\)/g, "").trim();
+}
+
+const navCards = [
+  { icon: <BarChart3 size={28} />, title: "Dashboard", desc: "Full analytics and playtime breakdowns", to: "/dashboard" },
+  { icon: <Clock size={28} />, title: "Sessions", desc: "Live and historical gaming sessions", to: "/sessions" },
+  { icon: <Gamepad2 size={28} />, title: "Games", desc: "Your game library with play statistics", to: "/games" },
+  { icon: <Cpu size={28} />, title: "Systems", desc: "Platform analytics and breakdowns", to: "/systems" },
+  { icon: <MonitorSmartphone size={28} />, title: "Devices", desc: "Monitor your PiStation devices", to: "/devices" },
+  { icon: <MessageCircle size={28} />, title: "AI Assistant", desc: "Ask questions about your gaming stats with voice support", to: "/chat" },
+  { icon: <Trophy size={28} />, title: "Achievements", desc: "Track your gaming milestones", to: "/achievements" },
+  { icon: <Settings size={28} />, title: "Settings", desc: "Theme, display, and preferences", to: "/settings" },
 ];
 
 export default function Home() {
-  const [recentGames, setRecentGames] = useState<Game[]>([]);
-  const navigate = useNavigate();
+  const [activeSession, setActiveSession] = useState<Session | null>(null);
+  const [recentSessions, setRecentSessions] = useState<Session[]>([]);
+  const [topGames, setTopGames] = useState<TopGame[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getRecentGames(6).then(setRecentGames);
+    getDashboardData()
+      .then((data) => {
+        setActiveSession(data.active_session);
+        setRecentSessions(data.recent_sessions);
+        setTopGames(data.top_games);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
+
+  const totalPlaytime = topGames.reduce((acc, g) => acc + (g.total_seconds || 0), 0);
+  const totalSessions = recentSessions.length;
 
   return (
     <div className="flex-1 overflow-y-auto">
       {/* Hero */}
-      <section className="relative flex flex-col items-center justify-center text-center px-6 py-20 overflow-hidden">
+      <section className="relative flex flex-col items-center justify-center text-center px-6 py-16 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-purple-900/20 via-transparent to-transparent pointer-events-none" />
-        <h1 className="text-5xl md:text-6xl font-black tracking-tight text-white mb-4 relative">
+        <h1 className="text-5xl md:text-6xl font-black tracking-tight mb-4 relative" style={{ color: "var(--text-primary)" }}>
           <span className="bg-gradient-to-r from-red-500 via-purple-500 to-blue-500 bg-clip-text text-transparent">
-            RetroWeb
+            PiStation
           </span>
         </h1>
-        <p className="text-lg md:text-xl text-zinc-400 max-w-2xl mb-8 relative">
-          A premium browser-based retro gaming platform. Upload your ROMs, launch games instantly, 
-          and relive the classics — all from your browser, no installs required.
+        <p className="text-lg md:text-xl max-w-2xl mb-8 relative" style={{ color: "var(--text-muted)" }}>
+          Your retro gaming command center. Track sessions, analyze playtime, and monitor your PiStation devices — all in one place.
         </p>
         <div className="flex gap-3 relative">
-          <Link
-            to="/library"
-            className="px-6 py-3 rounded-xl bg-gradient-to-r from-red-600 to-purple-600 text-white font-semibold hover:scale-105 transition-transform shadow-lg shadow-purple-500/25"
-          >
-            Open Library
+          <Link to="/dashboard" className="px-6 py-3 rounded-xl bg-gradient-to-r from-red-600 to-purple-600 text-white font-semibold hover:scale-105 transition-transform shadow-lg shadow-purple-500/25">
+            View Dashboard
           </Link>
-          <Link
-            to="/systems"
-            className="px-6 py-3 rounded-xl bg-zinc-800 text-zinc-300 font-semibold hover:bg-zinc-700 transition-colors border border-zinc-700"
-          >
-            View Systems
+          <Link to="/sessions" className="px-6 py-3 rounded-xl font-semibold hover:opacity-80 transition-colors" style={{ background: "var(--surface-2)", color: "var(--text-primary)", border: "1px solid var(--border-soft)" }}>
+            View Sessions
           </Link>
         </div>
       </section>
 
-      {/* Continue Playing — Carousel */}
-      {recentGames.length > 0 && (
+      {/* Now Playing */}
+      {activeSession && (
+        <section className="px-6 pb-6 max-w-6xl mx-auto">
+          <div className="p-5 rounded-xl relative overflow-hidden" style={{ background: "linear-gradient(135deg, rgba(139,92,246,0.15), rgba(239,68,68,0.1))", border: "1px solid rgba(139,92,246,0.3)" }}>
+            <div className="flex items-center gap-2 mb-2">
+              <Activity size={16} className="text-green-400 animate-pulse" />
+              <span className="text-xs font-bold uppercase tracking-wider text-green-400">Now Playing</span>
+            </div>
+            <p className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>{extractTitle(activeSession.rom_path)}</p>
+            <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+              {activeSession.system_name?.toUpperCase()} · on {activeSession.pi_hostname} · started {formatTimeAgo(activeSession.started_at)}
+            </p>
+          </div>
+        </section>
+      )}
+
+      {/* Quick Stats */}
+      {!loading && (
         <section className="px-6 pb-8 max-w-6xl mx-auto">
-          <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
-            <Clock size={22} className="text-purple-400" /> Continue Playing
-          </h2>
-          <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-thin" style={{ scrollbarColor: 'var(--accent-primary) transparent' }}>
-            {recentGames.map((game) => (
-              <button
-                key={game.id}
-                onClick={() => navigate("/library")}
-                className="group relative flex-shrink-0 w-40 rounded-xl overflow-hidden border border-zinc-800 hover:border-purple-500/50 transition-all duration-300 text-left snap-start hover:scale-105 hover:z-10"
-                style={{ background: "var(--surface-1)" }}
-              >
-                <div className="aspect-[3/4] w-full relative">
-                  {game.coverUrl ? (
-                    <img src={game.coverUrl} alt={game.displayTitle || game.title} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center" style={{ background: "var(--surface-2)" }}>
-                      <Gamepad2 size={32} className="text-zinc-600" />
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/0 to-transparent opacity-0 group-hover:opacity-100 transition-all flex items-end justify-center pb-3">
-                    <Play size={28} className="text-white drop-shadow-lg" />
-                  </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              { icon: <Gamepad2 size={18} />, label: "Top Games", value: String(topGames.length) },
+              { icon: <Clock size={18} />, label: "Total Playtime", value: formatPlaytime(totalPlaytime) },
+              { icon: <Activity size={18} />, label: "Recent Sessions", value: String(totalSessions) },
+              { icon: <Trophy size={18} />, label: "Status", value: activeSession ? "Playing" : "Idle" },
+            ].map((card) => (
+              <div key={card.label} className="p-4 rounded-xl" style={{ background: "var(--surface-1)", border: "1px solid var(--border-soft)" }}>
+                <div className="flex items-center gap-2 mb-2" style={{ color: "var(--text-muted)" }}>
+                  {card.icon}
+                  <span className="text-[10px] uppercase tracking-wider font-bold">{card.label}</span>
                 </div>
-                <div className="p-2">
-                  <p className="text-xs font-semibold text-white truncate">{game.displayTitle || game.title}</p>
-                  <p className="text-[10px] text-zinc-500">
-                    {game.system.toUpperCase()}
-                    {game.playtime ? ` · ${formatPlaytime(game.playtime)}` : ""}
-                  </p>
-                </div>
-              </button>
+                <p className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>{card.value}</p>
+              </div>
             ))}
           </div>
         </section>
       )}
 
-      {/* Features grid */}
-      <section className="px-6 pb-20 max-w-6xl mx-auto">
-        <h2 className="text-2xl font-bold text-white mb-8 text-center">Everything You Need</h2>
+      {/* Recent Sessions */}
+      {recentSessions.length > 0 && (
+        <section className="px-6 pb-8 max-w-6xl mx-auto">
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2" style={{ color: "var(--text-primary)" }}>
+            <Clock size={20} style={{ color: "var(--accent-primary)" }} /> Recent Sessions
+          </h2>
+          <div className="space-y-2">
+            {recentSessions.slice(0, 5).map((s) => (
+              <div key={s.id} className="flex items-center gap-4 p-3 rounded-xl" style={{ background: "var(--surface-1)", border: "1px solid var(--border-soft)" }}>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold truncate" style={{ color: "var(--text-primary)" }}>{extractTitle(s.rom_path)}</p>
+                  <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+                    {s.system_name?.toUpperCase()} · {s.pi_hostname} · {formatTimeAgo(s.started_at)}
+                  </p>
+                </div>
+                <span className="text-xs font-mono shrink-0" style={{ color: "var(--accent-primary)" }}>
+                  {s.duration_seconds ? formatPlaytime(s.duration_seconds) : "—"}
+                </span>
+              </div>
+            ))}
+          </div>
+          <Link to="/sessions" className="block text-center text-sm mt-3 hover:underline" style={{ color: "var(--accent-primary)" }}>
+            View all sessions →
+          </Link>
+        </section>
+      )}
+
+      {/* Navigation Grid */}
+      <section className="px-6 pb-16 max-w-6xl mx-auto">
+        <h2 className="text-xl font-bold mb-6 text-center" style={{ color: "var(--text-primary)" }}>Explore</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {features.map((f) => (
-            <Link
-              key={f.title}
-              to={f.to}
-              className="group p-5 rounded-xl bg-zinc-900/60 border border-zinc-800 hover:border-purple-500/50 hover:bg-zinc-800/80 transition-all duration-300"
-            >
-              <div className="text-purple-400 mb-3 group-hover:scale-110 transition-transform">
+          {navCards.map((f) => (
+            <Link key={f.title} to={f.to} className="group p-5 rounded-xl transition-all duration-300" style={{ background: "var(--surface-1)", border: "1px solid var(--border-soft)" }}>
+              <div className="mb-3 group-hover:scale-110 transition-transform" style={{ color: "var(--accent-primary)" }}>
                 {f.icon}
               </div>
-              <h3 className="text-white font-semibold mb-1">{f.title}</h3>
-              <p className="text-zinc-400 text-sm leading-relaxed">{f.desc}</p>
+              <h3 className="font-semibold mb-1" style={{ color: "var(--text-primary)" }}>{f.title}</h3>
+              <p className="text-sm leading-relaxed" style={{ color: "var(--text-muted)" }}>{f.desc}</p>
             </Link>
           ))}
         </div>
       </section>
 
-      {/* Quick start */}
-      <section className="px-6 pb-20 max-w-3xl mx-auto text-center">
-        <h2 className="text-2xl font-bold text-white mb-6">Quick Start</h2>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          {[
-            { step: "1", text: "Upload a ROM to the Library" },
-            { step: "2", text: "Install BIOS if needed" },
-            { step: "3", text: "Click Play and enjoy" },
-          ].map((s) => (
-            <div
-              key={s.step}
-              className="flex-1 p-4 rounded-xl bg-zinc-900/60 border border-zinc-800"
-            >
-              <div className="w-8 h-8 rounded-full bg-purple-600 text-white font-bold flex items-center justify-center mx-auto mb-2">
-                {s.step}
-              </div>
-              <p className="text-zinc-300 text-sm">{s.text}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* Footer */}
-      <footer className="text-center py-6 text-zinc-600 text-xs border-t border-zinc-800/50">
-        RetroWeb — Final Year Project &middot; Built with React, RetroArch, and Ollama
+      <footer className="text-center py-6 text-xs" style={{ color: "var(--text-muted)", borderTop: "1px solid var(--border-soft)" }}>
+        PiStation — Retro Gaming Dashboard · Built with React, FastAPI, and Ollama
       </footer>
     </div>
   );
