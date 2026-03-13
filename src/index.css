@@ -358,4 +358,25 @@
 @media (prefers-reduced-motion: reduce) {
   .neon-upload-circle { animation: none; box-shadow: 0px 0px 20px rgb(1,235,252), inset 0px 0px 5px rgb(1,235,252); }
   .neon-icon { animation: none; }
+
+/* Controller-first focus rings */
+:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Enhanced focus for gamepad mode */
+[data-input-mode="gamepad"] :focus {
+  outline: 3px solid var(--accent-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+  box-shadow: 0 0 0 6px rgba(139, 92, 246, 0.2);
+}
+
+[data-input-mode="gamepad"] a:focus,
+[data-input-mode="gamepad"] button:focus {
+  transform: scale(1.02);
+  transition: transform 0.15s ease, outline 0.15s ease;
+}
 }
