@@ -1,20 +1,31 @@
-"""Kokoro TTS + Whisper STT Server — FastAPI, GPU-accelerated."""
-import os, io
+"""Kokoro TTS Server — FastAPI, GPU-accelerated via ONNX CUDA provider."""
+import os, io, time, site, ctypes
 from pathlib import Path
-from fastapi import FastAPI, UploadFile, File
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+import numpy as np
 
-app = FastAPI()
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+# Pre-load NVIDIA shared libs so ONNX CUDA provider can find them
+_nvidia_base = Path(site.getusersitepackages()) / "nvidia"
+if _nvidia_base.is_dir():
+    for _lib in sorted(_nvidia_base.glob("*/lib/*.so*")):
+        if _lib.is_file() and not _lib.name.endswith(".a"):
+            try:
+                ctypes.CDLL(str(_lib), mode=ctypes.RTLD_GLOBAL)
+            except OSError:
+                pass
+
+os.environ.setdefault("ONNX_PROVIDER", "CUDAExecutionProvider")
 
 MODEL_DIR = Path(__file__).parent / "kokoro-models"
 MODEL_PATH = MODEL_DIR / "kokoro-v1.0.onnx"
 VOICES_PATH = MODEL_DIR / "voices-v1.0.bin"
 
 kokoro = None
-whisper_model = None
+voice_cache: dict[str, np.ndarray] = {}
 
 def get_kokoro():
     global kokoro
@@ -23,25 +34,28 @@ def get_kokoro():
         kokoro = Kokoro(str(MODEL_PATH), str(VOICES_PATH))
     return kokoro
 
-def get_whisper():
-    global whisper_model
-    if whisper_model is None:
-        import whisper
-        whisper_model = whisper.load_model("base", device="cuda")
-    return whisper_model
+def get_voice_style(voice_name: str) -> np.ndarray:
+    if voice_name not in voice_cache:
+        k = get_kokoro()
+        voice_cache[voice_name] = k.get_voice_style(voice_name)
+    return voice_cache[voice_name]
 
-# Pre-load models at startup
-@app.on_event("startup")
-async def preload():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     import threading
     def _load():
-        print("[Startup] Pre-loading Whisper...")
-        get_whisper()
-        print("[Startup] Whisper ready on GPU")
-        print("[Startup] Pre-loading Kokoro...")
-        get_kokoro()
-        print("[Startup] Kokoro ready")
+        t0 = time.time()
+        print("[Startup] Pre-loading Kokoro with CUDA...")
+        k = get_kokoro()
+        print(f"[Startup] Kokoro loaded in {time.time()-t0:.1f}s, provider: {k.sess.get_providers()}")
+        # Pre-cache default voice
+        get_voice_style("af_heart")
+        print("[Startup] Default voice cached")
     threading.Thread(target=_load, daemon=True).start()
+    yield
+
+app = FastAPI(lifespan=lifespan)
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 class TTSRequest(BaseModel):
     text: str
@@ -50,43 +64,19 @@ class TTSRequest(BaseModel):
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "model_loaded": kokoro is not None, "whisper_loaded": whisper_model is not None}
+    return {"status": "ok", "model_loaded": kokoro is not None}
 
 @app.get("/voices")
 async def voices():
     k = get_kokoro()
     return {"voices": k.get_voices()}
 
-@app.post("/stt")
-async def stt(audio: UploadFile = File(...)):
-    import tempfile, subprocess, numpy as np, torch
-    model = get_whisper()
-    raw = await audio.read()
-    # Write to temp, convert webm→raw PCM via ffmpeg pipe (faster than file I/O)
-    with tempfile.NamedTemporaryFile(suffix=".webm", delete=False) as tmp:
-        tmp.write(raw)
-        tmp_path = tmp.name
-    try:
-        proc = subprocess.run(
-            ["ffmpeg", "-y", "-i", tmp_path, "-ar", "16000", "-ac", "1", "-f", "s16le", "-"],
-            capture_output=True, timeout=5
-        )
-        if proc.returncode == 0 and len(proc.stdout) > 0:
-            audio_np = np.frombuffer(proc.stdout, np.int16).astype(np.float32) / 32768.0
-            result = model.transcribe(audio_np, language="en")
-            text = (result.get("text") or "").strip()
-        else:
-            text = ""
-    finally:
-        try: os.unlink(tmp_path)
-        except: pass
-    return {"text": text}
-
 @app.post("/tts")
 async def tts(req: TTSRequest):
     import soundfile as sf
     k = get_kokoro()
-    samples, sample_rate = k.create(req.text, voice=req.voice, speed=req.speed)
+    voice_style = get_voice_style(req.voice)
+    samples, sample_rate = k.create(req.text, voice=voice_style, speed=req.speed)
     buf = io.BytesIO()
     sf.write(buf, samples, sample_rate, format="WAV")
     buf.seek(0)
@@ -102,11 +92,15 @@ class SpeechRequest(BaseModel):
 @app.post("/v1/audio/speech")
 async def speech_openai(req: SpeechRequest):
     import soundfile as sf
+    t0 = time.time()
     k = get_kokoro()
-    samples, sample_rate = k.create(req.input, voice=req.voice, speed=req.speed)
+    voice_style = get_voice_style(req.voice)
+    samples, sample_rate = k.create(req.input, voice=voice_style, speed=req.speed)
     buf = io.BytesIO()
     sf.write(buf, samples, sample_rate, format="WAV")
     buf.seek(0)
+    ms = round((time.time() - t0) * 1000)
+    print(f"[TTS] Generated {len(samples)/sample_rate:.1f}s audio in {ms}ms: '{req.input[:60]}'")
     return StreamingResponse(buf, media_type="audio/wav")
 
 if __name__ == "__main__":
