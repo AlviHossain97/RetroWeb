@@ -11,6 +11,7 @@ interface Message {
 const OLLAMA_BASE = "/api/ollama";
 const KOKORO_BASE = "/api/kokoro";
 const WHISPER_BASE = "/api/whisper";
+const PISTATION_API = "/api/pistation";
 
 /* ── Exact Cobp CSS (From Uiverse.io by Cobp) ── */
 const COBP_CSS = `
@@ -697,8 +698,6 @@ export default function Chat() {
   const [pendingImages, setPendingImages] = useState<string[]>([]);
   const [pendingFiles, setPendingFiles] = useState<{ name: string; content: string }[]>([]);
   const [persona, setPersona] = useState<string>("default");
-  const [walkthroughMode, setWalkthroughMode] = useState(false);
-  const walkthroughRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const chatDisplayRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -761,20 +760,6 @@ export default function Chat() {
     }));
     saveChatMessages(toSave);
   }, [messages]);
-
-  // Pick up screenshot from emulator if navigated from Play page
-  useEffect(() => {
-    const screenshot = sessionStorage.getItem("retroweb.screenshotForAI");
-    if (screenshot) {
-      sessionStorage.removeItem("retroweb.screenshotForAI");
-      setPendingImages((prev) => [...prev, screenshot]);
-    }
-  }, []);
-
-  // Cleanup walkthrough interval
-  useEffect(() => {
-    return () => { if (walkthroughRef.current) clearInterval(walkthroughRef.current); };
-  }, []);
 
   // File upload handlers
   const handleImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -913,18 +898,32 @@ export default function Chat() {
     };
 
     try {
+      // Fetch gaming data context from PiStation backend
+      let gamingContext = "";
+      try {
+        const ctxRes = await fetch(`${PISTATION_API}/ai/context`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question: text }),
+          signal: AbortSignal.timeout(3000),
+        });
+        if (ctxRes.ok) {
+          const ctxData = await ctxRes.json();
+          gamingContext = ctxData.context || "";
+        }
+      } catch { /* backend unavailable, continue without context */ }
+
       // Build game-aware system context with persona
-      const lastGame = sessionStorage.getItem("retroweb.lastPlayedGame");
       const personaPrompts: Record<string, string> = {
-        default: "You are a helpful retro gaming assistant for RetroWeb, a browser-based emulator platform.",
+        default: "You are a helpful PiStation assistant, an AI for a retro gaming dashboard platform.",
         clerk: "You are a friendly retro game store clerk from the 90s. You speak with nostalgia and enthusiasm about classic games. Use casual language and occasionally reference the era.",
         speedrunner: "You are an expert speedrunner who knows every trick, glitch, and shortcut in retro games. Be technical and precise, mention frame data and strats.",
         historian: "You are a retro gaming historian and collector. You focus on the cultural context, development history, and legacy of games and consoles. Share interesting trivia.",
         comedian: "You are a witty retro gaming comedian. You make jokes and puns about classic games while still being helpful. Keep it light and fun.",
       };
       const personaBase = personaPrompts[persona] || personaPrompts.default;
-      const gameContext = lastGame ? ` The user recently played: ${lastGame}.` : "";
-      const systemPrompt = `${personaBase}${gameContext} You can help with tips, cheats, walkthroughs, and general retro gaming knowledge. Be concise and helpful. Do not use markdown formatting like bold, italic, headers, or bullet points. Write in plain text with emojis if you like.`;
+      const dataBlock = gamingContext ? `\n\nHere is the user's real gaming data from their PiStation:\n${gamingContext}\n\nUse this data to answer questions about their gaming habits, stats, and history accurately.` : "";
+      const systemPrompt = `${personaBase} You can help with tips, cheats, walkthroughs, gaming analytics, and general retro gaming knowledge. Be concise and helpful. Do not use markdown formatting like bold, italic, headers, or bullet points. Write in plain text with emojis if you like.${dataBlock}`;
 
       const apiMessages = [
         { role: "system", content: systemPrompt },
@@ -1220,7 +1219,7 @@ export default function Chat() {
       <div className="px-4 py-3 border-b dark:border-zinc-700">
         <div className="flex justify-between items-center">
           <h2 className="text-lg font-semibold text-zinc-800 dark:text-white">
-            RetroWeb AI
+            PiStation AI
           </h2>
           <div className="flex items-center gap-2">
             {availableModels.length > 1 && (
@@ -1238,7 +1237,7 @@ export default function Chat() {
               <button
                 onClick={() => {
                   const md = messages.map(m => `**${m.role === "user" ? "You" : "AI"}:**\n${m.content}`).join("\n\n---\n\n");
-                  const blob = new Blob([`# RetroWeb AI Chat\n\n${md}`], { type: "text/markdown" });
+                  const blob = new Blob([`# PiStation AI Chat\n\n${md}`], { type: "text/markdown" });
                   const url = URL.createObjectURL(blob);
                   const a = document.createElement("a");
                   a.href = url;
@@ -1363,7 +1362,14 @@ export default function Chat() {
           <option value="comedian">😄 Comedian</option>
         </select>
         <button
-          onClick={() => { void sendMessageDirect("Based on my recently played games and gaming preferences, what retro game should I play next? Give me 3 recommendations with brief reasons."); }}
+          onClick={() => { void sendMessageDirect("What are my gaming stats? Give me a summary of my total playtime, most played games, and favorite systems."); }}
+          className="text-xs px-2 py-1 rounded-full bg-blue-600 text-white hover:bg-blue-500 transition-colors"
+          title="View your gaming stats"
+        >
+          📊 My Stats
+        </button>
+        <button
+          onClick={() => { void sendMessageDirect("Based on my gaming history and play patterns, what retro game should I play next? Give me 3 recommendations with brief reasons."); }}
           className="text-xs px-2 py-1 rounded-full bg-emerald-600 text-white hover:bg-emerald-500 transition-colors"
           title="Get AI game recommendations"
         >
@@ -1377,30 +1383,11 @@ export default function Chat() {
           🎯 Quiz
         </button>
         <button
-          onClick={() => {
-            setWalkthroughMode(w => {
-              if (!w) {
-                // Start walkthrough — periodically grab screenshot and ask for tips
-                const iv = setInterval(() => {
-                  const ss = sessionStorage.getItem("retroweb.screenshotForAI");
-                  if (ss) {
-                    sessionStorage.removeItem("retroweb.screenshotForAI");
-                    setPendingImages([ss]);
-                    void sendMessageDirect("I'm playing right now. Look at this screenshot and give me a quick tip or hint about what I should do next. Keep it brief (1-2 sentences).");
-                  }
-                }, 30000);
-                walkthroughRef.current = iv;
-              } else {
-                if (walkthroughRef.current) clearInterval(walkthroughRef.current);
-                walkthroughRef.current = null;
-              }
-              return !w;
-            });
-          }}
-          className={`text-xs px-2 py-1 rounded-full transition-colors ${walkthroughMode ? "bg-amber-500 text-black" : "bg-zinc-700 text-white hover:bg-zinc-600"}`}
-          title="Auto-analyze screenshots every 30s while playing"
+          onClick={() => { void sendMessageDirect("What's my longest gaming session ever? And which game have I spent the most time on?"); }}
+          className="text-xs px-2 py-1 rounded-full bg-amber-600 text-white hover:bg-amber-500 transition-colors"
+          title="Ask about your gaming records"
         >
-          🗺️ {walkthroughMode ? "Walkthrough ON" : "Walkthrough"}
+          🏆 Records
         </button>
       </div>
 

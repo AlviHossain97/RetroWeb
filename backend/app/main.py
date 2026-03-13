@@ -15,7 +15,12 @@ from jinja2 import Environment, FileSystemLoader
 
 from app.config import get_settings
 from app.db import close_pool
-from app.routes import session_routes, stats_routes, dashboard_routes, health_routes
+from fastapi.middleware.cors import CORSMiddleware
+from app.routes import (
+    session_routes, stats_routes, dashboard_routes, health_routes,
+    game_routes, system_routes, device_routes, achievement_routes,
+    ai_routes,
+)
 
 # Paths
 BASE_DIR = Path(__file__).resolve().parent
@@ -42,6 +47,14 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
+    # CORS middleware
+    application.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:5173", "http://localhost:4173"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
     # Jinja2 template engine
     templates = Environment(
         loader=FileSystemLoader(str(TEMPLATES_DIR)),
@@ -57,6 +70,11 @@ def create_app() -> FastAPI:
     application.include_router(session_routes.router)
     application.include_router(stats_routes.router)
     application.include_router(dashboard_routes.router)
+    application.include_router(game_routes.router)
+    application.include_router(system_routes.router)
+    application.include_router(device_routes.router)
+    application.include_router(achievement_routes.router)
+    application.include_router(ai_routes.router)
 
     return application
 

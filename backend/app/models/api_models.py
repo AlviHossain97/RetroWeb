@@ -22,3 +22,15 @@ class EndEvent(BaseModel):
     session_id: int
     ended_at: datetime
     duration_seconds: int
+
+
+class DeviceHeartbeat(BaseModel):
+    hostname: str
+    ip_address: str | None = None
+    client_version: str | None = None
+
+
+class SystemStatsResponse(BaseModel):
+    system_name: str
+    total_seconds: int
+    session_count: int

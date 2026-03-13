@@ -29,4 +29,4 @@ scripts/kokoro-models/
 # Windows reserved device names
 NUL
 
-_bmad-output/
+_bmad-output/__pycache__/

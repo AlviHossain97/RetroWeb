@@ -89,6 +89,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/kokoro/, ''),
       },
+      '/api/pistation': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/pistation/, ''),
+      },
     },
   },
   build: {
