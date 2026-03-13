@@ -35,6 +35,15 @@ export default function Kiosk() {
 
   useGamepadNavigation({ enabled: true });
 
+  // Lite mode for low-power devices (Pi)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("lite") === "1") {
+      document.documentElement.classList.add("lite-mode");
+    }
+    return () => document.documentElement.classList.remove("lite-mode");
+  }, []);
+
   const fetchData = useCallback(() => {
     getDashboardData()
       .then((data) => {

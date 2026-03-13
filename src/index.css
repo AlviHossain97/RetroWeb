@@ -358,6 +358,21 @@
 @media (prefers-reduced-motion: reduce) {
   .neon-upload-circle { animation: none; box-shadow: 0px 0px 20px rgb(1,235,252), inset 0px 0px 5px rgb(1,235,252); }
   .neon-icon { animation: none; }
+}
+
+/* Lite mode — for low-power devices like Raspberry Pi */
+.lite-mode,
+.lite-mode *,
+.lite-mode *::before,
+.lite-mode *::after {
+  animation-duration: 0ms !important;
+  animation-delay: 0ms !important;
+  transition-duration: 0ms !important;
+  transition-delay: 0ms !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  text-shadow: none !important;
+}
 
 /* Controller-first focus rings */
 :focus-visible {
@@ -378,5 +393,4 @@
 [data-input-mode="gamepad"] button:focus {
   transform: scale(1.02);
   transition: transform 0.15s ease, outline 0.15s ease;
-}
 }
