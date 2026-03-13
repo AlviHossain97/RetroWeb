@@ -1,0 +1,60 @@
+/* ============================================
+   PiStation Design System — CSS Variables
+   ============================================ */
+
+:root {
+    /* Backgrounds */
+    --bg-primary: #0b1020;
+    --bg-secondary: #111827;
+    --bg-card: rgba(255, 255, 255, 0.06);
+    --bg-card-hover: rgba(255, 255, 255, 0.09);
+
+    /* Borders */
+    --border-card: rgba(255, 255, 255, 0.08);
+    --border-subtle: rgba(255, 255, 255, 0.06);
+
+    /* Text */
+    --text-primary: #ffffff;
+    --text-secondary: #cbd5e1;
+    --text-muted: #9ca3af;
+    --text-accent: #93c5fd;
+
+    /* Status */
+    --status-active: #34d399;
+    --status-warning: #fbbf24;
+    --status-error: #f87171;
+    --status-info: #60a5fa;
+
+    /* Accent */
+    --accent-primary: #93c5fd;
+    --accent-glow: rgba(147, 197, 253, 0.15);
+
+    /* Spacing */
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 14px;
+    --space-lg: 20px;
+    --space-xl: 28px;
+    --space-2xl: 36px;
+
+    /* Border radius */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 18px;
+
+    /* Shadows */
+    --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.25);
+    --shadow-elevated: 0 12px 36px rgba(0, 0, 0, 0.35);
+
+    /* Typography */
+    --font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+    --font-size-xs: 12px;
+    --font-size-sm: 13px;
+    --font-size-base: 15px;
+    --font-size-md: 16px;
+    --font-size-lg: 22px;
+    --font-size-xl: 30px;
+    --font-size-2xl: 34px;
+    --font-size-stat: 36px;
+    --font-size-hero: 42px;
+}

@@ -1,0 +1,276 @@
+/* ============================================
+   PiStation Admin Dashboard Styles
+   Richer layout for browser-based management
+   ============================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: var(--font-family);
+    background: linear-gradient(180deg, var(--bg-primary), var(--bg-secondary));
+    color: var(--text-primary);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ---- Admin layout ---- */
+
+.admin-wrap {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: var(--space-xl);
+}
+
+/* ---- Navigation ---- */
+
+.admin-nav {
+    display: flex;
+    align-items: center;
+    gap: var(--space-lg);
+    padding: var(--space-md) 0;
+    margin-bottom: var(--space-xl);
+    border-bottom: 1px solid var(--border-card);
+}
+
+.admin-nav .brand {
+    font-size: 24px;
+    font-weight: 700;
+    margin-right: auto;
+    background: linear-gradient(135deg, var(--text-primary), var(--text-accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.nav-link {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-sm);
+    transition: color 0.2s ease, background 0.2s ease;
+}
+
+.nav-link:hover,
+.nav-link.active {
+    color: var(--text-accent);
+    background: var(--accent-glow);
+}
+
+/* ---- Admin header ---- */
+
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.admin-header .page-title {
+    font-size: 28px;
+    font-weight: 700;
+}
+
+.admin-header .tag {
+    color: var(--text-muted);
+    font-size: var(--font-size-sm);
+}
+
+/* ---- Stat grid ---- */
+
+.stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+    margin-bottom: 24px;
+}
+
+/* ---- Cards ---- */
+
+.card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    box-shadow: var(--shadow-card);
+    transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+    background: var(--bg-card-hover);
+    box-shadow: var(--shadow-elevated);
+}
+
+/* ---- Text styles ---- */
+
+.label {
+    color: var(--text-accent);
+    font-size: var(--font-size-sm);
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    font-weight: 600;
+    margin-bottom: var(--space-sm);
+}
+
+.stat-number {
+    font-size: var(--font-size-stat);
+    font-weight: 700;
+    margin-top: 10px;
+    font-variant-numeric: tabular-nums;
+}
+
+.subtle {
+    color: var(--text-muted);
+    margin-top: 6px;
+    font-size: var(--font-size-sm);
+}
+
+.title {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    margin-bottom: var(--space-sm);
+}
+
+.meta {
+    color: var(--text-secondary);
+    font-size: var(--font-size-base);
+    margin-bottom: 18px;
+}
+
+.big-number {
+    font-size: var(--font-size-hero);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ---- Section titles ---- */
+
+.section-title {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    margin-bottom: var(--space-md);
+}
+
+/* ---- Content grid ---- */
+
+.content-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+}
+
+/* ---- Active session banner ---- */
+
+.active-banner {
+    position: relative;
+    min-height: 120px;
+    border-color: var(--status-active);
+    margin-bottom: 24px;
+    overflow: hidden;
+}
+
+.active-banner::before {
+    content: '';
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    width: 10px;
+    height: 10px;
+    background: var(--status-active);
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+/* ---- List rows ---- */
+
+.list-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.list-row:last-child {
+    border-bottom: none;
+}
+
+.row-title {
+    font-size: var(--font-size-md);
+    font-weight: 600;
+}
+
+.row-sub {
+    color: var(--text-muted);
+    font-size: var(--font-size-sm);
+    margin-top: 3px;
+}
+
+.row-right {
+    color: var(--text-accent);
+    font-weight: 700;
+    font-size: var(--font-size-base);
+    margin-left: 16px;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.row-right.active-badge {
+    color: var(--status-active);
+}
+
+/* ---- Footer ---- */
+
+.admin-footer {
+    margin-top: var(--space-xl);
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--border-card);
+    color: var(--text-muted);
+    font-size: var(--font-size-xs);
+    display: flex;
+    justify-content: space-between;
+}
+
+/* ---- Empty state ---- */
+
+.empty-state {
+    color: var(--text-muted);
+    font-style: italic;
+    padding: 12px 0;
+}
+
+/* ---- Responsive ---- */
+
+@media (max-width: 1100px) {
+    .stat-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 800px) {
+    .stat-grid {
+        grid-template-columns: 1fr;
+    }
+    .content-grid {
+        grid-template-columns: 1fr;
+    }
+    .admin-nav {
+        flex-wrap: wrap;
+    }
+}

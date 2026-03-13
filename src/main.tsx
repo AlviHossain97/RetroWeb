@@ -6,17 +6,18 @@ import App from './App.tsx'
 
 const Home = lazy(() => import('./routes/home.tsx'))
 const Library = lazy(() => import('./routes/index.tsx'))
-const Play = lazy(() => import('./routes/play.tsx'))
 const Systems = lazy(() => import('./routes/systems.tsx'))
 const Settings = lazy(() => import('./routes/settings.tsx'))
-const BiosVault = lazy(() => import('./routes/bios.tsx'))
-const SavesVault = lazy(() => import('./routes/saves.tsx'))
-const Login = lazy(() => import('./routes/login.tsx'))
 const ControllerTest = lazy(() => import('./routes/controller.tsx'))
 const Chat = lazy(() => import('./routes/chat.tsx'))
 const AchievementsPage = lazy(() => import('./routes/achievements.tsx'))
 const StatsPage = lazy(() => import('./routes/stats.tsx'))
-const RomHacksPage = lazy(() => import('./routes/romhacks.tsx'))
+const Dashboard = lazy(() => import('./routes/dashboard.tsx'))
+const Sessions = lazy(() => import('./routes/sessions.tsx'))
+const Games = lazy(() => import('./routes/games.tsx'))
+const Devices = lazy(() => import('./routes/devices.tsx'))
+const Admin = lazy(() => import('./routes/admin.tsx'))
+const Kiosk = lazy(() => import('./routes/kiosk.tsx'))
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -27,23 +28,22 @@ createRoot(document.getElementById('root')!).render(
         </div>
       }>
         <Routes>
-          <Route path="/login" element={<Login />} />
           <Route path="/" element={<App />}>
             <Route index element={<Home />} />
             <Route path="library" element={<Library />} />
             <Route path="systems" element={<Systems />} />
-            <Route path="game/:id" element={<div>Game Details</div>} />
-            <Route path="play" element={<Play />} />
-            <Route path="bios" element={<BiosVault />} />
-            <Route path="saves" element={<SavesVault />} />
             <Route path="controller" element={<ControllerTest />} />
             <Route path="chat" element={<Chat />} />
             <Route path="achievements" element={<AchievementsPage />} />
             <Route path="stats" element={<StatsPage />} />
-            <Route path="romhacks" element={<RomHacksPage />} />
             <Route path="settings" element={<Settings />} />
-            <Route path="help/chd" element={<div>CHD Conversion Guide</div>} />
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="sessions" element={<Sessions />} />
+            <Route path="games" element={<Games />} />
+            <Route path="devices" element={<Devices />} />
+            <Route path="admin" element={<Admin />} />
           </Route>
+          <Route path="/kiosk" element={<Kiosk />} />
         </Routes>
       </Suspense>
     </BrowserRouter>
