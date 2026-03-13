@@ -103,6 +103,45 @@ startService("Whisper", "python3", [whisperScript], {
 // 5. Vite dev server
 startService("Vite", "npx", ["vite", "--host", "0.0.0.0", "--port", "5173"]);
 
+// 6. Pi Display — virtual framebuffer + browser + VNC server
+// Renders the kiosk UI on the laptop GPU and streams to Pi via VNC
+const VNC_DISPLAY = ":99";
+const VNC_PORT = "5900";
+const KIOSK_URL = "http://localhost:5173/kiosk";
+
+// Start Xvfb (virtual display)
+startService("Xvfb", "Xvfb", [VNC_DISPLAY, "-screen", "0", "1920x1080x24", "-ac"]);
+
+// Wait for Xvfb, then launch browser + VNC
+setTimeout(() => {
+  // Launch Brave in kiosk mode on the virtual display
+  startService("Browser", "brave-browser-stable", [
+    "--kiosk",
+    "--no-first-run",
+    "--disable-infobars",
+    "--disable-session-crashed-bubble",
+    "--disable-translate",
+    "--noerrdialogs",
+    "--disable-extensions",
+    "--user-data-dir=/tmp/pistation-kiosk-profile",
+    "--window-size=1920,1080",
+    "--window-position=0,0",
+    KIOSK_URL,
+  ], { env: { DISPLAY: VNC_DISPLAY } });
+
+  // Start x11vnc sharing the virtual display (no password, view+control)
+  startService("VNC", "x11vnc", [
+    "-display", VNC_DISPLAY,
+    "-rfbport", VNC_PORT,
+    "-nopw",
+    "-forever",
+    "-shared",
+    "-noxdamage",
+    "-cursor", "arrow",
+    "-ncache", "10",
+  ]);
+}, 2000);
+
 console.log(`
   ┌─────────────────────────────────────────────┐
   │           PiStation — All Services          │
@@ -113,6 +152,7 @@ console.log(`
   │  Ollama  → http://localhost:11434           │
   │  Kokoro  → http://localhost:8787  (TTS)     │
   │  Whisper → http://localhost:8786  (STT)     │
+  │  VNC     → vnc://localhost:5900  (Pi view)  │
   ├─────────────────────────────────────────────┤
   │  Press Ctrl+C to stop all services.         │
   └─────────────────────────────────────────────┘
