@@ -718,7 +718,7 @@ export default function Chat() {
     let cancelled = false;
     const check = async () => {
       try {
-        const tagsRes = await fetch(`${OLLAMA_BASE}/api/tags`, { signal: AbortSignal.timeout(3000) });
+        const tagsRes = await fetch(`${OLLAMA_BASE}/api/tags`, { signal: AbortSignal.timeout(8000) });
         if (!cancelled) {
           setOllamaOnline(tagsRes.ok);
           if (tagsRes.ok) {
@@ -731,7 +731,7 @@ export default function Chat() {
         }
       } catch { if (!cancelled) setOllamaOnline(false); }
       try {
-        const kRes = await fetch(`${KOKORO_BASE}/health`, { signal: AbortSignal.timeout(3000) });
+        const kRes = await fetch(`${KOKORO_BASE}/health`, { signal: AbortSignal.timeout(8000) });
         if (!cancelled) setKokoroOnline(kRes.ok);
       } catch { if (!cancelled) setKokoroOnline(false); }
     };
