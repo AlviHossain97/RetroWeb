@@ -10,7 +10,7 @@ interface Message {
 
 const OLLAMA_BASE = "/api/ollama";
 const KOKORO_BASE = "/api/kokoro";
-const WHISPER_BASE = "/api/whisper";
+const STT_BASE = "/api/whisper";
 const PISTATION_API = "/api/pistation";
 
 /* ── Exact Cobp CSS (From Uiverse.io by Cobp) ── */
@@ -730,6 +730,8 @@ export default function Chat() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const voiceCheckboxId = useRef(`voice-${Math.random().toString(36).slice(2)}`).current;
   const voiceModeRef = useRef(false);
+  const ttsPlayingRef = useRef(false);
+  const processingRef = useRef(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const sendDirectRef = useRef<(text: string) => void>(() => {});
@@ -850,7 +852,8 @@ export default function Chat() {
     const images = !directText ? [...pendingImages] : undefined;
     if (!text && (!images || images.length === 0)) return;
     if (!text) text = "What's in this image?";
-    if (streaming || !ollamaOnline || !selectedModel) return;
+    if (streaming || processingRef.current || !ollamaOnline || !selectedModel) return;
+    processingRef.current = true;
     if (!directText) {
       setInput("");
       setPendingImages([]);
@@ -897,6 +900,10 @@ export default function Chat() {
       }).catch(() => null);
     };
 
+    const muteMic = (mute: boolean) => {
+      mediaStreamRef.current?.getAudioTracks().forEach(t => { t.enabled = !mute; });
+    };
+
     const playAudio = (audio: HTMLAudioElement): Promise<void> => {
       return new Promise<void>(resolve => {
         audio.onended = () => resolve();
@@ -908,6 +915,10 @@ export default function Chat() {
     const enqueueSpeak = (text: string) => {
       sentenceBuffer = "";
       chunkIndex++;
+      if (!ttsPlayingRef.current) {
+        ttsPlayingRef.current = true;
+        muteMic(true);
+      }
       const audioPromise = fetchAudio(text);
       audioQueue.push(audioPromise);
       playChain = playChain.then(() =>
@@ -1008,47 +1019,56 @@ export default function Chat() {
       // Flush any remaining text
       flushSentence(true);
 
-      // Let TTS playback continue in background, don't block on it
-      // Resume listening immediately after stream ends (TTS keeps playing)
-      playChain.catch(() => {});
-
-      if (voiceModeRef.current) {
-        console.log("[HEART] 🔄 Response complete, resuming listener...");
-        startRecRef.current();
-      }
+      // Wait for TTS to finish before resuming listener
+      // This prevents TTS audio from being captured by the mic
+      playChain
+        .catch(() => {})
+        .finally(() => {
+          ttsPlayingRef.current = false;
+          muteMic(false);
+          if (voiceModeRef.current) {
+            console.log("[HEART] 🔄 TTS complete, resuming listener...");
+            startRecRef.current();
+          }
+        });
     } catch {
       setMessages(prev => {
         const updated = [...prev];
         updated[updated.length - 1] = { role: "assistant", content: "Sorry, I couldn't connect to the AI. Make sure Ollama is running." };
         return updated;
       });
+      ttsPlayingRef.current = false;
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getAudioTracks().forEach(t => { t.enabled = true; });
+      }
       if (voiceModeRef.current) {
         console.log("[HEART] 🔄 Error recovery, resuming listener...");
         startRecRef.current();
       }
     } finally {
       setStreaming(false);
+      processingRef.current = false;
     }
   }, [input, streaming, ollamaOnline, selectedModel, messages, kokoroOnline, voiceEnabled, pendingImages, pendingFiles]);
 
   const sendMessage = useCallback(() => { sendMessageDirect(); }, [sendMessageDirect]);
 
-  // Whisper STT: record audio, send to local Whisper server
+  // STT: record audio, send to local Parakeet STT server
   const transcribeChunk = useCallback(async (blob: Blob): Promise<string> => {
     console.log(`[HEART] 📝 Transcribing ${blob.size} bytes of audio...`);
     const form = new FormData();
     form.append("file", blob, "audio.webm");
-    form.append("model", "Systran/faster-whisper-small");
+    form.append("model", "nvidia/parakeet-tdt-0.6b-v2");
     const t0 = performance.now();
-    const res = await fetch(`${WHISPER_BASE}/v1/audio/transcriptions`, { method: "POST", body: form });
+    const res = await fetch(`${STT_BASE}/v1/audio/transcriptions`, { method: "POST", body: form });
     if (!res.ok) {
-      console.warn(`[HEART] ❌ Whisper returned HTTP ${res.status}`);
+      console.warn(`[HEART] ❌ STT returned HTTP ${res.status}`);
       return "";
     }
     const data = await res.json();
     const text = (data.text || "").trim();
     const ms = Math.round(performance.now() - t0);
-    console.log(`[HEART] 📝 Whisper returned: '${text}' (${ms}ms)`);
+    console.log(`[HEART] 📝 Parakeet returned: '${text}' (${ms}ms)`);
     return text;
   }, []);
 

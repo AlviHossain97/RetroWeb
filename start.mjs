@@ -11,7 +11,7 @@ if (existsSync(node22Dir)) {
   process.env.PATH = `${node22Dir}:${process.env.PATH}`;
 }
 const kokoroScript = resolve(__dirname, "scripts", "kokoro-tts-server.py");
-const whisperScript = resolve(__dirname, "scripts", "whisper-server.py");
+const parakeetScript = resolve(__dirname, "scripts", "parakeet-server.py");
 const backendDir = resolve(__dirname, "backend");
 
 const services = [];
@@ -95,8 +95,8 @@ startService("FastAPI", "python3", [
 // 3. Kokoro TTS (CUDA)
 startService("Kokoro", "python3", [kokoroScript]);
 
-// 4. Whisper STT (GPU)
-startService("Whisper", "python3", [whisperScript], {
+// 4. Parakeet STT (GPU)
+startService("Parakeet", "python3", [parakeetScript], {
   env: { LD_LIBRARY_PATH: "/usr/local/lib/ollama/cuda_v12" },
 });
 
@@ -121,7 +121,7 @@ console.log(`
   │  FastAPI  → http://localhost:8000               │
   │  Ollama   → http://localhost:11434              │
   │  Kokoro   → http://localhost:8787  (TTS)        │
-  │  Whisper  → http://localhost:8786  (STT)        │
+  │  Parakeet → http://localhost:8786  (STT)        │
   │  Sunshine → https://localhost:47990 (stream)    │
   ├──────────────────────────────────────────────────┤
   │  Pi: launch "RetroWeb" → Moonlight connects     │
