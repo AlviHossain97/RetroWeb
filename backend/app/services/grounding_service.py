@@ -1,11 +1,26 @@
 """Web grounding orchestrator — search, fetch, build evidence bundle."""
 
 import asyncio
+import time
 from typing import Dict, Any, List
 from app.config import get_settings
 from app.services.query_router import route_query
 from app.services.search_service import search_web
 from app.services.fetch_service import fetch_pages
+
+# Simple in-memory cache for search results to speed up repeated identical queries
+_GROUNDING_CACHE: Dict[str, Dict[str, Any]] = {}
+
+def _get_cached(query: str, ttl_seconds: int = 300) -> Dict | None:
+    if query in _GROUNDING_CACHE:
+        entry = _GROUNDING_CACHE[query]
+        if time.time() - entry["time"] < ttl_seconds:
+            return entry["data"]
+        del _GROUNDING_CACHE[query]
+    return None
+
+def _set_cached(query: str, data: Dict):
+    _GROUNDING_CACHE[query] = {"time": time.time(), "data": data}
 
 
 async def prepare_grounded_context(
@@ -37,6 +52,13 @@ async def prepare_grounded_context(
         return {"grounded": False, "sources": [], "system_append": "", "mode": mode}
 
     search_query = route_result.search_query or question
+    
+    # ── Check Cache ──
+    cached = _get_cached(search_query)
+    if cached:
+        print(f"[GROUND] cache hit for '{search_query}'")
+        return cached
+
     print(f"[GROUND] searching: '{search_query}'")
 
     # ── Search ──
@@ -82,10 +104,14 @@ async def prepare_grounded_context(
         content = fetched_data.get(url, r.get("snippet", ""))
         if len(content) < 50:
             content = r.get("snippet", "")
+            
+        # Truncate content to keep prompt size small and fast
+        if len(content) > 2000:
+            content = content[:2000] + "... [truncated]"
+            
         context_blocks.append(
             f"--- Source [{idx + 1}] ---\n"
             f"Title: {r['title']}\n"
-            f"URL: {url}\n"
             f"Content: {content}\n"
         )
         sources_ui.append({
@@ -99,27 +125,28 @@ async def prepare_grounded_context(
 
     system_append = (
         "\n=================\n"
-        "WEB SEARCH CONTEXT:\n"
-        "The user's query prompted an automatic web search. "
-        "Below are the top verified sources.\n\n"
+        "WEB SEARCH EVIDENCE:\n"
         f"{all_context}"
         "=================\n"
         "INSTRUCTIONS FOR ANSWERING:\n"
-        "1. You are now a source-grounded assistant. You MUST rely ONLY on the "
-        "provided web evidence for factual claims.\n"
-        "2. If the sources are incomplete, conflicting, or do not contain the "
-        "answer, explicitly state that the evidence is insufficient.\n"
-        "3. DO NOT invent facts or use unstated background knowledge.\n"
-        "4. Cite claims inline using numbered references like [1], [2].\n"
-        "5. End your answer with a 'Sources:' section listing each reference.\n"
+        "1. You are a polished, consumer-facing assistant. Write clean, natural chat responses.\n"
+        "2. Answer directly and concisely first, then briefly explain. Do not use robotic filler like 'Based on the provided data...'\n"
+        "3. DO NOT use markdown formatting like bold (**text**) or bullet lists unless explicitly asked for them. Use plain conversational prose.\n"
+        "4. Rely ONLY on the provided evidence for factual claims. Do not invent facts.\n"
+        "5. Use minimal inline citations like [1] or [2] to reference the source number. Put the citation at the end of the claim.\n"
+        "6. DO NOT include a 'Sources:' list at the end of your text, the UI handles source display automatically.\n"
+        "7. If the evidence is insufficient, explicitly state that you couldn't find a verified answer.\n"
     )
 
     print(f"[GROUND] success — {len(sources_ui)} sources, "
           f"{sum(len(b) for b in context_blocks)} chars of evidence")
 
-    return {
+    final_result = {
         "grounded": True,
         "sources": sources_ui,
         "system_append": system_append,
         "mode": mode,
     }
+    
+    _set_cached(search_query, final_result)
+    return final_result
