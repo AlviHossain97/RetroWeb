@@ -138,10 +138,18 @@ def get_ai_context_get():
 class GroundingRequest(BaseModel):
     question: str
     history: list = []
+    mode: str = "auto"  # "auto" | "always" | "never"
 
 @router.post("/ground")
 async def get_grounding_context(req: GroundingRequest):
-    """Executes the search pipeline and returns a grounded system prompt overlay."""
+    """Executes the web-search grounding pipeline.
+
+    Accepts mode from the frontend UI toggle to override the server-side default.
+    Returns structured grounding context with sources for the frontend to display.
+    """
     from app.services.grounding_service import prepare_grounded_context
-    result = await prepare_grounded_context(req.question, req.history)
+    print(f"[GROUND] /ai/ground hit — question={req.question!r}, mode={req.mode}")
+    result = await prepare_grounded_context(
+        req.question, req.history, mode_override=req.mode
+    )
     return result
