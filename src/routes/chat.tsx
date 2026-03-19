@@ -980,30 +980,61 @@ export default function Chat() {
       let webSources: any[] = [];
       let systemAppend = "";
       let grounded = false;
+      let groundingFailed = false;
       
       if (webMode !== "never") {
+        console.log(`[HEART] 🌐 Web grounding: mode=${webMode}`);
         setMessages(prev => {
           const updated = [...prev];
           updated[updated.length - 1] = { role: "assistant", content: "🔍 Searching the web..." };
           return updated;
         });
         try {
-          // Prepare history for grounding context, limit to last 6 to avoid bloat
           const hist = messages.slice(-6).map(m => ({ role: m.role, content: m.content }));
           const groundRes = await fetch(`${PISTATION_API}/ai/ground`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ question: text, history: hist }),
+            body: JSON.stringify({ question: text, history: hist, mode: webMode }),
+            signal: AbortSignal.timeout(30000),
           });
           if (groundRes.ok) {
             const groundData = await groundRes.json();
-            if (groundData.grounded) {
-               grounded = true;
-               webSources = groundData.sources || [];
-               systemAppend = groundData.system_append || "";
+            console.log("[HEART] 🌐 Ground response:", groundData);
+            if (groundData.error) {
+              // Backend explicitly signaled a grounding failure
+              console.warn("[HEART] 🌐 Grounding error:", groundData.error);
+              groundingFailed = true;
+            } else if (groundData.grounded) {
+              grounded = true;
+              webSources = groundData.sources || [];
+              systemAppend = groundData.system_append || "";
+              console.log(`[HEART] 🌐 Grounded with ${webSources.length} sources`);
+            } else {
+              console.log("[HEART] 🌐 Router decided: no search needed");
             }
+          } else {
+            console.error(`[HEART] 🌐 Ground endpoint returned ${groundRes.status}`);
+            groundingFailed = true;
           }
-        } catch { /* ignore grounding failures */ }
+        } catch (e) {
+          console.error("[HEART] 🌐 Ground fetch failed:", e);
+          groundingFailed = true;
+        }
+        
+        // In ALWAYS mode, if grounding failed, show an explicit error and stop
+        if (webMode === "always" && groundingFailed) {
+          setMessages(prev => {
+            const updated = [...prev];
+            updated[updated.length - 1] = {
+              role: "assistant",
+              content: "⚠️ Web verification is currently unavailable, so I can't provide a verified answer right now. Please try again in a moment, or switch to Auto/Never web mode.",
+            };
+            return updated;
+          });
+          setStreaming(false);
+          processingRef.current = false;
+          return;
+        }
         
         // Reset the typing placeholder
         setMessages(prev => {
