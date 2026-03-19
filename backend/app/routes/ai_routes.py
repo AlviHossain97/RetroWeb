@@ -133,3 +133,15 @@ def get_ai_context(req: ContextRequest | None = None):
 def get_ai_context_get():
     """GET version for easy testing."""
     return {"context": _fetch_context()}
+
+
+class GroundingRequest(BaseModel):
+    question: str
+    history: list = []
+
+@router.post("/ground")
+async def get_grounding_context(req: GroundingRequest):
+    """Executes the search pipeline and returns a grounded system prompt overlay."""
+    from app.services.grounding_service import prepare_grounded_context
+    result = await prepare_grounded_context(req.question, req.history)
+    return result

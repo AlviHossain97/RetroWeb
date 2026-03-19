@@ -21,6 +21,18 @@ class Settings(BaseSettings):
     app_version: str = "dashboard_v2"
     app_env: str = "production"
 
+    # Web Grounding & AI Setup
+    ollama_model: str = "qwen3.5:9b"
+    web_search_mode: str = "auto"  # auto, always, never
+    searxng_url: str = ""
+    tavily_api_key: str = "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"
+    search_top_k: int = 5
+    fetch_top_k: int = 3
+    request_timeout_seconds: int = 10
+    cache_ttl_seconds: int = 3600
+    grounded_temperature: float = 0.2
+    normal_temperature: float = 0.7
+
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8",

@@ -1,8 +1,13 @@
 """OpenAI-compatible STT Server using NVIDIA Parakeet TDT 0.6B v2 (NeMo), GPU-accelerated."""
-import os, tempfile, subprocess, time, traceback
+import os, tempfile, subprocess, time, traceback, threading
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+
+# Suppress noisy NeMo/ONNX startup warnings
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+os.environ["PYTHONWARNINGS"] = "ignore"
 
 SPEECH_FILTER_CHAIN = ",".join([
     "highpass=f=120",
@@ -11,66 +16,77 @@ SPEECH_FILTER_CHAIN = ",".join([
     "acompressor=threshold=-20dB:ratio=3:attack=5:release=120",
 ])
 
-app = FastAPI()
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["*"],
-)
-
-asr_model = None
+stt_model = None
+load_lock = threading.Lock()
 
 def init_model():
-    global asr_model
+    global stt_model
     import nemo.collections.asr as nemo_asr
+    from omegaconf import OmegaConf
+
     print("[Parakeet] Loading nvidia/parakeet-tdt-0.6b-v2 ...")
-    asr_model = nemo_asr.models.ASRModel.from_pretrained(model_name="nvidia/parakeet-tdt-0.6b-v2")
-    # Move to GPU if available
+    t0 = time.time()
+    stt_model = nemo_asr.models.ASRModel.from_pretrained(model_name="nvidia/parakeet-tdt-0.6b-v2")
+
+    # CRITICAL: Switch from greedy_batch → greedy to avoid CUDA graph crash.
+    # greedy_batch uses CUDA graphs internally which causes:
+    #   ValueError: not enough values to unpack (expected 6, got 5)
+    # due to NeMo 2.7 / cuda-bindings 12.9 version mismatch.
+    try:
+        decoding_cfg = OmegaConf.create({
+            "strategy": "greedy",
+            "model_type": "tdt",
+            "durations": [0, 1, 2, 3, 4],
+            "greedy": {"max_symbols": 10},
+        })
+        stt_model.change_decoding_strategy(decoding_cfg)
+        print("[Parakeet] Decoding: greedy (CUDA-graph-safe)")
+    except Exception as e:
+        print(f"[Parakeet] Warning: Could not set greedy decoding: {e}")
+
+    # Move to GPU
     try:
         import torch
         if torch.cuda.is_available():
-            asr_model = asr_model.cuda()
-            print("[Parakeet] Model loaded on GPU (CUDA)")
+            stt_model = stt_model.cuda()
+            print(f"[Parakeet] Model ready on GPU in {time.time()-t0:.1f}s")
         else:
-            print("[Parakeet] CUDA not available, running on CPU")
+            print(f"[Parakeet] Model ready on CPU in {time.time()-t0:.1f}s")
     except Exception as exc:
-        print(f"[Parakeet] GPU check failed, running on CPU: {exc}")
-    return asr_model
+        print(f"[Parakeet] GPU failed ({exc}), running on CPU")
+    return stt_model
 
 
 def get_model():
-    global asr_model
-    if asr_model is None:
-        return init_model()
-    return asr_model
+    global stt_model
+    if stt_model is None:
+        with load_lock:
+            if stt_model is None:
+                return init_model()
+    return stt_model
 
 
-def convert_to_wav(input_path: str, wav_path: str, *, apply_filters: bool) -> subprocess.CompletedProcess:
-    """Convert uploaded audio into mono 16kHz WAV, optionally with speech-focused filtering."""
-    cmd = [
-        "ffmpeg", "-y", "-nostdin",
-        "-i", input_path,
-        "-vn",
-    ]
+def convert_to_wav(input_path, wav_path, *, apply_filters=False):
+    cmd = ["ffmpeg", "-y", "-nostdin", "-i", input_path, "-vn"]
     if apply_filters:
         cmd.extend(["-af", SPEECH_FILTER_CHAIN])
     cmd.extend(["-ar", "16000", "-ac", "1", wav_path])
     return subprocess.run(cmd, capture_output=True, timeout=15)
 
 
-@app.on_event("startup")
-async def preload():
-    import threading
-    def _load():
-        print("[Startup] Pre-loading Parakeet TDT model...")
-        get_model()
-    threading.Thread(target=_load, daemon=True).start()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    threading.Thread(target=lambda: get_model(), daemon=True).start()
+    yield
+
+app = FastAPI(lifespan=lifespan)
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"], expose_headers=["*"])
+
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "model": "nvidia/parakeet-tdt-0.6b-v2", "model_loaded": asr_model is not None}
+    return {"status": "ok", "model": "nvidia/parakeet-tdt-0.6b-v2", "ready": stt_model is not None}
+
 
 @app.post("/v1/audio/transcriptions")
 async def transcriptions(
@@ -79,6 +95,9 @@ async def transcriptions(
 ):
     try:
         mdl = get_model()
+        if mdl is None:
+            return {"text": "", "error": "Model not loaded yet"}
+
         raw = await file.read()
         print(f"[Parakeet] Received {len(raw)} bytes ({file.filename})")
 
@@ -88,40 +107,40 @@ async def transcriptions(
 
         wav_path = tmp_path + ".wav"
         try:
-            # Try filtered audio first for better speech isolation
-            filtered_wav = tmp_path + ".filtered.wav"
-            filtered_proc = convert_to_wav(tmp_path, filtered_wav, apply_filters=True)
-
-            if filtered_proc.returncode == 0:
-                use_wav = filtered_wav
-            else:
-                print(f"[Parakeet] Filtered ffmpeg failed, using plain audio: "
-                      f"{filtered_proc.stderr.decode(errors='ignore')[:200]}")
-                use_wav = wav_path
-
-            # Always create plain wav as fallback
-            plain_proc = convert_to_wav(tmp_path, wav_path, apply_filters=False)
-            if plain_proc.returncode != 0:
-                print(f"[Parakeet] ffmpeg conversion failed: {plain_proc.stderr.decode(errors='ignore')[:200]}")
+            # Plain WAV conversion
+            proc = convert_to_wav(tmp_path, wav_path)
+            if proc.returncode != 0:
+                print(f"[Parakeet] ffmpeg failed: {proc.stderr.decode(errors='ignore')[:200]}")
                 return {"text": ""}
 
-            if use_wav == filtered_wav and filtered_proc.returncode != 0:
-                use_wav = wav_path
+            # Also create filtered version
+            filtered_wav = tmp_path + ".filtered.wav"
+            filt_proc = convert_to_wav(tmp_path, filtered_wav, apply_filters=True)
+            use_wav = filtered_wav if filt_proc.returncode == 0 else wav_path
 
             t0 = time.time()
-
-            # Parakeet transcription — no initial_prompt, no hallucination risk
             output = mdl.transcribe([use_wav])
-            text = output[0].text if hasattr(output[0], 'text') else str(output[0]).strip()
 
-            # Fallback: if filtered audio gave empty result, try plain
+            # Extract text from NeMo output
+            if hasattr(output[0], 'text'):
+                text = output[0].text
+            elif isinstance(output[0], str):
+                text = output[0]
+            else:
+                text = str(output[0])
+            text = text.strip()
+
+            # Fallback to plain audio if filtered gave nothing
             if not text and use_wav != wav_path:
-                print("[Parakeet] Filtered audio empty, retrying with plain audio")
+                print("[Parakeet] Filtered empty, retrying plain...")
                 output = mdl.transcribe([wav_path])
-                text = output[0].text if hasattr(output[0], 'text') else str(output[0]).strip()
+                if hasattr(output[0], 'text'):
+                    text = output[0].text.strip()
+                elif isinstance(output[0], str):
+                    text = output[0].strip()
 
             elapsed = round((time.time() - t0) * 1000)
-            print(f"[Parakeet] Transcribed: '{text}' ({elapsed}ms)")
+            print(f"[Parakeet] '{text}' ({elapsed}ms)")
 
         finally:
             for p in [tmp_path, wav_path, tmp_path + ".filtered.wav"]:
