@@ -698,18 +698,87 @@ function buildVoiceCaptureConstraints(): ExtendedAudioConstraints {
     }
     : {};
 
-  const constraints: ExtendedAudioConstraints = {};
+  const constraints: ExtendedAudioConstraints = {
+    echoCancellation: true,
+    noiseSuppression: true,
+    autoGainControl: true,
+    channelCount: 1,
+    sampleRate: 16000,
+  };
 
-  if (supported.echoCancellation) constraints.echoCancellation = true;
-  if (supported.noiseSuppression) constraints.noiseSuppression = true;
-  if (supported.autoGainControl) constraints.autoGainControl = true;
-  if (supported.channelCount) constraints.channelCount = 1;
-  if (supported.sampleRate) constraints.sampleRate = 16000;
-  if (supported.sampleSize) constraints.sampleSize = 16;
   if (supported.voiceIsolation) constraints.voiceIsolation = true;
   if (supported.suppressLocalAudioPlayback) constraints.suppressLocalAudioPlayback = true;
 
   return constraints;
+}
+
+/** Sanitize and format text to look like natural chat, replacing citations with chips. */
+function RenderCleanMessage({ content, isUser }: { content: string, isUser: boolean }) {
+  if (!content) return null;
+  
+  if (isUser) {
+    return <span>{content}</span>;
+  }
+
+  // 1. Remove generic robotic filler phrases
+  let text = content.replace(/Based on the provided (data|sources|evidence)[^,.]*[,:]?\s*/ig, "");
+  text = text.replace(/According to the (data|sources|evidence)[^,.]*[,:]?\s*/ig, "");
+
+  // 2. Collapse excessive newlines
+  text = text.replace(/\n{3,}/g, '\n\n').trim();
+
+  // 3. Strip bold/italic markdown unless it looks like code or a real header
+  // Just strip ** and * and _ if they surround standard text words.
+  // It's safer to just strip all ** 
+  text = text.replace(/\*\*([^*]+)\*\*/g, "$1");
+  text = text.replace(/(?<!\w)\*([^*]+)\*(?!\w)/g, "$1");
+
+  // Split by double newlines into paragraphs
+  const paragraphs = text.split('\n\n');
+
+  return (
+    <div className="flex flex-col gap-2">
+      {paragraphs.map((p, i) => {
+        // Find citations like [1] or [1, 2]
+        const segments = p.split(/(\[\d+(?:,\s*\d+)*\])/g);
+        
+        return (
+          <p key={i} className="leading-relaxed">
+            {segments.map((seg, j) => {
+              const match = seg.match(/^\[(.*)\]$/);
+              if (match) {
+                const nums = match[1].split(',').map(n => n.trim());
+                return (
+                  <span key={j} className="inline-flex gap-0.5 ml-1 mr-0.5 align-text-top mt-0.5">
+                    {nums.map((num, k) => (
+                      <span
+                        key={k}
+                        className="inline-flex items-center justify-center w-4 h-4 text-[9px] font-bold text-blue-100 bg-blue-500/40 rounded-full cursor-help hover:bg-blue-500/60 transition-colors"
+                        title={`Source ${num}`}
+                      >
+                        {num}
+                      </span>
+                    ))}
+                  </span>
+                );
+              }
+              // Normal text: handle single newlines inside paragraph
+              return (
+                <span key={j}>
+                  {seg.split('\n').map((line, k, arr) => (
+                    <span key={k}>
+                      {line}
+                      {k < arr.length - 1 && <br />}
+                    </span>
+                  ))}
+                </span>
+              );
+            })}
+          </p>
+        );
+      })}
+    </div>
+  );
 }
 
 export default function Chat() {
@@ -1554,7 +1623,13 @@ export default function Chat() {
                   ))}
                 </div>
               )}
-              {msg.content || (streaming && i === messages.length - 1 ? "..." : "")}
+              {msg.content ? (
+                <RenderCleanMessage content={msg.content} isUser={msg.role === "user"} />
+              ) : (
+                (streaming && i === messages.length - 1) && (
+                  <span className="animate-pulse tracking-widest opacity-70">...</span>
+                )
+              )}
             </div>
 
             {/* Sources / Grounded badge below assistant message */}
