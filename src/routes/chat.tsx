@@ -683,6 +683,33 @@ const MODEL_ICONS: Record<string, { icon: string; label: string }> = {
   "lfm2:24b": { icon: "/model-icons/liquid_logo_black.png", label: "LFM2 24B" },
 };
 
+type ExtendedAudioConstraints = MediaTrackConstraints & {
+  voiceIsolation?: boolean;
+  suppressLocalAudioPlayback?: boolean;
+};
+
+function buildVoiceCaptureConstraints(): ExtendedAudioConstraints {
+  const supported = (typeof navigator !== "undefined" && navigator.mediaDevices?.getSupportedConstraints)
+    ? navigator.mediaDevices.getSupportedConstraints() as MediaTrackSupportedConstraints & {
+      voiceIsolation?: boolean;
+      suppressLocalAudioPlayback?: boolean;
+    }
+    : {};
+
+  const constraints: ExtendedAudioConstraints = {};
+
+  if (supported.echoCancellation) constraints.echoCancellation = true;
+  if (supported.noiseSuppression) constraints.noiseSuppression = true;
+  if (supported.autoGainControl) constraints.autoGainControl = true;
+  if (supported.channelCount) constraints.channelCount = 1;
+  if (supported.sampleRate) constraints.sampleRate = 16000;
+  if (supported.sampleSize) constraints.sampleSize = 16;
+  if (supported.voiceIsolation) constraints.voiceIsolation = true;
+  if (supported.suppressLocalAudioPlayback) constraints.suppressLocalAudioPlayback = true;
+
+  return constraints;
+}
+
 export default function Chat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -805,6 +832,13 @@ export default function Chat() {
   const removePendingFile = useCallback((idx: number) => {
     setPendingFiles(prev => prev.filter((_, i) => i !== idx));
   }, []);
+
+  const acquireMicrophoneStream = useCallback(async (): Promise<MediaStream> => {
+    const audio = buildVoiceCaptureConstraints();
+    console.log("[HEART] 🎚️ Requesting enhanced microphone constraints:", audio);
+    return navigator.mediaDevices.getUserMedia({ audio });
+  }, []);
+
   // Send message — accepts optional directText for voice mode
   const sendMessageDirect = useCallback(async (directText?: string) => {
     let text = (directText ?? input).trim();
@@ -1027,7 +1061,7 @@ export default function Chat() {
       // Get mic stream (reuse if already open)
       if (!mediaStreamRef.current) {
         console.log("[HEART] 🎤 Requesting microphone access...");
-        mediaStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaStreamRef.current = await acquireMicrophoneStream();
         console.log("[HEART] ✅ Microphone access granted");
       }
       const stream = mediaStreamRef.current;
@@ -1035,7 +1069,7 @@ export default function Chat() {
       // Verify the stream is still active
       if (!stream.active || stream.getAudioTracks().every(t => t.readyState === "ended")) {
         console.log("[HEART] ⚠️ Mic stream ended, re-acquiring...");
-        mediaStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaStreamRef.current = await acquireMicrophoneStream();
       }
 
       // Use AudioContext for silence detection
@@ -1138,7 +1172,7 @@ export default function Chat() {
         setTimeout(() => startRecRef.current(), 1000);
       }
     }
-  }, [transcribeChunk]);
+  }, [acquireMicrophoneStream, transcribeChunk]);
 
   // Keep refs in sync
   sendDirectRef.current = (text: string) => sendMessageDirect(text);
