@@ -14,6 +14,8 @@ const kokoroScript = resolve(__dirname, "scripts", "kokoro-tts-server.py");
 const parakeetScript = resolve(__dirname, "scripts", "parakeet-server.py");
 const backendDir = resolve(__dirname, "backend");
 
+const python3 = "python3";
+
 const services = [];
 
 function startService(name, cmd, args, opts = {}) {
@@ -88,15 +90,15 @@ try {
 }
 
 // 2. FastAPI backend
-startService("FastAPI", "python3", [
+startService("FastAPI", python3, [
   "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000",
 ], { cwd: backendDir });
 
 // 3. Kokoro TTS (CUDA)
-startService("Kokoro", "python3", [kokoroScript]);
+startService("Kokoro", python3, [kokoroScript]);
 
 // 4. Parakeet STT (GPU)
-startService("Parakeet", "python3", [parakeetScript], {
+startService("Parakeet", python3, [parakeetScript], {
   env: { LD_LIBRARY_PATH: "/usr/local/lib/ollama/cuda_v12" },
 });
 

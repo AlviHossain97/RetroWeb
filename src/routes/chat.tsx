@@ -6,6 +6,8 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   images?: string[]; // base64 encoded images
+  grounded?: boolean;
+  sources?: { id: number; title: string; url: string; snippet: string }[];
 }
 
 const OLLAMA_BASE = "/api/ollama";
@@ -716,15 +718,15 @@ export default function Chat() {
   const [streaming, setStreaming] = useState(false);
   const [ollamaOnline, setOllamaOnline] = useState(false);
   const [kokoroOnline, setKokoroOnline] = useState(false);
-  const [selectedModel, setSelectedModel] = useState("qwen3.5:4b");
+  const [selectedModel, setSelectedModel] = useState("qwen3.5:9b");
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [showModelPicker, setShowModelPicker] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [listening, setListening] = useState(false);
+  const [webMode, setWebMode] = useState<"auto" | "always" | "never">("auto");
   const [pendingImages, setPendingImages] = useState<string[]>([]);
   const [pendingFiles, setPendingFiles] = useState<{ name: string; content: string }[]>([]);
-  const [persona, setPersona] = useState<string>("default");
   const chatDisplayRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -879,6 +881,17 @@ export default function Chat() {
 
     const sanitizeForTTS = (text: string): string =>
       text
+        // Strip markdown formatting
+        .replace(/\*{1,3}([^*]+)\*{1,3}/g, "$1")   // **bold**, *italic*
+        .replace(/_{1,3}([^_]+)_{1,3}/g, "$1")       // __bold__, _italic_
+        .replace(/~~([^~]+)~~/g, "$1")                // ~~strikethrough~~
+        .replace(/`([^`]+)`/g, "$1")                  // `inline code`
+        .replace(/^#{1,6}\s+/gm, "")                  // # headers
+        .replace(/^[\-*+]\s+/gm, "")                  // - bullet points
+        .replace(/^\d+\.\s+/gm, "")                   // 1. numbered lists
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")      // [link](url)
+        .replace(/```[\s\S]*?```/g, "")               // code blocks
+        // Strip emoji
         .replace(/\p{Emoji_Presentation}/gu, "")
         .replace(/\p{Extended_Pictographic}/gu, "")
         .replace(/\s{2,}/g, " ")
@@ -935,8 +948,8 @@ export default function Chat() {
         return;
       }
       const isSentenceEnd = SENTENCE_END.test(trimmed);
-      const isClauseEnd = CLAUSE_END.test(trimmed) && trimmed.length >= 10;
-      const isOverflow = trimmed.length >= 40;
+      const isClauseEnd = CLAUSE_END.test(trimmed) && trimmed.length >= 40;
+      const isOverflow = trimmed.length >= 120;
       if (force || isSentenceEnd || isClauseEnd || isOverflow) {
         enqueueSpeak(trimmed);
       }
@@ -958,17 +971,49 @@ export default function Chat() {
         }
       } catch { /* backend unavailable, continue without context */ }
 
-      // Build game-aware system context with persona
-      const personaPrompts: Record<string, string> = {
-        default: "You are a helpful PiStation assistant, an AI for a retro gaming dashboard platform.",
-        clerk: "You are a friendly retro game store clerk from the 90s. You speak with nostalgia and enthusiasm about classic games. Use casual language and occasionally reference the era.",
-        speedrunner: "You are an expert speedrunner who knows every trick, glitch, and shortcut in retro games. Be technical and precise, mention frame data and strats.",
-        historian: "You are a retro gaming historian and collector. You focus on the cultural context, development history, and legacy of games and consoles. Share interesting trivia.",
-        comedian: "You are a witty retro gaming comedian. You make jokes and puns about classic games while still being helpful. Keep it light and fun.",
-      };
-      const personaBase = personaPrompts[persona] || personaPrompts.default;
+      // Build game-aware system context
+      const personaBase = "You are a helpful PiStation assistant, an AI for a retro gaming dashboard platform.";
       const dataBlock = gamingContext ? `\n\nHere is the user's real gaming data from their PiStation:\n${gamingContext}\n\nUse this data to answer questions about their gaming habits, stats, and history accurately.` : "";
-      const systemPrompt = `${personaBase} You can help with tips, cheats, walkthroughs, gaming analytics, and general retro gaming knowledge. Be concise and helpful. Do not use markdown formatting like bold, italic, headers, or bullet points. Write in plain text with emojis if you like.${dataBlock}`;
+      const voiceInstructions = isVoice ? " IMPORTANT: Your response will be read aloud by a text-to-speech engine. Do NOT use any markdown formatting whatsoever — no asterisks, no bold, no italic, no headers, no bullet points, no numbered lists, no code blocks. Write in plain conversational text only. Keep responses short and punchy (2-4 sentences max)." : "";
+      
+      // Web Grounding
+      let webSources: any[] = [];
+      let systemAppend = "";
+      let grounded = false;
+      
+      if (webMode !== "never") {
+        setMessages(prev => {
+          const updated = [...prev];
+          updated[updated.length - 1] = { role: "assistant", content: "🔍 Searching the web..." };
+          return updated;
+        });
+        try {
+          // Prepare history for grounding context, limit to last 6 to avoid bloat
+          const hist = messages.slice(-6).map(m => ({ role: m.role, content: m.content }));
+          const groundRes = await fetch(`${PISTATION_API}/ai/ground`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ question: text, history: hist }),
+          });
+          if (groundRes.ok) {
+            const groundData = await groundRes.json();
+            if (groundData.grounded) {
+               grounded = true;
+               webSources = groundData.sources || [];
+               systemAppend = groundData.system_append || "";
+            }
+          }
+        } catch { /* ignore grounding failures */ }
+        
+        // Reset the typing placeholder
+        setMessages(prev => {
+          const updated = [...prev];
+          updated[updated.length - 1] = { role: "assistant", content: "" };
+          return updated;
+        });
+      }
+
+      const systemPrompt = `${personaBase} You can help with tips, cheats, walkthroughs, gaming analytics, and general retro gaming knowledge. Be concise and helpful.${voiceInstructions}${dataBlock}\n${systemAppend}`;
 
       const apiMessages = [
         { role: "system", content: systemPrompt },
@@ -1007,7 +1052,12 @@ export default function Chat() {
               sentenceBuffer += json.message.content;
               setMessages(prev => {
                 const updated = [...prev];
-                updated[updated.length - 1] = { role: "assistant", content: full };
+                updated[updated.length - 1] = { 
+                  role: "assistant", 
+                  content: full,
+                  grounded: grounded,
+                  sources: webSources
+                };
                 return updated;
               });
               flushSentence();
@@ -1172,7 +1222,8 @@ export default function Chat() {
       const MIN_PEAK_ENERGY = 20;
       if (audioBlob.size < 1000 || peakEnergy < MIN_PEAK_ENERGY) {
         console.log(`[HEART] ⚠️ Audio too small or quiet (size=${audioBlob.size}, peak=${peakEnergy.toFixed(1)}), skipping`);
-        if (voiceModeRef.current) startRecRef.current();
+        // Don't restart if TTS is playing — playChain.finally() will handle it
+        if (voiceModeRef.current && !ttsPlayingRef.current) startRecRef.current();
         return;
       }
 
@@ -1180,7 +1231,8 @@ export default function Chat() {
 
       if (!transcript || !voiceModeRef.current) {
         console.log("[HEART] 🔄 No transcript or voice mode off, restarting listener...");
-        if (voiceModeRef.current) startRecRef.current();
+        // Don't restart if TTS is playing — playChain.finally() will handle it
+        if (voiceModeRef.current && !ttsPlayingRef.current) startRecRef.current();
         return;
       }
 
@@ -1351,9 +1403,20 @@ export default function Chat() {
             <button
               onClick={() => setVoiceEnabled(v => !v)}
               className={`text-xs px-2 py-1 rounded-full ${voiceEnabled ? "bg-purple-500 text-white" : "bg-zinc-600 text-zinc-300"}`}
+              title="Toggle Voice Mode"
             >
               {voiceEnabled ? "🔊" : "🔇"}
             </button>
+            <select
+              value={webMode}
+              onChange={e => setWebMode(e.target.value as "auto" | "always" | "never")}
+              className="text-xs bg-zinc-700 text-white border border-zinc-600 rounded-full px-2 py-1"
+              title="Web Search Mode"
+            >
+              <option value="auto">🌐 Web: Auto</option>
+              <option value="always">🌐 Web: Always</option>
+              <option value="never">🌐 Web: Never</option>
+            </select>
             <div className={`${statusColor} text-white text-xs px-2 py-1 rounded-full`}>
               {statusText}
             </div>
@@ -1401,20 +1464,8 @@ export default function Chat() {
         </div>
       )}
 
-      {/* Persona + Quick Actions */}
+      {/* Quick Actions */}
       <div className="px-4 py-2 border-b dark:border-zinc-700 flex items-center gap-2 flex-wrap">
-        <select
-          className="text-xs bg-zinc-800 border border-zinc-600 text-white rounded-full px-2 py-1"
-          value={persona}
-          onChange={(e) => setPersona(e.target.value)}
-          title="AI Persona"
-        >
-          <option value="default">🤖 Assistant</option>
-          <option value="clerk">🏪 Store Clerk</option>
-          <option value="speedrunner">⚡ Speedrunner</option>
-          <option value="historian">📚 Historian</option>
-          <option value="comedian">😄 Comedian</option>
-        </select>
         <button
           onClick={() => { void sendMessageDirect("What are my gaming stats? Give me a summary of my total playtime, most played games, and favorite systems."); }}
           className="text-xs px-2 py-1 rounded-full bg-blue-600 text-white hover:bg-blue-500 transition-colors"
@@ -1456,22 +1507,60 @@ export default function Chat() {
           </div>
         )}
         {messages.map((msg, i) => (
-          <div
-            key={i}
-            className={`chat-message max-w-md rounded-lg px-3 py-1.5 text-sm ${
-              msg.role === "user"
-                ? "self-start bg-zinc-500 text-white"
-                : "self-end bg-blue-500 text-white"
-            }`}
-          >
-            {msg.images && msg.images.length > 0 && (
-              <div className="flex flex-wrap gap-1 mb-1">
-                {msg.images.map((img, j) => (
-                  <img key={j} src={`data:image/png;base64,${img}`} alt="uploaded" className="max-w-[200px] max-h-[150px] rounded object-cover" />
-                ))}
+          <div key={i} className={`flex flex-col max-w-[85%] ${msg.role === "user" ? "self-end items-end" : "self-start"}`}>
+            {/* The main message bubble */}
+            <div
+              className={`chat-message rounded-lg px-3 py-2 text-sm break-words ${
+                msg.role === "user"
+                  ? "bg-zinc-600 text-white rounded-br-none"
+                  : "bg-blue-600 text-white rounded-bl-none shadow-sm"
+              }`}
+            >
+              {msg.images && msg.images.length > 0 && (
+                <div className="flex flex-wrap gap-1 mb-1">
+                  {msg.images.map((img, j) => (
+                    <img key={j} src={`data:image/png;base64,${img}`} alt="uploaded" className="max-w-[200px] max-h-[150px] rounded object-cover" />
+                  ))}
+                </div>
+              )}
+              {msg.content || (streaming && i === messages.length - 1 ? "..." : "")}
+            </div>
+
+            {/* Sources / Grounded badge below assistant message */}
+            {msg.role === "assistant" && msg.grounded && (
+              <div className="mt-1 flex flex-col items-start gap-1">
+                <span className="text-[10px] font-medium text-emerald-400 flex items-center gap-1 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  Verified with web sources
+                </span>
+                
+                {msg.sources && msg.sources.length > 0 && (
+                  <details className="text-[10px] text-zinc-400 group cursor-pointer w-full max-w-sm mt-0.5">
+                    <summary className="select-none hover:text-zinc-300 transition-colors list-none flex items-center gap-1">
+                      <span className="group-open:rotate-90 transition-transform">▸</span> Show {msg.sources.length} sources
+                    </summary>
+                    <div className="flex flex-col gap-1.5 mt-1.5 pl-2 border-l border-zinc-700 pb-1">
+                      {msg.sources.map(src => (
+                        <a 
+                          key={src.id} 
+                          href={src.url} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="hover:bg-zinc-800/50 p-1.5 rounded transition-colors block border border-transparent hover:border-zinc-700"
+                        >
+                          <div className="font-medium text-blue-400 flex items-center gap-1 truncate">
+                            <span className="text-zinc-500">[{src.id}]</span> {src.title}
+                          </div>
+                          {src.snippet && (
+                            <div className="text-zinc-500 mt-0.5 truncate text-[9px]">{src.snippet}</div>
+                          )}
+                        </a>
+                      ))}
+                    </div>
+                  </details>
+                )}
               </div>
             )}
-            {msg.content || (streaming && i === messages.length - 1 ? "..." : "")}
           </div>
         ))}
       </div>

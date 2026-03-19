@@ -8,6 +8,9 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 import numpy as np
 
+# Suppress noisy startup warnings
+os.environ["ORT_LOGGING_LEVEL"] = "3"
+
 # Pre-load NVIDIA shared libs so ONNX CUDA provider can find them
 _nvidia_base = Path(site.getusersitepackages()) / "nvidia"
 if _nvidia_base.is_dir():
@@ -92,15 +95,22 @@ class SpeechRequest(BaseModel):
 @app.post("/v1/audio/speech")
 async def speech_openai(req: SpeechRequest):
     import soundfile as sf
+    # Guard against empty input that crashes kokoro_onnx
+    text = req.input.strip()
+    if not text:
+        buf = io.BytesIO()
+        sf.write(buf, np.zeros(1600, dtype=np.float32), 24000, format="WAV")
+        buf.seek(0)
+        return StreamingResponse(buf, media_type="audio/wav")
     t0 = time.time()
     k = get_kokoro()
     voice_style = get_voice_style(req.voice)
-    samples, sample_rate = k.create(req.input, voice=voice_style, speed=req.speed)
+    samples, sample_rate = k.create(text, voice=voice_style, speed=req.speed)
     buf = io.BytesIO()
     sf.write(buf, samples, sample_rate, format="WAV")
     buf.seek(0)
     ms = round((time.time() - t0) * 1000)
-    print(f"[TTS] Generated {len(samples)/sample_rate:.1f}s audio in {ms}ms: '{req.input[:60]}'")
+    print(f"[TTS] Generated {len(samples)/sample_rate:.1f}s audio in {ms}ms: '{text[:60]}'")
     return StreamingResponse(buf, media_type="audio/wav")
 
 if __name__ == "__main__":
