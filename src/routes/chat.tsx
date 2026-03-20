@@ -699,7 +699,7 @@ function buildVoiceCaptureConstraints(): ExtendedAudioConstraints {
     : {};
 
   const constraints: ExtendedAudioConstraints = {
-    echoCancellation: true,
+    echoCancellation: true, // we will override this via state before passing to GUM, but keep here for typing
     noiseSuppression: true,
     autoGainControl: true,
     channelCount: 1,
@@ -785,14 +785,22 @@ export default function Chat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
-  const [ollamaOnline, setOllamaOnline] = useState(false);
   const [kokoroOnline, setKokoroOnline] = useState(false);
-  const [selectedModel, setSelectedModel] = useState("qwen3.5:9b");
+  const [ollamaOnline, setOllamaOnline] = useState(false);
   const [availableModels, setAvailableModels] = useState<string[]>([]);
-  const [showModelPicker, setShowModelPicker] = useState(false);
-  const [showClearConfirm, setShowClearConfirm] = useState(false);
-  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [selectedModel, setSelectedModel] = useState<string>("qwen3.5:9b"); // Kept original default
   const [listening, setListening] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [showModelPicker, setShowModelPicker] = useState(false);
+  
+  // Voice Settings States
+  const [showVoiceSettings, setShowVoiceSettings] = useState(false);
+  const [activationMode, setActivationMode] = useState<"auto_near_field" | "headset" | "push_to_talk">("auto_near_field");
+  const [agcEnabled, setAgcEnabled] = useState(true);
+  const [noiseSuppressionEnabled, setNoiseSuppressionEnabled] = useState(true);
+  const [echoCancellationEnabled, setEchoCancellationEnabled] = useState(true);
+
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [webMode, setWebMode] = useState<"auto" | "always" | "never">("auto");
   const [pendingImages, setPendingImages] = useState<string[]>([]);
   const [pendingFiles, setPendingFiles] = useState<{ name: string; content: string }[]>([]);
@@ -1199,7 +1207,7 @@ export default function Chat() {
       setStreaming(false);
       processingRef.current = false;
     }
-  }, [input, streaming, ollamaOnline, selectedModel, messages, kokoroOnline, voiceEnabled, pendingImages, pendingFiles]);
+  }, [input, streaming, ollamaOnline, selectedModel, messages, kokoroOnline, voiceEnabled, pendingImages, pendingFiles, activationMode, noiseSuppressionEnabled, agcEnabled, echoCancellationEnabled]);
 
   const sendMessage = useCallback(() => { sendMessageDirect(); }, [sendMessageDirect]);
 
@@ -1230,8 +1238,13 @@ export default function Chat() {
       console.log("[HEART] 🎤 Listening...");
       // Get mic stream (reuse if already open)
       if (!mediaStreamRef.current) {
-        console.log("[HEART] 🎤 Requesting microphone access...");
-        mediaStreamRef.current = await acquireMicrophoneStream();
+        console.log("[HEART] 🎤 Requesting microphone access with specific DSP constraints...");
+        const baseConstraints = buildVoiceCaptureConstraints();
+        baseConstraints.noiseSuppression = noiseSuppressionEnabled;
+        baseConstraints.autoGainControl = agcEnabled;
+        baseConstraints.echoCancellation = echoCancellationEnabled;
+        
+        mediaStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: baseConstraints, video: false });
         console.log("[HEART] ✅ Microphone access granted");
       }
       const stream = mediaStreamRef.current;
@@ -1239,7 +1252,11 @@ export default function Chat() {
       // Verify the stream is still active
       if (!stream.active || stream.getAudioTracks().every(t => t.readyState === "ended")) {
         console.log("[HEART] ⚠️ Mic stream ended, re-acquiring...");
-        mediaStreamRef.current = await acquireMicrophoneStream();
+        const baseConstraints = buildVoiceCaptureConstraints();
+        baseConstraints.noiseSuppression = noiseSuppressionEnabled;
+        baseConstraints.autoGainControl = agcEnabled;
+        baseConstraints.echoCancellation = echoCancellationEnabled;
+        mediaStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: baseConstraints, video: false });
       }
 
       // Use AudioContext for silence detection
@@ -1261,7 +1278,7 @@ export default function Chat() {
       const chunks: Blob[] = [];
       recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
 
-      const { blob: audioBlob, peakEnergy } = await new Promise<{ blob: Blob; peakEnergy: number }>((resolve) => {
+      const { blob: audioBlob } = await new Promise<{ blob: Blob; peakEnergy: number }>((resolve) => {
         let _peakEnergy = 0;
         recorder.onstop = () => {
           audioCtx.close();
@@ -1278,39 +1295,87 @@ export default function Chat() {
 
         let speechDetected = false;
         let silenceStart = 0;
-        const SILENCE_THRESHOLD = 15; // frequency avg below this = silence
+        let consecutiveSpeechMs = 0;
+        let consecutiveSilenceMs = 0;
+        let noiseFloor = 10; // start with an arbitrary low assumed floor
+
+        // VAD Tuning Params - Adaptive based on mode
         const SILENCE_DURATION = 1500; // ms of silence after speech before auto-stop
-        const MIN_SPEECH_DURATION = 500;
+        const MIN_SPEECH_DURATION = activationMode === "headset" ? 300 : 500;
+        const TARGET_SNR_MARGIN = activationMode === "headset" ? 1.4 : 2.5; // Stricter requirement for open laptop mics
+        const MIN_ABSOLUTE_ENERGY = 15;
         const MAX_DURATION = 30000; // 30s max
+        
+        let framesProcessed = 0;
         const startTime = Date.now();
+        let lastFrameTime = performance.now();
 
         const checkSilence = () => {
           if (recorder.state !== "recording") return;
           if (!voiceModeRef.current) { recorder.stop(); return; }
-          if (Date.now() - startTime > MAX_DURATION) {
+          const now = Date.now();
+          const pNow = performance.now();
+          const dt = pNow - lastFrameTime;
+          lastFrameTime = pNow;
+
+          if (now - startTime > MAX_DURATION) {
             console.log("[HEART] ⏱️ Max recording duration reached, stopping...");
             recorder.stop();
             return;
           }
 
           analyser.getByteFrequencyData(dataArray);
-          const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
+          framesProcessed++;
+          
+          // 1. Isolate Speech Band (approx 300Hz - 3400Hz)
+          // For 16kHz at 512 FFT, resolution is 31.25Hz per bin.
+          // Bins 10 to 109 represent 312Hz to 3406Hz
+          const binStart = 10;
+          const binEnd = 109;
+          let speechBandEnergy = 0;
+          for (let i = binStart; i <= binEnd; i++) {
+            speechBandEnergy += dataArray[i];
+          }
+          speechBandEnergy /= (binEnd - binStart + 1);
 
-          if (avg > SILENCE_THRESHOLD) {
-            if (!speechDetected) {
-              console.log("[HEART] 🗣️ Speech detected");
-            }
+          // 2. Adaptive Noise Floor (slow trailing average when not speaking)
+          const smoothingFactor = 0.03;
+          if (!speechDetected) {
+            noiseFloor = (noiseFloor * (1 - smoothingFactor)) + (speechBandEnergy * smoothingFactor);
+          }
+
+          // 3. SNR check (Signal-to-Noise Ratio)
+          const snrRatio = noiseFloor > 0 ? speechBandEnergy / noiseFloor : 1;
+          const isCurrentFrameSpeech = speechBandEnergy >= MIN_ABSOLUTE_ENERGY && snrRatio >= TARGET_SNR_MARGIN;
+
+          if (isCurrentFrameSpeech) {
+            consecutiveSpeechMs += dt;
+            consecutiveSilenceMs = 0;
+            if (speechBandEnergy > _peakEnergy) _peakEnergy = speechBandEnergy;
+          } else {
+            consecutiveSilenceMs += dt;
+            consecutiveSpeechMs = 0;
+          }
+
+          // 4. Intentional Gating: Must sustain speech for minimum duration
+          if (!speechDetected && consecutiveSpeechMs > MIN_SPEECH_DURATION) {
+            console.log(`[HEART] 🗣️ Intentional speech gated in (SNR=${snrRatio.toFixed(1)}x, Floor=${noiseFloor.toFixed(1)})`);
             speechDetected = true;
             silenceStart = 0;
-            if (avg > _peakEnergy) _peakEnergy = avg;
-          } else if (speechDetected && (Date.now() - startTime > MIN_SPEECH_DURATION)) {
-            if (!silenceStart) silenceStart = Date.now();
-            else if (Date.now() - silenceStart > SILENCE_DURATION) {
-              console.log("[HEART] 🔇 Silence detected after speech, stopping...");
+          }
+
+          // 5. Silence Stop Committing
+          if (speechDetected && !isCurrentFrameSpeech) {
+            if (!silenceStart) silenceStart = now;
+            else if (now - silenceStart > SILENCE_DURATION) {
+              console.log("[HEART] 🔇 Trailing silence met, committing recording...");
               recorder.stop();
               return;
             }
+          } else if (speechDetected && isCurrentFrameSpeech) {
+            silenceStart = 0; // reset trailing silence if they speak again
           }
+          
           requestAnimationFrame(checkSilence);
         };
         requestAnimationFrame(checkSilence);
@@ -1318,11 +1383,10 @@ export default function Chat() {
 
       if (!voiceModeRef.current) return;
 
-      // Skip empty or too-quiet recordings (prevents phantom transcriptions)
-      const MIN_PEAK_ENERGY = 20;
-      if (audioBlob.size < 1000 || peakEnergy < MIN_PEAK_ENERGY) {
-        console.log(`[HEART] ⚠️ Audio too small or quiet (size=${audioBlob.size}, peak=${peakEnergy.toFixed(1)}), skipping`);
-        // Don't restart if TTS is playing — playChain.finally() will handle it
+      // 6. Pre-STT Size Rejection (Skip micro-bursts that made it past the gate)
+      const MIN_BYTES = activationMode === "headset" ? 2000 : 4000;
+      if (audioBlob.size < MIN_BYTES) {
+        console.log(`[HEART] ⚠️ Discarding micro-audio (size=${audioBlob.size}bytes), assuming accidental noise.`);
         if (voiceModeRef.current && !ttsPlayingRef.current) startRecRef.current();
         return;
       }
@@ -1330,13 +1394,24 @@ export default function Chat() {
       const transcript = await transcribeChunk(audioBlob);
 
       if (!transcript || !voiceModeRef.current) {
-        console.log("[HEART] 🔄 No transcript or voice mode off, restarting listener...");
-        // Don't restart if TTS is playing — playChain.finally() will handle it
+        console.log("[HEART] 🔄 Empty transcript, restarting listener...");
         if (voiceModeRef.current && !ttsPlayingRef.current) startRecRef.current();
         return;
       }
 
-      console.log(`[HEART] 💬 Sending: "${transcript}"`);
+      // 7. Post-STT Quality Validation
+      const words = transcript.trim().split(/\s+/);
+      const isTooShort = words.length < 2 && transcript.length < 5;
+      const validShortWords = ["yes", "no", "stop", "pause", "play", "skip"];
+      const isAllowedShort = validShortWords.includes(transcript.toLowerCase().replace(/[^a-z]/g, ""));
+      
+      if (isTooShort && !isAllowedShort && activationMode !== "headset") {
+         console.log(`[HEART] 🛑 Rejecting likely background noise snippet: "${transcript}"`);
+         if (voiceModeRef.current && !ttsPlayingRef.current) startRecRef.current();
+         return;
+      }
+
+      console.log(`[HEART] 💬 Validated sending: "${transcript}"`);
       sendDirectRef.current(transcript);
     } catch (err) {
       console.error("[HEART] ❌ Voice pipeline error:", err);
@@ -1344,7 +1419,7 @@ export default function Chat() {
         setTimeout(() => startRecRef.current(), 1000);
       }
     }
-  }, [acquireMicrophoneStream, transcribeChunk]);
+  }, [transcribeChunk, activationMode, noiseSuppressionEnabled, agcEnabled, echoCancellationEnabled]);
 
   // Keep refs in sync
   sendDirectRef.current = (text: string) => sendMessageDirect(text);
@@ -1424,8 +1499,15 @@ export default function Chat() {
       {/* Header */}
       <div className="px-4 py-3 border-b dark:border-zinc-700">
         <div className="flex justify-between items-center">
-          <h2 className="text-lg font-semibold text-zinc-800 dark:text-white">
+          <h2 className="text-lg font-semibold text-zinc-800 dark:text-white flex items-center gap-2">
             PiStation AI
+            <button 
+              onClick={() => setShowVoiceSettings(!showVoiceSettings)}
+              className="text-xs text-zinc-500 hover:text-emerald-500 transition-colors bg-zinc-800 px-2 py-0.5 rounded-full"
+              title="Voice Settings"
+            >
+              🎤 Settings
+            </button>
           </h2>
           <div className="flex items-center gap-2">
             {availableModels.length > 1 && (
@@ -1560,6 +1642,46 @@ export default function Chat() {
                 </label>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Voice Settings Panel */}
+      {showVoiceSettings && (
+        <div className="px-4 py-3 bg-zinc-800/80 border-b border-zinc-700 text-sm">
+          <div className="grid grid-cols-2 gap-4 max-w-2xl">
+            <div>
+              <label className="block text-zinc-400 mb-1 text-xs">Mic Gating Mode</label>
+              <select 
+                value={activationMode}
+                onChange={e => setActivationMode(e.target.value as any)}
+                className="w-full bg-zinc-900 border border-zinc-700 rounded p-1 text-white text-xs"
+              >
+                <option value="auto_near_field">Near-Field (Quiet Room)</option>
+                <option value="headset">Headset (More Permissive)</option>
+                <option value="push_to_talk">Push To Talk (No Passive Mics)</option>
+              </select>
+              <p className="text-[10px] text-zinc-500 mt-1 leading-tight">
+                {activationMode === "auto_near_field" && "Strict adaptive noise floor. Rejects distant TV/chatter."}
+                {activationMode === "headset" && "Lower threshold for nearby whispers. Use with headset."}
+                {activationMode === "push_to_talk" && "Only listens while you hold the spacebar (Soon!)"}
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 pt-1">
+               <label className="flex items-center gap-2 text-zinc-300 text-xs">
+                 <input type="checkbox" checked={noiseSuppressionEnabled} onChange={e => setNoiseSuppressionEnabled(e.target.checked)} />
+                 Browser Noise Suppression
+               </label>
+               <label className="flex items-center gap-2 text-zinc-300 text-xs">
+                 <input type="checkbox" checked={echoCancellationEnabled} onChange={e => setEchoCancellationEnabled(e.target.checked)} />
+                 Browser Echo Cancellation
+               </label>
+               <label className="flex items-center gap-2 text-zinc-300 text-xs">
+                 <input type="checkbox" checked={agcEnabled} onChange={e => setAgcEnabled(e.target.checked)} />
+                 Browser Auto Gain Control (AGC)
+               </label>
+               <p className="text-[9px] text-zinc-500 italic">Disable AGC if background noise keeps getting boosted.</p>
+            </div>
           </div>
         </div>
       )}
