@@ -11,7 +11,7 @@ interface ServiceStatus {
 export default function Admin() {
   const [services, setServices] = useState<ServiceStatus[]>([
     { name: "PiStation API", url: "/api/pistation/health", status: "checking" },
-    { name: "Ollama (LLM)", url: "/api/ollama/api/tags", status: "checking" },
+    { name: "NVIDIA (LLM)", url: "/api/nvidia/v1/models", status: "checking" },
     { name: "Kokoro (TTS)", url: "/api/kokoro/health", status: "checking" },
     { name: "Whisper (STT)", url: "/api/whisper/health", status: "checking" },
   ]);

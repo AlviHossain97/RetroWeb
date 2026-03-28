@@ -53,20 +53,23 @@ async def route_query(
     )
 
     try:
-        async with httpx.AsyncClient(timeout=8.0) as client:
+        async with httpx.AsyncClient(timeout=15.0) as client:
             resp = await client.post(
-                "http://127.0.0.1:11434/api/generate",
+                "https://integrate.api.nvidia.com/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {settings.nvidia_api_key}",
+                },
                 json={
-                    "model": settings.ollama_model,
-                    "prompt": prompt,
-                    "format": "json",
+                    "model": settings.nvidia_model,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "max_tokens": 128,
+                    "temperature": 0.0,
                     "stream": False,
-                    "options": {"temperature": 0.0},
                 },
             )
             resp.raise_for_status()
             data = resp.json()
-            raw = data.get("response", "{}")
+            raw = data["choices"][0]["message"]["content"]
             result = json.loads(raw)
             needs = bool(result.get("needs_search", False))
             query = str(result.get("search_query", ""))

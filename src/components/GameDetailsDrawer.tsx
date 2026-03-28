@@ -196,15 +196,15 @@ export default function GameDetailsDrawer({ game, onClose, onLaunch, onToggleFav
                 <button
                   onClick={async () => {
                     try {
-                      const res = await fetch("/api/ollama/api/generate", {
+                      const res = await fetch("/api/nvidia/v1/chat/completions", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ model: "llama3.2", prompt: `Write a brief 2-3 sentence description of the retro video game "${game.displayTitle || game.title}" for the ${getSystemLabel(game.system)} system. Focus on what makes it notable. If you don't know the game, make a plausible description based on its name and system. No disclaimers.`, stream: false }),
+                        body: JSON.stringify({ model: "stepfun-ai/step-3.5-flash", messages: [{ role: "user", content: `Write a brief 2-3 sentence description of the retro video game "${game.displayTitle || game.title}" for the ${getSystemLabel(game.system)} system. Focus on what makes it notable. If you don't know the game, make a plausible description based on its name and system. No disclaimers.` }], max_tokens: 256, stream: false }),
                       });
                       const data = await res.json();
-                      if (data.response) {
+                      if (data.choices?.[0]?.message?.content) {
                         const { updateGameMetadata } = await import("../lib/storage/db");
-                        await updateGameMetadata(game.id, { description: data.response.trim() });
+                        await updateGameMetadata(game.id, { description: data.choices[0].message.content.trim() });
                       }
                     } catch { /* AI offline */ }
                   }}
