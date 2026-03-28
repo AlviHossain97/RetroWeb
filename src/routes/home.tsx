@@ -166,7 +166,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="text-center py-6 text-xs" style={{ color: "var(--text-muted)", borderTop: "1px solid var(--border-soft)" }}>
-        PiStation — Retro Gaming Dashboard · Built with React, FastAPI, and Ollama
+        PiStation — Retro Gaming Dashboard · Built with React, FastAPI, and NVIDIA NIM
       </footer>
     </div>
   );

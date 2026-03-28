@@ -22,7 +22,8 @@ class Settings(BaseSettings):
     app_env: str = "production"
 
     # Web Grounding & AI Setup
-    ollama_model: str = "qwen3.5:9b"
+    nvidia_api_key: str = ""
+    nvidia_model: str = "stepfun-ai/step-3.5-flash"
     web_search_mode: str = "auto"  # auto, always, never
     searxng_url: str = ""
     tavily_api_key: str = "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"

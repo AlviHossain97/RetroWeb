@@ -74,10 +74,14 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/api/ollama': {
-        target: 'http://localhost:11434',
+      '/api/nvidia': {
+        target: 'https://integrate.api.nvidia.com',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/ollama/, ''),
+        secure: true,
+        rewrite: (path) => path.replace(/^\/api\/nvidia/, ''),
+        headers: {
+          'Authorization': `Bearer ${process.env.NVIDIA_API_KEY || ''}`,
+        },
       },
       '/api/whisper': {
         target: 'http://localhost:8786',

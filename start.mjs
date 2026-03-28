@@ -73,39 +73,25 @@ try {
   }
 }
 
-// 1. Ollama — check if already running (systemd), start if not
 import { execSync } from "child_process";
-try {
-  execSync("systemctl is-active --quiet ollama", { stdio: "ignore" });
-  console.log("[Ollama] Already running via systemd");
-} catch {
-  try {
-    execSync("curl -s --max-time 2 http://localhost:11434/api/tags > /dev/null", { stdio: "ignore" });
-    console.log("[Ollama] Already running");
-  } catch {
-    startService("Ollama", "ollama", ["serve"], {
-      env: { OLLAMA_ORIGINS: "*" },
-    });
-  }
-}
 
-// 2. FastAPI backend
+// 1. FastAPI backend
 startService("FastAPI", python3, [
   "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000",
 ], { cwd: backendDir });
 
-// 3. Kokoro TTS (CUDA)
+// 2. Kokoro TTS (CUDA)
 startService("Kokoro", python3, [kokoroScript]);
 
-// 4. Parakeet STT (GPU)
+// 3. Parakeet STT (GPU)
 startService("Parakeet", python3, [parakeetScript], {
   env: { LD_LIBRARY_PATH: "/usr/local/lib/ollama/cuda_v12" },
 });
 
-// 5. Vite dev server
+// 4. Vite dev server
 startService("Vite", "npx", ["vite", "--host", "0.0.0.0", "--port", "5173"]);
 
-// 6. Sunshine — NVENC game stream host for Pi (Moonlight client)
+// 5. Sunshine — NVENC game stream host for Pi (Moonlight client)
 // Streams the full desktop to the Pi with hardware encoding
 try {
   execSync("pgrep -x sunshine > /dev/null 2>&1", { stdio: "ignore" });
@@ -121,7 +107,7 @@ console.log(`
   │  XAMPP     → http://localhost/phpmyadmin         │
   │  Vite     → http://localhost:5173               │
   │  FastAPI  → http://localhost:8000               │
-  │  Ollama   → http://localhost:11434              │
+  │  NVIDIA   → integrate.api.nvidia.com (LLM)     │
   │  Kokoro   → http://localhost:8787  (TTS)        │
   │  Parakeet → http://localhost:8786  (STT)        │
   │  Sunshine → https://localhost:47990 (stream)    │

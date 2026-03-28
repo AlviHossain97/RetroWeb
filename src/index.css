@@ -309,6 +309,10 @@
   from { transform: perspective(1000px) rotateX(-12deg) rotateY(0); }
   to { transform: perspective(1000px) rotateX(-12deg) rotateY(1turn); }
 }
+@keyframes voiceBar {
+  0%, 100% { transform: scaleY(0.3); }
+  50% { transform: scaleY(1); }
+}
 @media (prefers-reduced-motion: reduce) {
   .flicker-anim { animation: none; }
   .shimmer-anim { animation: none; }
