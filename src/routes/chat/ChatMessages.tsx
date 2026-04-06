@@ -39,6 +39,8 @@ export function ChatMessages({ messages, convState, lastError, selectedModel, on
       ref={scrollRef}
       onScroll={handleScroll}
       className="flex-1 overflow-y-auto"
+      role="log"
+      aria-live="polite"
     >
       <div className="max-w-3xl mx-auto px-4 py-6">
         {messages.length === 0 ? (
@@ -76,7 +78,7 @@ export function ChatMessages({ messages, convState, lastError, selectedModel, on
           <div className="flex flex-col gap-4">
             {messages.map((msg, i) => (
               <ChatMessage
-                key={i}
+                key={`msg-${i}-${msg.role}-${msg.content.slice(0, 8)}`}
                 msg={msg}
                 isLast={i === messages.length - 1}
                 streaming={streaming}

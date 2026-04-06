@@ -14,6 +14,15 @@ import { ChatClearDialog } from "./chat/ChatClearDialog";
 import { ChatVoiceSettingsModal } from "./chat/ChatVoiceSettingsModal";
 import { DEFAULT_MODEL, type OverlayState } from "./chat/constants";
 
+function isInteractiveElement(el: Element | null): boolean {
+  if (!el) return false;
+  const tag = el.tagName;
+  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || tag === "BUTTON" || tag === "A") return true;
+  if ((el as HTMLElement).isContentEditable) return true;
+  if (el.closest('[role="textbox"], [role="button"], [contenteditable="true"], dialog, [role="dialog"]')) return true;
+  return false;
+}
+
 export default function Chat() {
   // ── Hooks ──
   const health = useChatHealth();
@@ -57,16 +66,40 @@ export default function Chat() {
   // Keep ref in sync
   sendRef.current = send.sendMessage;
 
-  // Escape key closes overlays
+  // Escape key closes overlays + Global T key for push-to-talk
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && overlay !== "none") {
         setOverlay("none");
+        return;
+      }
+      if (
+        e.key === "t" &&
+        !e.repeat &&
+        !e.metaKey && !e.ctrlKey && !e.altKey &&
+        voice.activationMode === "push_to_talk" &&
+        overlay === "none" &&
+        !isInteractiveElement(document.activeElement) &&
+        (voice.voiceState === "idle" || voice.voiceState === "error")
+      ) {
+        e.preventDefault();
+        voice.startRecording("keyboard");
       }
     };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [overlay]);
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === "t" && voice.activationMode === "push_to_talk") {
+        voice.stopRecording("keyboard");
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, [overlay, voice.activationMode, voice.voiceState, voice.startRecording, voice.stopRecording]);
 
   const voiceActive = voice.voiceState !== "idle";
 
@@ -119,7 +152,8 @@ export default function Chat() {
       {voiceActive && (
         <ChatVoiceBar
           voiceState={voice.voiceState}
-          onStop={voice.toggleListening}
+          activationMode={voice.activationMode}
+          onStop={voice.stopVoiceMode}
         />
       )}
 
@@ -135,9 +169,13 @@ export default function Chat() {
         convState={send.convState}
         voiceState={voice.voiceState}
         kokoroOnline={health.kokoroOnline}
+        activationMode={voice.activationMode}
         onSend={() => send.sendMessage()}
         onCancelStream={send.cancelStream}
-        onToggleListening={voice.toggleListening}
+        onStartVoiceMode={voice.startVoiceMode}
+        onStopVoiceMode={voice.stopVoiceMode}
+        onStartRecording={voice.startRecording}
+        onStopRecording={voice.stopRecording}
         onAddImages={composer.addImages}
         onAddFiles={composer.addFiles}
       />

@@ -24,6 +24,7 @@ export function ChatHeader({ selectedModel, nvidiaOnline, kokoroOnline, overlay,
         onClick={() => setOverlay(overlay === "modelPicker" ? "none" : "modelPicker")}
         className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm transition-colors hover:opacity-80"
         style={{ background: "var(--surface-2)", border: "1px solid var(--border-soft)", color: "var(--text-primary)" }}
+        aria-label="Select AI model"
       >
         {info && <img src={info.icon} alt="" className="w-5 h-5 rounded object-contain" />}
         <span className="truncate max-w-[160px]">{info?.label || selectedModel}</span>
@@ -47,6 +48,7 @@ export function ChatHeader({ selectedModel, nvidiaOnline, kokoroOnline, overlay,
           onClick={() => setOverlay(overlay === "overflowMenu" ? "none" : "overflowMenu")}
           className="p-1.5 rounded-lg transition-colors hover:opacity-80"
           style={{ color: "var(--text-muted)" }}
+          aria-label="Menu"
         >
           <MoreVertical size={18} />
         </button>

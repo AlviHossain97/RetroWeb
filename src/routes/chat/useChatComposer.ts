@@ -1,5 +1,7 @@
 import { useState, useCallback } from "react";
 
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
 export function useChatComposer() {
   const [input, setInput] = useState("");
   const [pendingImages, setPendingImages] = useState<string[]>([]);
@@ -7,10 +9,19 @@ export function useChatComposer() {
 
   const addImages = useCallback((files: FileList) => {
     Array.from(files).forEach(file => {
+      if (file.size > MAX_FILE_SIZE) {
+        console.warn(`[COMPOSER] Skipping ${file.name}: exceeds 10MB limit`);
+        return;
+      }
       const reader = new FileReader();
       reader.onload = () => {
         const base64 = (reader.result as string).split(",")[1];
-        setPendingImages(prev => [...prev, base64]);
+        if (base64) {
+          setPendingImages(prev => [...prev, base64]);
+        }
+      };
+      reader.onerror = () => {
+        console.warn(`[COMPOSER] Failed to read image: ${file.name}`);
       };
       reader.readAsDataURL(file);
     });
@@ -18,17 +29,29 @@ export function useChatComposer() {
 
   const addFiles = useCallback((files: FileList) => {
     Array.from(files).forEach(file => {
+      if (file.size > MAX_FILE_SIZE) {
+        console.warn(`[COMPOSER] Skipping ${file.name}: exceeds 10MB limit`);
+        return;
+      }
       if (file.type.startsWith("image/")) {
         const reader = new FileReader();
         reader.onload = () => {
           const base64 = (reader.result as string).split(",")[1];
-          setPendingImages(prev => [...prev, base64]);
+          if (base64) {
+            setPendingImages(prev => [...prev, base64]);
+          }
+        };
+        reader.onerror = () => {
+          console.warn(`[COMPOSER] Failed to read image: ${file.name}`);
         };
         reader.readAsDataURL(file);
       } else {
         const reader = new FileReader();
         reader.onload = () => {
           setPendingFiles(prev => [...prev, { name: file.name, content: reader.result as string }]);
+        };
+        reader.onerror = () => {
+          console.warn(`[COMPOSER] Failed to read file: ${file.name}`);
         };
         reader.readAsText(file);
       }

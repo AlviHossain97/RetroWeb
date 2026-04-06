@@ -29,7 +29,7 @@ export function ChatModelPicker({ selectedModel, onSelect, onClose }: ChatModelP
               onClick={() => onSelect(m)}
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors"
               style={{
-                background: isSelected ? "rgba(204,0,0,0.1)" : "transparent",
+                background: isSelected ? "color-mix(in srgb, var(--accent-primary) 10%, transparent)" : "transparent",
                 color: "var(--text-primary)",
               }}
             >
