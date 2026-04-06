@@ -19,41 +19,52 @@ export function useChatSend(opts: {
   webMode: string;
   nvidiaOnline: boolean;
   ttsSession?: TTSSession | null;
+  onAssistantTurnRecovered?: () => void;
 }) {
-  const { transcript, composer, model, webMode, nvidiaOnline, ttsSession } = opts;
+  const { transcript, composer, model, webMode, nvidiaOnline, ttsSession, onAssistantTurnRecovered } = opts;
   const [convState, setConvState] = useState<ConvState>("idle");
   const [lastError, setLastError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const processingRef = useRef(false);
+  const lastTurnRef = useRef<{ previousMessages: Message[]; userMsg: Message } | null>(null);
 
-  const sendMessage = useCallback(async (directText?: string) => {
-    let text = (directText ?? composer.input).trim();
-    // Append file contents as context
-    if (composer.pendingFiles.length > 0 && !directText) {
-      const fileContext = composer.pendingFiles.map(f => `[File: ${f.name}]\n${f.content}`).join("\n\n");
-      text = text ? `${text}\n\n${fileContext}` : fileContext;
+  const recoverAfterTurn = useCallback(() => {
+    if (ttsSession) {
+      ttsSession.cancel();
+      return;
     }
-    const images = !directText ? [...composer.pendingImages] : undefined;
-    if (!text && (!images || images.length === 0)) return;
-    if (!text) text = "What's in this image?";
+    onAssistantTurnRecovered?.();
+  }, [onAssistantTurnRecovered, ttsSession]);
+
+  const runAssistantTurn = useCallback(async (
+    previousMessages: Message[],
+    userMsg: Message,
+    options?: { reuseLastAssistant?: boolean; clearComposer?: boolean },
+  ) => {
     if (convState === "streaming" || processingRef.current || !nvidiaOnline || !model) return;
     processingRef.current = true;
     setLastError(null);
-    if (!directText) {
+    lastTurnRef.current = { previousMessages, userMsg };
+
+    if (options?.clearComposer) {
       composer.clearComposer();
     }
 
-    const userMsg: Message = { role: "user", content: text, images: images && images.length > 0 ? images : undefined };
-    const assistantMsg: Message = { role: "assistant", content: "" };
-    // Capture history before appending — avoids stale closure issues
-    const previousMessages = [...transcript.messages];
-    transcript.appendUser(userMsg);
-    transcript.appendAssistant(assistantMsg);
+    if (options?.reuseLastAssistant) {
+      transcript.patchLastAssistant({
+        content: "",
+        grounded: false,
+        sources: undefined,
+      });
+    } else {
+      transcript.appendUser(userMsg);
+      transcript.appendAssistant({ role: "assistant", content: "" });
+    }
     setConvState("streaming");
 
     // Achievement triggers
     void checkAndUnlock("ai_chat");
-    if (images && images.length > 0) void checkAndUnlock("screenshot_ai");
+    if (userMsg.images && userMsg.images.length > 0) void checkAndUnlock("screenshot_ai");
 
     // TTS buffering state
     const isVoice = !!ttsSession;
@@ -90,7 +101,7 @@ export function useChatSend(opts: {
         const ctxRes = await fetch(`${PISTATION_API}/ai/context`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question: text }),
+          body: JSON.stringify({ question: userMsg.content }),
           signal: AbortSignal.timeout(3000),
         });
         if (ctxRes.ok) {
@@ -116,7 +127,7 @@ export function useChatSend(opts: {
           const groundRes = await fetch(`${PISTATION_API}/ai/ground`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ question: text, history: hist, mode: webMode }),
+            body: JSON.stringify({ question: userMsg.content, history: hist, mode: webMode }),
             signal: AbortSignal.timeout(30000),
           });
           if (groundRes.ok) {
@@ -141,6 +152,7 @@ export function useChatSend(opts: {
           });
           setConvState("error");
           setLastError("Web grounding unavailable");
+          recoverAfterTurn();
           processingRef.current = false;
           return;
         }
@@ -210,6 +222,8 @@ export function useChatSend(opts: {
       // Wait for TTS to finish
       if (ttsSession) {
         ttsSession.finish().catch(() => {});
+      } else {
+        onAssistantTurnRecovered?.();
       }
 
       setConvState("idle");
@@ -223,19 +237,56 @@ export function useChatSend(opts: {
         setConvState("error");
         setLastError(errorMsg);
       }
-      if (ttsSession) {
-        ttsSession.cancel();
-      }
+      recoverAfterTurn();
     } finally {
       processingRef.current = false;
       abortRef.current = null;
     }
-  }, [composer, convState, nvidiaOnline, model, transcript, webMode, ttsSession]);
+  }, [
+    composer,
+    convState,
+    model,
+    nvidiaOnline,
+    onAssistantTurnRecovered,
+    recoverAfterTurn,
+    transcript,
+    ttsSession,
+    webMode,
+  ]);
+
+  const sendMessage = useCallback(async (directText?: string) => {
+    let text = (directText ?? composer.input).trim();
+    // Append file contents as context
+    if (composer.pendingFiles.length > 0 && !directText) {
+      const fileContext = composer.pendingFiles.map(f => `[File: ${f.name}]\n${f.content}`).join("\n\n");
+      text = text ? `${text}\n\n${fileContext}` : fileContext;
+    }
+    const images = !directText && composer.pendingImages.length > 0 ? [...composer.pendingImages] : undefined;
+    if (!text && (!images || images.length === 0)) return;
+    if (!text) text = "What's in this image?";
+
+    const userMsg: Message = {
+      role: "user",
+      content: text,
+      images: images && images.length > 0 ? images : undefined,
+    };
+
+    await runAssistantTurn([...transcript.messages], userMsg, {
+      clearComposer: !directText,
+    });
+  }, [composer, runAssistantTurn, transcript.messages]);
+
+  const retryLastMessage = useCallback(async () => {
+    if (!lastTurnRef.current) return;
+    await runAssistantTurn(lastTurnRef.current.previousMessages, lastTurnRef.current.userMsg, {
+      reuseLastAssistant: true,
+    });
+  }, [runAssistantTurn]);
 
   const cancelStream = useCallback(() => {
     abortRef.current?.abort();
     abortRef.current = null;
   }, []);
 
-  return { convState, lastError, sendMessage, cancelStream };
+  return { convState, lastError, sendMessage, retryLastMessage, cancelStream };
 }

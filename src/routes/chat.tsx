@@ -47,11 +47,8 @@ export default function Chat() {
 
   // Create TTS session when voice mode is active
   const ttsSession = useMemo(() => {
-    if (voice.voiceState !== "idle" && voice.voiceEnabled) {
-      return voice.createTTSSession();
-    }
-    return null;
-  }, [voice.voiceState, voice.voiceEnabled, voice.createTTSSession]);
+    return voice.createTTSSession();
+  }, [voice.createTTSSession]);
 
   // Send hook
   const send = useChatSend({
@@ -61,6 +58,7 @@ export default function Chat() {
     webMode,
     nvidiaOnline: health.nvidiaOnline,
     ttsSession,
+    onAssistantTurnRecovered: voice.recoverAfterAssistantTurn,
   });
 
   // Keep ref in sync
@@ -101,7 +99,7 @@ export default function Chat() {
     };
   }, [overlay, voice.activationMode, voice.voiceState, voice.startRecording, voice.stopRecording]);
 
-  const voiceActive = voice.voiceState !== "idle";
+  const voiceActive = voice.voiceModeActive;
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden" style={{ background: "var(--bg-primary)" }}>
@@ -145,7 +143,7 @@ export default function Chat() {
         lastError={send.lastError}
         selectedModel={selectedModel}
         onQuickAction={(prompt) => send.sendMessage(prompt)}
-        onRetry={() => send.sendMessage()}
+        onRetry={send.retryLastMessage}
       />
 
       {/* Voice status bar */}
@@ -168,6 +166,7 @@ export default function Chat() {
         hasContent={composer.hasContent}
         convState={send.convState}
         voiceState={voice.voiceState}
+        voiceModeActive={voice.voiceModeActive}
         kokoroOnline={health.kokoroOnline}
         activationMode={voice.activationMode}
         onSend={() => send.sendMessage()}
