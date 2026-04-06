@@ -77,9 +77,9 @@ export function ChatMessage({ msg, isLast, streaming, selectedModel }: ChatMessa
         {!isUser && msg.content && (
           <button
             onClick={handleCopy}
-            className="mt-1 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+            className="mt-1 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
             style={{ color: "var(--text-muted)" }}
-            title="Copy message"
+            aria-label="Copy message"
           >
             {copied ? <Check size={14} /> : <Copy size={14} />}
           </button>
@@ -90,7 +90,7 @@ export function ChatMessage({ msg, isLast, streaming, selectedModel }: ChatMessa
           <div className="mt-1.5 flex flex-col items-start gap-1">
             <span
               className="text-[10px] font-medium flex items-center gap-1 px-2 py-0.5 rounded-md"
-              style={{ background: "rgba(34,197,94,0.1)", color: "var(--success)", border: "1px solid rgba(34,197,94,0.2)" }}
+              style={{ background: "color-mix(in srgb, var(--success) 10%, transparent)", color: "var(--success)", border: "1px solid color-mix(in srgb, var(--success) 20%, transparent)" }}
             >
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="20 6 9 17 4 12" />
@@ -106,7 +106,7 @@ export function ChatMessage({ msg, isLast, streaming, selectedModel }: ChatMessa
                   {msg.sources.map((src) => (
                     <a
                       key={src.id}
-                      href={src.url}
+                      href={/^https?:\/\//.test(src.url) ? src.url : "#"}
                       target="_blank"
                       rel="noreferrer"
                       className="p-1.5 rounded transition-colors block hover:opacity-80"

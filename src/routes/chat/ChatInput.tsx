@@ -1,6 +1,7 @@
 import { useRef, useCallback } from "react";
 import { Paperclip, ArrowUp, Mic, X, Square } from "lucide-react";
 import type { ConvState, VoiceState } from "./constants";
+import type { ActivationMode } from "./useChatVoice";
 
 interface ChatInputProps {
   input: string;
@@ -13,9 +14,13 @@ interface ChatInputProps {
   convState: ConvState;
   voiceState: VoiceState;
   kokoroOnline: boolean;
+  activationMode: ActivationMode;
   onSend: () => void;
   onCancelStream: () => void;
-  onToggleListening: () => void;
+  onStartVoiceMode: () => void;
+  onStopVoiceMode: () => void;
+  onStartRecording: (source: "keyboard" | "pointer") => void;
+  onStopRecording: (source: "keyboard" | "pointer") => void;
   onAddImages: (files: FileList) => void;
   onAddFiles: (files: FileList) => void;
 }
@@ -25,7 +30,10 @@ export function ChatInput({
   pendingImages, pendingFiles,
   removePendingImage, removePendingFile,
   hasContent, convState, voiceState, kokoroOnline,
-  onSend, onCancelStream, onToggleListening,
+  activationMode,
+  onSend, onCancelStream,
+  onStartVoiceMode, onStopVoiceMode,
+  onStartRecording, onStopRecording,
   onAddImages, onAddFiles,
 }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -33,10 +41,10 @@ export function ChatInput({
 
   const streaming = convState === "streaming";
   const listening = voiceState === "listening" || voiceState === "processing" || voiceState === "speaking";
+  const isPTT = activationMode === "push_to_talk";
 
   const handleInput = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
-    // Auto-grow
     const el = e.target;
     el.style.height = "auto";
     el.style.height = Math.min(el.scrollHeight, 160) + "px";
@@ -71,8 +79,33 @@ export function ChatInput({
     e.target.value = "";
   }, [onAddImages, onAddFiles]);
 
+  // Mic button click for continuous modes, pointer events for PTT
+  const handleMicClick = useCallback(() => {
+    if (isPTT) return; // PTT uses pointer events, not click
+    if (listening) {
+      onStopVoiceMode();
+    } else {
+      onStartVoiceMode();
+    }
+  }, [isPTT, listening, onStartVoiceMode, onStopVoiceMode]);
+
+  const handleMicPointerDown = useCallback((e: React.PointerEvent) => {
+    if (!isPTT) return;
+    e.preventDefault();
+    onStartRecording("pointer");
+  }, [isPTT, onStartRecording]);
+
+  const handleMicPointerUp = useCallback(() => {
+    if (!isPTT) return;
+    onStopRecording("pointer");
+  }, [isPTT, onStopRecording]);
+
+  const micTitle = isPTT
+    ? "Hold to record"
+    : listening ? "Stop listening" : "Start voice";
+
   return (
-    <div className="shrink-0 pb-4 pt-2 px-4" style={{ background: "var(--bg-primary)" }}>
+    <div className="shrink-0 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2 px-4" style={{ background: "var(--bg-primary)" }}>
       <div className="max-w-3xl mx-auto">
         {/* Pending attachments */}
         {(pendingImages.length > 0 || pendingFiles.length > 0) && (
@@ -87,10 +120,11 @@ export function ChatInput({
                 />
                 <button
                   onClick={() => removePendingImage(i)}
-                  className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center"
+                  className="absolute -top-2 -right-2 w-8 h-8 rounded-full flex items-center justify-center"
                   style={{ background: "var(--danger)", color: "#fff" }}
+                  aria-label="Remove image"
                 >
-                  <X size={10} />
+                  <X size={12} />
                 </button>
               </div>
             ))}
@@ -101,7 +135,12 @@ export function ChatInput({
                 style={{ background: "var(--surface-2)", color: "var(--text-secondary)" }}
               >
                 {f.name.length > 20 ? f.name.slice(0, 17) + "..." : f.name}
-                <button onClick={() => removePendingFile(i)} style={{ color: "var(--danger)" }}>
+                <button
+                  onClick={() => removePendingFile(i)}
+                  className="w-8 h-8 flex items-center justify-center"
+                  style={{ color: "var(--danger)" }}
+                  aria-label="Remove file"
+                >
                   <X size={12} />
                 </button>
               </div>
@@ -119,7 +158,7 @@ export function ChatInput({
             onClick={() => fileInputRef.current?.click()}
             className="p-2 rounded-xl shrink-0 transition-colors hover:opacity-80"
             style={{ color: "var(--text-muted)" }}
-            title="Attach files"
+            aria-label="Attach files"
           >
             <Paperclip size={18} />
           </button>
@@ -147,7 +186,7 @@ export function ChatInput({
               onClick={onCancelStream}
               className="p-2 rounded-xl shrink-0 transition-colors hover:opacity-80"
               style={{ background: "var(--surface-3)", color: "var(--text-primary)" }}
-              title="Stop generating"
+              aria-label="Stop generating"
             >
               <Square size={16} />
             </button>
@@ -156,19 +195,24 @@ export function ChatInput({
               onClick={onSend}
               className="p-2 rounded-xl shrink-0 transition-colors hover:opacity-90"
               style={{ background: "var(--accent-primary)", color: "#fff" }}
-              title="Send message"
+              aria-label="Send message"
             >
               <ArrowUp size={16} />
             </button>
           ) : kokoroOnline ? (
             <button
-              onClick={onToggleListening}
+              onClick={isPTT ? undefined : handleMicClick}
+              onPointerDown={isPTT ? handleMicPointerDown : undefined}
+              onPointerUp={isPTT ? handleMicPointerUp : undefined}
+              onPointerCancel={isPTT ? handleMicPointerUp : undefined}
+              onPointerLeave={isPTT ? handleMicPointerUp : undefined}
               className={`p-2 rounded-xl shrink-0 transition-colors hover:opacity-80 ${listening ? "animate-pulse" : ""}`}
               style={{
                 background: listening ? "var(--danger)" : "var(--surface-3)",
                 color: listening ? "#fff" : "var(--text-muted)",
+                touchAction: "none",
               }}
-              title={listening ? "Stop listening" : "Start voice"}
+              aria-label={micTitle}
             >
               <Mic size={16} />
             </button>
@@ -178,6 +222,7 @@ export function ChatInput({
               className="p-2 rounded-xl shrink-0 opacity-40"
               style={{ background: "var(--surface-3)", color: "var(--text-muted)" }}
               disabled
+              aria-label="Send message"
             >
               <ArrowUp size={16} />
             </button>

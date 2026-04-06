@@ -1,11 +1,13 @@
 import type { VoiceState } from "./constants";
+import type { ActivationMode } from "./useChatVoice";
 
 interface ChatVoiceBarProps {
   voiceState: VoiceState;
+  activationMode: ActivationMode;
   onStop: () => void;
 }
 
-const STATUS_TEXT: Record<VoiceState, string> = {
+const CONTINUOUS_TEXT: Record<VoiceState, string> = {
   idle: "",
   listening: "Listening...",
   processing: "AI is thinking...",
@@ -13,9 +15,18 @@ const STATUS_TEXT: Record<VoiceState, string> = {
   error: "Voice error",
 };
 
-export function ChatVoiceBar({ voiceState, onStop }: ChatVoiceBarProps) {
+const PTT_TEXT: Record<VoiceState, string> = {
+  idle: "",
+  listening: "Recording...",
+  processing: "Processing...",
+  speaking: "Speaking...",
+  error: "Voice error",
+};
+
+export function ChatVoiceBar({ voiceState, activationMode, onStop }: ChatVoiceBarProps) {
   if (voiceState === "idle") return null;
 
+  const statusMap = activationMode === "push_to_talk" ? PTT_TEXT : CONTINUOUS_TEXT;
   const barColor = voiceState === "processing" ? "var(--accent-cyan)" : "var(--accent-primary)";
 
   return (
@@ -38,14 +49,15 @@ export function ChatVoiceBar({ voiceState, onStop }: ChatVoiceBarProps) {
             />
           ))}
         </div>
-        <span className="text-sm" style={{ color: "var(--text-secondary)" }}>
-          {STATUS_TEXT[voiceState]}
+        <span className="text-sm" style={{ color: "var(--text-secondary)" }} aria-live="polite">
+          {statusMap[voiceState]}
         </span>
       </div>
       <button
         onClick={onStop}
         className="px-3 py-1 rounded-lg text-xs font-medium transition-colors hover:opacity-80"
         style={{ background: "var(--surface-2)", color: "var(--text-secondary)" }}
+        aria-label="Stop voice"
       >
         Stop
       </button>

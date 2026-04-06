@@ -2,6 +2,7 @@
 Application configuration loaded from environment variables / .env file.
 """
 
+import os
 from pydantic_settings import BaseSettings
 from functools import lru_cache
 
@@ -11,7 +12,7 @@ class Settings(BaseSettings):
     db_host: str = "127.0.0.1"
     db_port: int = 3306
     db_user: str = "pistation_app"
-    db_password: str = "NEWPASS"
+    db_password: str = os.getenv("PISTATION_DB_PASSWORD", "")
     db_name: str = "pistation"
     db_charset: str = "utf8mb4"
     db_pool_size: int = 5
@@ -26,7 +27,7 @@ class Settings(BaseSettings):
     nvidia_model: str = "stepfun-ai/step-3.5-flash"
     web_search_mode: str = "auto"  # auto, always, never
     searxng_url: str = ""
-    tavily_api_key: str = "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"
+    tavily_api_key: str = os.getenv("TAVILY_API_KEY", "")
     search_top_k: int = 5
     fetch_top_k: int = 3
     request_timeout_seconds: int = 10

@@ -1,8 +1,10 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { KOKORO_BASE, STT_BASE } from "./constants";
 import type { VoiceState } from "./constants";
 import type { TTSSession } from "./useChatSend";
 import { checkAndUnlock } from "../../lib/achievements";
+
+export type ActivationMode = "auto_near_field" | "headset" | "push_to_talk";
 
 type ExtendedAudioConstraints = MediaTrackConstraints & {
   voiceIsolation?: boolean;
@@ -58,7 +60,7 @@ export function useChatVoice(opts: {
 
   // Settings
   const [voiceEnabled, setVoiceEnabled] = useState(true);
-  const [activationMode, setActivationMode] = useState<"auto_near_field" | "headset" | "push_to_talk">("auto_near_field");
+  const [activationMode, setActivationMode] = useState<ActivationMode>("auto_near_field");
   const [noiseSuppressionEnabled, setNoiseSuppressionEnabled] = useState(true);
   const [echoCancellationEnabled, setEchoCancellationEnabled] = useState(true);
   const [agcEnabled, setAgcEnabled] = useState(true);
@@ -69,6 +71,14 @@ export function useChatVoice(opts: {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const startRecRef = useRef<() => void>(() => {});
+  const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const retryCountRef = useRef(0);
+  const pttSourceRef = useRef<"keyboard" | "pointer" | null>(null);
+  const activationModeRef = useRef<ActivationMode>(activationMode);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+
+  // Keep refs in sync with state
+  activationModeRef.current = activationMode;
 
   // STT
   const transcribeChunk = useCallback(async (blob: Blob): Promise<string> => {
@@ -81,9 +91,10 @@ export function useChatVoice(opts: {
     return (data.text || "").trim();
   }, []);
 
-  // Start recording a single utterance, transcribe, send, loop
+  // Core recording loop — handles both continuous (near-field/headset) and PTT modes
   const startListeningLoop = useCallback(async () => {
     if (!voiceModeRef.current) return;
+    retryCountRef.current = 0;
 
     try {
       // Get mic stream (reuse if already open)
@@ -95,6 +106,14 @@ export function useChatVoice(opts: {
         mediaStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: baseConstraints, video: false });
       }
 
+      // Bail if cancelled during getUserMedia (e.g., PTT release during permission dialog)
+      if (!voiceModeRef.current) {
+        mediaStreamRef.current?.getTracks().forEach(t => t.stop());
+        mediaStreamRef.current = null;
+        setVoiceState("idle");
+        return;
+      }
+
       // Verify the stream is still active
       if (!mediaStreamRef.current.active || mediaStreamRef.current.getAudioTracks().every(t => t.readyState === "ended")) {
         const baseConstraints = buildVoiceCaptureConstraints();
@@ -104,8 +123,11 @@ export function useChatVoice(opts: {
         mediaStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: baseConstraints, video: false });
       }
 
-      // AudioContext for silence detection
-      const audioCtx = new AudioContext();
+      // AudioContext for silence detection — reuse across recordings
+      if (!audioCtxRef.current || audioCtxRef.current.state === "closed") {
+        audioCtxRef.current = new AudioContext();
+      }
+      const audioCtx = audioCtxRef.current;
       const source = audioCtx.createMediaStreamSource(mediaStreamRef.current);
       const analyser = audioCtx.createAnalyser();
       analyser.fftSize = 512;
@@ -125,12 +147,14 @@ export function useChatVoice(opts: {
       const { blob: audioBlob } = await new Promise<{ blob: Blob; peakEnergy: number }>((resolve) => {
         let _peakEnergy = 0;
         recorder.onstop = () => {
-          audioCtx.close();
+          source.disconnect();
+          analyser.disconnect();
           const blob = new Blob(chunks, { type: mimeType || "audio/webm" });
           resolve({ blob, peakEnergy: _peakEnergy });
         };
         recorder.onerror = () => {
-          audioCtx.close();
+          source.disconnect();
+          analyser.disconnect();
           resolve({ blob: new Blob([], { type: "audio/webm" }), peakEnergy: 0 });
         };
         recorder.start(250);
@@ -141,9 +165,10 @@ export function useChatVoice(opts: {
         let consecutiveSilenceMs = 0;
         let noiseFloor = 10;
 
+        const isPTT = activationModeRef.current === "push_to_talk";
         const SILENCE_DURATION = 1500;
-        const MIN_SPEECH_DURATION = activationMode === "headset" ? 300 : 500;
-        const TARGET_SNR_MARGIN = activationMode === "headset" ? 1.4 : 2.5;
+        const MIN_SPEECH_DURATION = isPTT ? 1500 : (activationModeRef.current === "headset" ? 300 : 500);
+        const TARGET_SNR_MARGIN = activationModeRef.current === "headset" ? 1.4 : 2.5;
         const MIN_ABSOLUTE_ENERGY = 15;
         const MAX_DURATION = 30000;
 
@@ -152,7 +177,10 @@ export function useChatVoice(opts: {
 
         const checkSilence = () => {
           if (recorder.state !== "recording") return;
-          if (!voiceModeRef.current) { recorder.stop(); return; }
+          if (!voiceModeRef.current) {
+            if (recorder.state === "recording") recorder.stop();
+            return;
+          }
           const now = Date.now();
           const pNow = performance.now();
           const dt = pNow - lastFrameTime;
@@ -210,72 +238,205 @@ export function useChatVoice(opts: {
         requestAnimationFrame(checkSilence);
       });
 
-      if (!voiceModeRef.current) return;
+      // After recording stops, check if we should still process
+      if (!voiceModeRef.current && activationModeRef.current !== "push_to_talk") {
+        return;
+      }
 
       // Pre-STT size rejection
-      const MIN_BYTES = activationMode === "headset" ? 2000 : 4000;
+      const isPTTNow = activationModeRef.current === "push_to_talk";
+      const MIN_BYTES = isPTTNow ? 2000 : (activationModeRef.current === "headset" ? 2000 : 4000);
       if (audioBlob.size < MIN_BYTES) {
-        if (voiceModeRef.current && !ttsPlayingRef.current) startRecRef.current();
+        if (isPTTNow) {
+          voiceModeRef.current = false;
+          pttSourceRef.current = null;
+          setVoiceState("idle");
+        } else if (voiceModeRef.current && !ttsPlayingRef.current) {
+          startRecRef.current();
+        }
         return;
       }
 
       setVoiceState("processing");
       const transcript = await transcribeChunk(audioBlob);
 
-      if (!transcript || !voiceModeRef.current) {
-        setVoiceState("listening");
-        if (voiceModeRef.current && !ttsPlayingRef.current) startRecRef.current();
+      if (!transcript) {
+        if (isPTTNow || !voiceModeRef.current) {
+          voiceModeRef.current = false;
+          pttSourceRef.current = null;
+          setVoiceState("idle");
+        } else {
+          setVoiceState("listening");
+          if (voiceModeRef.current && !ttsPlayingRef.current) startRecRef.current();
+        }
         return;
       }
 
-      // Post-STT quality validation
-      const words = transcript.trim().split(/\s+/);
-      const isTooShort = words.length < 2 && transcript.length < 5;
-      const validShortWords = ["yes", "no", "stop", "pause", "play", "skip"];
-      const isAllowedShort = validShortWords.includes(transcript.toLowerCase().replace(/[^a-z]/g, ""));
+      // Post-STT quality validation (skip for PTT — user explicitly spoke)
+      if (!isPTTNow) {
+        const words = transcript.trim().split(/\s+/);
+        const isTooShort = words.length < 2 && transcript.length < 5;
+        const validShortWords = ["yes", "no", "stop", "pause", "play", "skip"];
+        const isAllowedShort = validShortWords.includes(transcript.toLowerCase().replace(/[^a-z]/g, ""));
 
-      if (isTooShort && !isAllowedShort && activationMode !== "headset") {
-        setVoiceState("listening");
-        if (voiceModeRef.current && !ttsPlayingRef.current) startRecRef.current();
-        return;
+        if (isTooShort && !isAllowedShort && activationModeRef.current !== "headset") {
+          setVoiceState("listening");
+          if (voiceModeRef.current && !ttsPlayingRef.current) startRecRef.current();
+          return;
+        }
       }
 
       onTranscript(transcript);
+
+      // For PTT, clean up after sending
+      if (isPTTNow) {
+        voiceModeRef.current = false;
+        pttSourceRef.current = null;
+        if (mediaStreamRef.current) {
+          mediaStreamRef.current.getTracks().forEach(t => t.stop());
+          mediaStreamRef.current = null;
+        }
+        setVoiceState("idle");
+      }
     } catch (err) {
       console.error("[VOICE] Pipeline error:", err);
+
+      const name = err instanceof DOMException ? err.name : "";
+      const isFatal =
+        name === "NotFoundError" ||
+        name === "NotAllowedError" ||
+        name === "NotReadableError";
+
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
+
+      mediaRecorderRef.current = null;
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach(track => track.stop());
+        mediaStreamRef.current = null;
+      }
+
       setVoiceState("error");
-      setVoiceError("Voice pipeline error. Check microphone permissions.");
-      if (voiceModeRef.current) {
-        setTimeout(() => startRecRef.current(), 1000);
+
+      if (isFatal) {
+        voiceModeRef.current = false;
+        retryCountRef.current = 0;
+        pttSourceRef.current = null;
+        setVoiceError(
+          name === "NotFoundError"
+            ? "No microphone found. Connect a mic and try again."
+            : name === "NotAllowedError"
+            ? "Microphone access denied. Allow mic access in browser settings."
+            : "Microphone is busy or unavailable. Close other apps using it and try again."
+        );
+        return;
+      }
+
+      if (voiceModeRef.current && retryCountRef.current < 1) {
+        retryCountRef.current += 1;
+        setVoiceError("Voice pipeline error. Retrying...");
+        retryTimeoutRef.current = setTimeout(() => {
+          startRecRef.current();
+        }, 1000);
+      } else {
+        voiceModeRef.current = false;
+        retryCountRef.current = 0;
+        pttSourceRef.current = null;
+        setVoiceError("Voice pipeline error. Please try again.");
       }
     }
-  }, [transcribeChunk, activationMode, noiseSuppressionEnabled, agcEnabled, echoCancellationEnabled, onTranscript]);
+  }, [transcribeChunk, noiseSuppressionEnabled, agcEnabled, echoCancellationEnabled, onTranscript]);
 
   // Keep ref in sync
   startRecRef.current = startListeningLoop;
 
-  const toggleListening = useCallback(() => {
-    if (voiceModeRef.current) {
-      // Stop voice mode
-      voiceModeRef.current = false;
-      setVoiceState("idle");
-      setVoiceError(null);
-      mediaRecorderRef.current?.stop();
-      mediaRecorderRef.current = null;
-      mediaStreamRef.current?.getTracks().forEach(t => t.stop());
+  // --- Voice mode controls ---
+
+  const startVoiceMode = useCallback(() => {
+    if (voiceModeRef.current) return;
+    voiceModeRef.current = true;
+    pttSourceRef.current = null;
+    setVoiceState("listening");
+    setVoiceError(null);
+    void checkAndUnlock("voice_mode");
+    startRecRef.current();
+  }, []);
+
+  const stopVoiceMode = useCallback(() => {
+    voiceModeRef.current = false;
+    pttSourceRef.current = null;
+    setVoiceState("idle");
+    setVoiceError(null);
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current);
+      retryTimeoutRef.current = null;
+    }
+    retryCountRef.current = 0;
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+      mediaRecorderRef.current.stop();
+    }
+    mediaRecorderRef.current = null;
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach(t => t.stop());
       mediaStreamRef.current = null;
-    } else {
-      // Start voice mode
-      voiceModeRef.current = true;
-      setVoiceState("listening");
-      void checkAndUnlock("voice_mode");
-      startRecRef.current();
+    }
+    if (audioCtxRef.current && audioCtxRef.current.state !== "closed") {
+      audioCtxRef.current.close();
+      audioCtxRef.current = null;
+    }
+  }, []);
+
+  const startRecording = useCallback((source: "keyboard" | "pointer") => {
+    if (voiceModeRef.current) return;
+    if (voiceState !== "idle" && voiceState !== "error") return;
+    pttSourceRef.current = source;
+    voiceModeRef.current = true;
+    setVoiceState("listening");
+    setVoiceError(null);
+    void checkAndUnlock("voice_mode");
+    startRecRef.current();
+  }, [voiceState]);
+
+  const stopRecording = useCallback((source: "keyboard" | "pointer") => {
+    if (pttSourceRef.current !== source) return;
+    voiceModeRef.current = false;
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+      mediaRecorderRef.current.stop();
     }
   }, []);
 
   const dismissError = useCallback(() => {
     setVoiceState("idle");
     setVoiceError(null);
+  }, []);
+
+  // Unmount cleanup
+  useEffect(() => {
+    return () => {
+      voiceModeRef.current = false;
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
+      retryCountRef.current = 0;
+      pttSourceRef.current = null;
+      if (mediaRecorderRef.current) {
+        if (mediaRecorderRef.current.state === "recording") {
+          mediaRecorderRef.current.stop();
+        }
+        mediaRecorderRef.current = null;
+      }
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach(t => t.stop());
+        mediaStreamRef.current = null;
+      }
+      if (audioCtxRef.current && audioCtxRef.current.state !== "closed") {
+        audioCtxRef.current.close();
+        audioCtxRef.current = null;
+      }
+    };
   }, []);
 
   // TTS Session Factory
@@ -304,9 +465,9 @@ export function useChatVoice(opts: {
 
     const playAudio = (audio: HTMLAudioElement): Promise<void> => {
       return new Promise<void>(resolve => {
-        audio.onended = () => resolve();
-        audio.onerror = () => resolve();
-        audio.play().catch(() => resolve());
+        audio.onended = () => { URL.revokeObjectURL(audio.src); resolve(); };
+        audio.onerror = () => { URL.revokeObjectURL(audio.src); resolve(); };
+        audio.play().catch(() => { URL.revokeObjectURL(audio.src); resolve(); });
       });
     };
 
@@ -327,9 +488,11 @@ export function useChatVoice(opts: {
         await playChain.catch(() => {});
         ttsPlayingRef.current = false;
         muteMic(false);
-        setVoiceState("listening");
         if (voiceModeRef.current) {
+          setVoiceState("listening");
           startRecRef.current();
+        } else {
+          setVoiceState("idle");
         }
       },
       cancel() {
@@ -338,6 +501,8 @@ export function useChatVoice(opts: {
         if (voiceModeRef.current) {
           setVoiceState("listening");
           startRecRef.current();
+        } else {
+          setVoiceState("idle");
         }
       },
       isPlaying() {
@@ -349,7 +514,10 @@ export function useChatVoice(opts: {
   return {
     voiceState,
     voiceError,
-    toggleListening,
+    startVoiceMode,
+    stopVoiceMode,
+    startRecording,
+    stopRecording,
     dismissError,
     voiceEnabled, setVoiceEnabled,
     activationMode, setActivationMode,
@@ -357,7 +525,6 @@ export function useChatVoice(opts: {
     echoCancellationEnabled, setEchoCancellationEnabled,
     agcEnabled, setAgcEnabled,
     createTTSSession,
-    // Expose ref for external coordination
     voiceModeRef,
   };
 }

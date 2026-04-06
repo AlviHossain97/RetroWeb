@@ -175,8 +175,16 @@
   --text-muted: #777777;
   --accent-primary: #cc0000;
   --accent-secondary: #ff4444;
+  --accent-glow: rgba(204,0,0,0.3);
   --border-soft: rgba(0,0,0,0.08);
   --border-strong: rgba(0,0,0,0.18);
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.15);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.2);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.25);
+  --shadow-glow: 0 0 20px var(--accent-glow);
 }
 
 /* ── Theme: Game Boy ── */
@@ -205,8 +213,16 @@
   --text-muted: #306230;
   --accent-primary: #306230;
   --accent-secondary: #0f380f;
+  --accent-glow: rgba(48,98,48,0.3);
   --border-soft: rgba(15,56,15,0.12);
   --border-strong: rgba(15,56,15,0.25);
+  --success: #1a6b1a;
+  --warning: #8b6b00;
+  --danger: #8b2020;
+  --shadow-sm: 0 1px 3px rgba(15,56,15,0.15);
+  --shadow-md: 0 4px 16px rgba(15,56,15,0.2);
+  --shadow-lg: 0 8px 32px rgba(15,56,15,0.25);
+  --shadow-glow: 0 0 20px var(--accent-glow);
 }
 
 /* ── Theme: SNES Purple ── */
@@ -238,6 +254,13 @@
   --accent-glow: rgba(139,92,246,0.4);
   --border-soft: rgba(139,92,246,0.08);
   --border-strong: rgba(139,92,246,0.2);
+  --success: #4ade80;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.5);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.6);
+  --shadow-glow: 0 0 20px var(--accent-glow);
 }
 
 /* ── Theme: Terminal Green ── */
@@ -269,6 +292,13 @@
   --accent-glow: rgba(0,255,0,0.3);
   --border-soft: rgba(0,255,0,0.08);
   --border-strong: rgba(0,255,0,0.2);
+  --success: #00ff00;
+  --warning: #ffff00;
+  --danger: #ff4444;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.5);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.6);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.7);
+  --shadow-glow: 0 0 20px var(--accent-glow);
 }
 
 @layer base {

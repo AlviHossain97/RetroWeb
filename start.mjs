@@ -1,4 +1,4 @@
-import { spawn } from "child_process";
+import { spawn, execSync } from "child_process";
 import { resolve, dirname, join } from "path";
 import { fileURLToPath } from "url";
 import { existsSync } from "fs";
@@ -73,8 +73,6 @@ try {
   }
 }
 
-import { execSync } from "child_process";
-
 // 1. FastAPI backend
 startService("FastAPI", python3, [
   "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000",
@@ -100,19 +98,33 @@ try {
   startService("Sunshine", "sunshine", []);
 }
 
+// 6. Dashboard stream for Pi kiosk display (Xvfb + Brave + FFmpeg → UDP)
+// Set PI_IP env var to enable, e.g.: PI_IP=192.168.1.100 npm start
+const piIp = process.env.PI_IP;
+if (piIp) {
+  const dashStreamScript = resolve(__dirname, "scripts", "dashboard-stream.sh");
+  startService("DashStream", "bash", [dashStreamScript], {
+    env: { PI_IP: piIp },
+  });
+} else {
+  console.log("[DashStream] Skipped — set PI_IP env var to enable (e.g. PI_IP=192.168.1.100)");
+}
+
 console.log(`
   ┌──────────────────────────────────────────────────┐
   │             PiStation — All Services             │
   ├──────────────────────────────────────────────────┤
-  │  XAMPP     → http://localhost/phpmyadmin         │
-  │  Vite     → http://localhost:5173               │
-  │  FastAPI  → http://localhost:8000               │
-  │  NVIDIA   → integrate.api.nvidia.com (LLM)     │
-  │  Kokoro   → http://localhost:8787  (TTS)        │
-  │  Parakeet → http://localhost:8786  (STT)        │
-  │  Sunshine → https://localhost:47990 (stream)    │
+  │  XAMPP      → http://localhost/phpmyadmin        │
+  │  Vite      → http://localhost:5173              │
+  │  FastAPI   → http://localhost:8000              │
+  │  NVIDIA    → integrate.api.nvidia.com (LLM)    │
+  │  Kokoro    → http://localhost:8787  (TTS)       │
+  │  Parakeet  → http://localhost:8786  (STT)       │
+  │  Sunshine  → https://localhost:47990 (stream)   │
+  │  DashStream→ udp://${piIp || "<PI_IP>"}:5004 (kiosk)   │
   ├──────────────────────────────────────────────────┤
   │  Pi: launch "RetroWeb" → Moonlight connects     │
+  │  Pi: mpv udp://0.0.0.0:5004 --fs --no-cache    │
   │  Press Ctrl+C to stop all services.             │
   └──────────────────────────────────────────────────┘
 `);

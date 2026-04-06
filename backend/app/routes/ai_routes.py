@@ -1,6 +1,6 @@
 """AI context endpoint — enriches AI prompts with gaming data."""
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from app.db import get_conn
 from app.services import ai_tools_service
@@ -126,13 +126,19 @@ def _fetch_context() -> str:
 @router.post("/context")
 def get_ai_context(req: ContextRequest | None = None):
     """Returns gaming data context for AI system prompt enrichment."""
-    return {"context": _fetch_context()}
+    try:
+        return {"context": _fetch_context()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch AI context: {e}")
 
 
 @router.get("/context")
 def get_ai_context_get():
     """GET version for easy testing."""
-    return {"context": _fetch_context()}
+    try:
+        return {"context": _fetch_context()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch AI context: {e}")
 
 
 class GroundingRequest(BaseModel):
@@ -147,9 +153,14 @@ async def get_grounding_context(req: GroundingRequest):
     Accepts mode from the frontend UI toggle to override the server-side default.
     Returns structured grounding context with sources for the frontend to display.
     """
-    from app.services.grounding_service import prepare_grounded_context
-    print(f"[GROUND] /ai/ground hit — question={req.question!r}, mode={req.mode}")
-    result = await prepare_grounded_context(
-        req.question, req.history, mode_override=req.mode
-    )
-    return result
+    try:
+        from app.services.grounding_service import prepare_grounded_context
+        print(f"[GROUND] /ai/ground hit — question={req.question!r}, mode={req.mode}")
+        result = await prepare_grounded_context(
+            req.question, req.history, mode_override=req.mode
+        )
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Grounding pipeline error: {e}")
