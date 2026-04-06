@@ -107,23 +107,22 @@ export function ChatInput({
     : listening ? "Stop listening" : passiveReplySpeaking ? "Assistant is speaking" : "Start voice";
 
   return (
-    <div className="shrink-0 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2 px-4" style={{ background: "var(--bg-primary)" }}>
+    <div className="shrink-0 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2 px-4">
       <div className="max-w-3xl mx-auto">
-        {/* Pending attachments */}
         {(pendingImages.length > 0 || pendingFiles.length > 0) && (
           <div className="flex flex-wrap gap-2 mb-2">
             {pendingImages.map((img, i) => (
-              <div key={`img-${i}`} className="relative">
+              <div key={`img-${i}`} className="retro-list-item relative p-2">
                 <img
                   src={`data:image/png;base64,${img}`}
                   alt="pending"
                   className="w-16 h-16 rounded-lg object-cover"
-                  style={{ border: "1px solid var(--border-soft)" }}
+                  style={{ border: "2px solid var(--border-soft)" }}
                 />
                 <button
                   onClick={() => removePendingImage(i)}
-                  className="absolute -top-2 -right-2 w-8 h-8 rounded-full flex items-center justify-center"
-                  style={{ background: "var(--danger)", color: "#fff" }}
+                  className="retro-button retro-button--danger retro-icon-button absolute -top-2 -right-2 min-h-0"
+                  style={{ width: "2rem", minWidth: "2rem", height: "2rem", padding: 0 }}
                   aria-label="Remove image"
                 >
                   <X size={12} />
@@ -133,14 +132,14 @@ export function ChatInput({
             {pendingFiles.map((f, i) => (
               <div
                 key={`file-${i}`}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs"
-                style={{ background: "var(--surface-2)", color: "var(--text-secondary)" }}
+                className="retro-list-item flex items-center gap-1.5 px-3 py-2 text-xs"
+                style={{ color: "var(--text-secondary)" }}
               >
                 {f.name.length > 20 ? f.name.slice(0, 17) + "..." : f.name}
                 <button
                   onClick={() => removePendingFile(i)}
-                  className="w-8 h-8 flex items-center justify-center"
-                  style={{ color: "var(--danger)" }}
+                  className="retro-button retro-button--ghost retro-icon-button min-h-0"
+                  style={{ width: "2rem", minWidth: "2rem", height: "2rem", padding: 0, color: "var(--danger)" }}
                   aria-label="Remove file"
                 >
                   <X size={12} />
@@ -150,16 +149,12 @@ export function ChatInput({
           </div>
         )}
 
-        {/* Input row */}
         <div
-          className="flex items-end gap-2 rounded-2xl px-3 py-2"
-          style={{ background: "var(--surface-2)", border: "1px solid var(--border-soft)" }}
+          className="retro-input-shell flex items-end gap-2 rounded-[1.4rem] px-3 py-3"
         >
-          {/* Attachment button */}
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="p-2 rounded-xl shrink-0 transition-colors hover:opacity-80"
-            style={{ color: "var(--text-muted)" }}
+            className="retro-button retro-button--ghost retro-icon-button min-h-0 shrink-0 text-[0.56rem]"
             aria-label="Attach files"
           >
             <Paperclip size={18} />
@@ -175,19 +170,14 @@ export function ChatInput({
             onChange={handleInput}
             onKeyDown={handleKeyDown}
             disabled={streaming}
-            className="flex-1 bg-transparent resize-none outline-none text-sm py-1.5 placeholder:opacity-50"
-            style={{
-              color: "var(--text-primary)",
-              maxHeight: "160px",
-            }}
+            className="retro-textarea flex-1 resize-none text-sm py-2 px-1 placeholder:opacity-60"
+            style={{ maxHeight: "160px" }}
           />
 
-          {/* Send / Stop / Mic button */}
           {streaming ? (
             <button
               onClick={onCancelStream}
-              className="p-2 rounded-xl shrink-0 transition-colors hover:opacity-80"
-              style={{ background: "var(--surface-3)", color: "var(--text-primary)" }}
+              className="retro-button retro-button--danger retro-icon-button min-h-0 shrink-0 text-[0.56rem]"
               aria-label="Stop generating"
             >
               <Square size={16} />
@@ -195,8 +185,7 @@ export function ChatInput({
           ) : hasContent ? (
             <button
               onClick={onSend}
-              className="p-2 rounded-xl shrink-0 transition-colors hover:opacity-90"
-              style={{ background: "var(--accent-primary)", color: "#fff" }}
+              className="retro-button retro-icon-button min-h-0 shrink-0 text-[0.56rem]"
               aria-label="Send message"
             >
               <ArrowUp size={16} />
@@ -209,10 +198,8 @@ export function ChatInput({
               onPointerCancel={passiveReplySpeaking ? undefined : isPTT ? handleMicPointerUp : undefined}
               onPointerLeave={passiveReplySpeaking ? undefined : isPTT ? handleMicPointerUp : undefined}
               disabled={passiveReplySpeaking}
-              className={`p-2 rounded-xl shrink-0 transition-colors hover:opacity-80 ${listening ? "animate-pulse" : ""}`}
+              className={`retro-button ${listening ? "retro-button--danger animate-pulse" : "retro-button--ghost"} retro-icon-button min-h-0 shrink-0 text-[0.56rem]`}
               style={{
-                background: listening ? "var(--danger)" : "var(--surface-3)",
-                color: listening ? "#fff" : "var(--text-muted)",
                 touchAction: "none",
                 opacity: passiveReplySpeaking ? 0.5 : 1,
               }}
@@ -223,8 +210,7 @@ export function ChatInput({
           ) : (
             <button
               onClick={onSend}
-              className="p-2 rounded-xl shrink-0 opacity-40"
-              style={{ background: "var(--surface-3)", color: "var(--text-muted)" }}
+              className="retro-button retro-button--ghost retro-icon-button min-h-0 shrink-0 text-[0.56rem] opacity-40"
               disabled
               aria-label="Send message"
             >

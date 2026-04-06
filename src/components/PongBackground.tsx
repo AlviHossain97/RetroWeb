@@ -1,25 +1,31 @@
 /* From Uiverse.io by TemRevil — Pong animation, colour-matched, slowed */
 const PONG_CSS = `
 .pong-bg {
-  position: absolute;
+  position: fixed;
   inset: 0;
   display: flex;
   justify-content: center;
   align-items: center;
   pointer-events: none;
-  opacity: 0.15;
-  z-index: 0;
+  user-select: none;
+  opacity: 0.32;
+  z-index: 20;
+  mix-blend-mode: screen;
 }
 .pong-box {
-  width: 250px;
-  height: 100px;
+  width: min(30vw, 360px);
+  height: min(12vw, 145px);
+  min-width: 220px;
+  min-height: 90px;
   display: flex;
   justify-content: space-around;
   align-items: center;
   position: relative;
+  filter: drop-shadow(0 0 12px rgba(204, 0, 0, 0.25));
 }
 .pong-color {
   background-color: #a855f7;
+  box-shadow: 0 0 14px rgba(168, 85, 247, 0.45);
 }
 .pong-WH {
   width: 10px;
@@ -82,13 +88,36 @@ const PONG_CSS = `
   90% { top: 10%; left: 3%; }
   100% { top: 80%; left: 90%; }
 }
+
+@media (max-width: 768px) {
+  .pong-bg {
+    opacity: 0.24;
+  }
+
+  .pong-box {
+    width: min(72vw, 300px);
+    height: min(30vw, 120px);
+    min-width: 180px;
+    min-height: 72px;
+  }
+
+  .pong-WH {
+    width: 8px;
+    height: 54px;
+  }
+
+  .pong-ball {
+    width: 12px;
+    height: 12px;
+  }
+}
 `;
 
 export default function PongBackground() {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: PONG_CSS }} />
-      <div className="pong-bg">
+      <div className="pong-bg" aria-hidden="true">
         <div className="pong-box">
           <div className="pong-WH pong-color pong-l1" />
           <div className="pong-WH pong-color pong-l2" />

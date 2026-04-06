@@ -31,11 +31,10 @@ export function ChatVoiceBar({ voiceState, activationMode, onStop }: ChatVoiceBa
 
   return (
     <div
-      className="shrink-0 flex items-center justify-between px-4 py-2.5"
-      style={{ background: "var(--surface-1)", borderTop: "1px solid var(--border-soft)" }}
+      className="retro-chat-header shrink-0 flex items-center justify-between px-4 py-3"
+      style={{ borderTop: "3px solid rgba(204, 0, 0, 0.18)" }}
     >
       <div className="flex items-center gap-3">
-        {/* Animated bars */}
         <div className="flex items-end gap-0.5 h-4">
           {[0, 1, 2, 3, 4].map((i) => (
             <div
@@ -55,8 +54,7 @@ export function ChatVoiceBar({ voiceState, activationMode, onStop }: ChatVoiceBa
       </div>
       <button
         onClick={onStop}
-        className="px-3 py-1 rounded-lg text-xs font-medium transition-colors hover:opacity-80"
-        style={{ background: "var(--surface-2)", color: "var(--text-secondary)" }}
+        className="retro-button retro-button--ghost px-4 py-2 min-h-0 text-[0.56rem]"
         aria-label="Stop voice"
       >
         Stop

@@ -3,6 +3,7 @@ import { MessageCircle } from "lucide-react";
 import { ChatMessage } from "./ChatMessage";
 import { MODEL_ICONS, QUICK_ACTIONS } from "./constants";
 import type { Message, ConvState } from "./constants";
+import { RetroPiece } from "@/components/RetroPiece";
 
 interface ChatMessagesProps {
   messages: Message[];
@@ -44,29 +45,30 @@ export function ChatMessages({ messages, convState, lastError, selectedModel, on
     >
       <div className="max-w-3xl mx-auto px-4 py-6">
         {messages.length === 0 ? (
-          /* Empty state */
-          <div className="flex flex-col items-center justify-center pt-24 gap-5">
-            <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center overflow-hidden"
-              style={{ background: "var(--surface-2)", border: "1px solid var(--border-soft)" }}
-            >
+          <div className="flex flex-col items-center justify-center pt-20 gap-5 text-center">
+            <div className="retro-piece-frame">
               {modelInfo ? (
                 <img src={modelInfo.icon} alt="" className="w-10 h-10 object-contain" />
               ) : (
-                <MessageCircle size={28} style={{ color: "var(--accent-primary)" }} />
+                <MessageCircle size={28} style={{ color: "var(--accent-secondary)" }} />
               )}
             </div>
-            <div className="text-center">
-              <h2 className="text-xl font-bold mb-1" style={{ color: "var(--text-primary)" }}>PiStation AI</h2>
-              <p className="text-sm" style={{ color: "var(--text-muted)" }}>Ask me anything about your retro gaming world</p>
+            <div>
+              <span className="retro-kicker mb-4">
+                <RetroPiece size="sm" />
+                AI Copilot
+              </span>
+              <h2 className="retro-heading text-[1.8rem] mb-2">
+                <span className="retro-title-gradient">PiStation AI</span>
+              </h2>
+              <p className="retro-subtitle">Ask anything about your retro gaming world and I’ll surface stats, systems, and strategy.</p>
             </div>
             <div className="flex flex-wrap justify-center gap-2 mt-2">
               {QUICK_ACTIONS.map((action) => (
                 <button
                   key={action.label}
                   onClick={() => onQuickAction(action.prompt)}
-                  className="px-3 py-2 rounded-xl text-sm transition-all hover:scale-[1.02]"
-                  style={{ background: "var(--surface-2)", color: "var(--text-secondary)", border: "1px solid var(--border-soft)" }}
+                  className="retro-quick-action"
                 >
                   {action.icon} {action.label}
                 </button>
@@ -87,12 +89,11 @@ export function ChatMessages({ messages, convState, lastError, selectedModel, on
             ))}
             {/* Inline error with retry */}
             {convState === "error" && lastError && (
-              <div className="flex items-center gap-2 text-sm animate-[fadeSlideIn_0.2s_ease-out]">
+              <div className="flex items-center gap-3 text-sm animate-[fadeSlideIn_0.2s_ease-out]">
                 <span style={{ color: "var(--danger)" }}>{lastError}</span>
                 <button
                   onClick={onRetry}
-                  className="px-3 py-1 rounded-lg text-xs font-medium transition-colors hover:opacity-80"
-                  style={{ background: "var(--surface-2)", color: "var(--text-secondary)" }}
+                  className="retro-button retro-button--danger px-4 py-2 min-h-0 text-[0.56rem]"
                 >
                   Retry
                 </button>

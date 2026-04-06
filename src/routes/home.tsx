@@ -3,6 +3,7 @@ import { BarChart3, Gamepad2, Cpu, Clock, Activity, MessageCircle, Trophy, Setti
 import { useEffect, useState } from "react";
 import { getDashboardData } from "@/lib/api/dashboard";
 import type { Session, TopGame } from "@/lib/types/api";
+import { RetroPiece } from "@/components/RetroPiece";
 
 function formatPlaytime(seconds: number): string {
   if (!seconds || seconds <= 0) return "0m";
@@ -61,58 +62,104 @@ export default function Home() {
   const totalSessions = recentSessions.length;
 
   return (
-    <div className="flex-1 overflow-y-auto">
-      {/* Hero */}
-      <section className="relative flex flex-col items-center justify-center text-center px-6 py-16 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-purple-900/20 via-transparent to-transparent pointer-events-none" />
-        <h1 className="text-5xl md:text-6xl font-black tracking-tight mb-4 relative" style={{ color: "var(--text-primary)" }}>
-          <span className="bg-gradient-to-r from-red-500 via-purple-500 to-blue-500 bg-clip-text text-transparent">
-            PiStation
+    <div className="retro-page-shell flex-1 overflow-y-auto">
+      <section className="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.8fr)]">
+        <div className="retro-panel retro-panel--hero rounded-[1.8rem] p-7 md:p-10">
+          <span className="retro-kicker mb-6">
+            <RetroPiece size="sm" />
+            Retro Command Center
           </span>
-        </h1>
-        <p className="text-lg md:text-xl max-w-2xl mb-8 relative" style={{ color: "var(--text-muted)" }}>
-          Your retro gaming command center. Track sessions, analyze playtime, and monitor your PiStation devices — all in one place.
-        </p>
-        <div className="flex gap-3 relative">
-          <Link to="/dashboard" className="px-6 py-3 rounded-xl bg-gradient-to-r from-red-600 to-purple-600 text-white font-semibold hover:scale-105 transition-transform shadow-lg shadow-purple-500/25">
-            View Dashboard
-          </Link>
-          <Link to="/sessions" className="px-6 py-3 rounded-xl font-semibold hover:opacity-80 transition-colors" style={{ background: "var(--surface-2)", color: "var(--text-primary)", border: "1px solid var(--border-soft)" }}>
-            View Sessions
-          </Link>
+          <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+            <div className="max-w-3xl">
+              <h1 className="retro-heading mb-4">
+                <span className="retro-title-gradient">PiStation</span>
+              </h1>
+              <p className="retro-subtitle mb-8">
+                A neon arcade dashboard for your retro world. Track live sessions, scan playtime trends, monitor devices, and chat with your AI copilot in one cabinet.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <Link to="/dashboard" className="retro-button">
+                  <RetroPiece size="sm" />
+                  View Dashboard
+                </Link>
+                <Link to="/sessions" className="retro-button retro-button--secondary">
+                  View Sessions
+                </Link>
+              </div>
+            </div>
+            <div className="retro-piece-frame self-start md:self-center">
+              <RetroPiece size="lg" />
+            </div>
+          </div>
         </div>
+
+        <aside className="retro-panel retro-panel--highlight rounded-[1.6rem] p-6 flex flex-col gap-4">
+          <div className="retro-section-title mb-0">
+            <Activity size={18} />
+            Live Signal
+          </div>
+          {loading ? (
+            <p className="text-sm animate-pulse" style={{ color: "var(--text-muted)" }}>
+              Syncing arcade telemetry...
+            </p>
+          ) : activeSession ? (
+            <>
+              <span className="retro-chip retro-chip--success">
+                <Activity size={12} />
+                Now Playing
+              </span>
+              <div>
+                <p className="text-xl font-bold mb-1" style={{ color: "var(--text-primary)" }}>{extractTitle(activeSession.rom_path)}</p>
+                <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+                  {activeSession.system_name?.toUpperCase()} · {activeSession.pi_hostname}
+                </p>
+                <p className="text-xs mt-2" style={{ color: "var(--text-muted)" }}>
+                  Started {formatTimeAgo(activeSession.started_at)}
+                </p>
+              </div>
+            </>
+          ) : (
+            <>
+              <span className="retro-chip">Standby</span>
+              <p className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>No active session</p>
+              <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+                Fire up a game and PiStation will beam it in here.
+              </p>
+            </>
+          )}
+          <div className="grid grid-cols-2 gap-3 pt-2">
+            {[
+              { label: "Tracked Games", value: String(topGames.length || 0) },
+              { label: "Recent Runs", value: String(totalSessions) },
+              { label: "Total Time", value: formatPlaytime(totalPlaytime) },
+              { label: "Status", value: activeSession ? "Live" : "Idle" },
+            ].map((item) => (
+              <div key={item.label} className="retro-stat-card">
+                <p className="text-[0.58rem] uppercase tracking-[0.16em]" style={{ color: "var(--text-muted)" }}>{item.label}</p>
+                <p className="text-lg font-bold mt-2" style={{ color: "var(--text-primary)" }}>{item.value}</p>
+              </div>
+            ))}
+          </div>
+        </aside>
       </section>
 
-      {/* Now Playing */}
-      {activeSession && (
-        <section className="px-6 pb-6 max-w-6xl mx-auto">
-          <div className="p-5 rounded-xl relative overflow-hidden" style={{ background: "linear-gradient(135deg, rgba(139,92,246,0.15), rgba(239,68,68,0.1))", border: "1px solid rgba(139,92,246,0.3)" }}>
-            <div className="flex items-center gap-2 mb-2">
-              <Activity size={16} className="text-green-400 animate-pulse" />
-              <span className="text-xs font-bold uppercase tracking-wider text-green-400">Now Playing</span>
-            </div>
-            <p className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>{extractTitle(activeSession.rom_path)}</p>
-            <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-              {activeSession.system_name?.toUpperCase()} · on {activeSession.pi_hostname} · started {formatTimeAgo(activeSession.started_at)}
-            </p>
-          </div>
-        </section>
-      )}
-
-      {/* Quick Stats */}
       {!loading && (
-        <section className="px-6 pb-8 max-w-6xl mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <section className="mt-6">
+          <div className="retro-section-title">
+            <Gamepad2 size={18} />
+            Arcade Snapshot
+          </div>
+          <div className="retro-stat-grid grid grid-cols-2 md:grid-cols-4">
             {[
               { icon: <Gamepad2 size={18} />, label: "Top Games", value: String(topGames.length) },
               { icon: <Clock size={18} />, label: "Total Playtime", value: formatPlaytime(totalPlaytime) },
               { icon: <Activity size={18} />, label: "Recent Sessions", value: String(totalSessions) },
-              { icon: <Trophy size={18} />, label: "Status", value: activeSession ? "Playing" : "Idle" },
+              { icon: <Trophy size={18} />, label: "Cabinet", value: activeSession ? "Live" : "Idle" },
             ].map((card) => (
-              <div key={card.label} className="p-4 rounded-xl" style={{ background: "var(--surface-1)", border: "1px solid var(--border-soft)" }}>
-                <div className="flex items-center gap-2 mb-2" style={{ color: "var(--text-muted)" }}>
+              <div key={card.label} className="retro-stat-card">
+                <div className="flex items-center gap-2 mb-2" style={{ color: "var(--accent-secondary)" }}>
                   {card.icon}
-                  <span className="text-[10px] uppercase tracking-wider font-bold">{card.label}</span>
+                  <span className="text-[0.58rem] uppercase tracking-[0.16em]">{card.label}</span>
                 </div>
                 <p className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>{card.value}</p>
               </div>
@@ -121,52 +168,63 @@ export default function Home() {
         </section>
       )}
 
-      {/* Recent Sessions */}
       {recentSessions.length > 0 && (
-        <section className="px-6 pb-8 max-w-6xl mx-auto">
-          <h2 className="text-xl font-bold mb-4 flex items-center gap-2" style={{ color: "var(--text-primary)" }}>
-            <Clock size={20} style={{ color: "var(--accent-primary)" }} /> Recent Sessions
-          </h2>
-          <div className="space-y-2">
-            {recentSessions.slice(0, 5).map((s) => (
-              <div key={s.id} className="flex items-center gap-4 p-3 rounded-xl" style={{ background: "var(--surface-1)", border: "1px solid var(--border-soft)" }}>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold truncate" style={{ color: "var(--text-primary)" }}>{extractTitle(s.rom_path)}</p>
-                  <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                    {s.system_name?.toUpperCase()} · {s.pi_hostname} · {formatTimeAgo(s.started_at)}
-                  </p>
-                </div>
-                <span className="text-xs font-mono shrink-0" style={{ color: "var(--accent-primary)" }}>
-                  {s.duration_seconds ? formatPlaytime(s.duration_seconds) : "—"}
-                </span>
+        <section className="mt-8">
+          <div className="retro-panel rounded-[1.6rem] p-6">
+            <div className="flex items-center justify-between gap-4 mb-5">
+              <div className="retro-section-title mb-0">
+                <Clock size={18} />
+                Recent Sessions
               </div>
-            ))}
+              <Link to="/sessions" className="retro-button retro-button--ghost px-4 py-2 min-h-0 text-[0.56rem]">
+                View All
+              </Link>
+            </div>
+            <div className="space-y-3">
+              {recentSessions.slice(0, 5).map((s) => (
+                <div key={s.id} className="retro-list-item p-4 flex items-center gap-4">
+                  <div className="retro-piece-frame" style={{ minWidth: "3.8rem", minHeight: "3.8rem", padding: "0.75rem" }}>
+                    <RetroPiece size="sm" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold truncate" style={{ color: "var(--text-primary)" }}>{extractTitle(s.rom_path)}</p>
+                    <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
+                      {s.system_name?.toUpperCase()} · {s.pi_hostname} · {formatTimeAgo(s.started_at)}
+                    </p>
+                  </div>
+                  <span className="text-xs font-mono shrink-0" style={{ color: "var(--accent-secondary)" }}>
+                    {s.duration_seconds ? formatPlaytime(s.duration_seconds) : "—"}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
-          <Link to="/sessions" className="block text-center text-sm mt-3 hover:underline" style={{ color: "var(--accent-primary)" }}>
-            View all sessions →
-          </Link>
         </section>
       )}
 
-      {/* Navigation Grid */}
-      <section className="px-6 pb-16 max-w-6xl mx-auto">
-        <h2 className="text-xl font-bold mb-6 text-center" style={{ color: "var(--text-primary)" }}>Explore</h2>
+      <section className="mt-8 pb-10">
+        <div className="retro-section-title">
+          <Cpu size={18} />
+          Explore Cabinets
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {navCards.map((f) => (
-            <Link key={f.title} to={f.to} className="group p-5 rounded-xl transition-all duration-300" style={{ background: "var(--surface-1)", border: "1px solid var(--border-soft)" }}>
-              <div className="mb-3 group-hover:scale-110 transition-transform" style={{ color: "var(--accent-primary)" }}>
-                {f.icon}
+          {navCards.map((feature) => (
+            <Link key={feature.title} to={feature.to} className="retro-card-link">
+              <div className="mb-4 flex items-center justify-between">
+                <div className="retro-piece-frame" style={{ minWidth: "3.4rem", minHeight: "3.4rem", padding: "0.75rem" }}>
+                  {feature.icon}
+                </div>
+                <RetroPiece size="sm" />
               </div>
-              <h3 className="font-semibold mb-1" style={{ color: "var(--text-primary)" }}>{f.title}</h3>
-              <p className="text-sm leading-relaxed" style={{ color: "var(--text-muted)" }}>{f.desc}</p>
+              <h3 className="font-semibold mb-2 uppercase text-sm tracking-[0.12em]" style={{ color: "var(--text-primary)" }}>{feature.title}</h3>
+              <p className="text-sm leading-relaxed" style={{ color: "var(--text-muted)" }}>{feature.desc}</p>
             </Link>
           ))}
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="text-center py-6 text-xs" style={{ color: "var(--text-muted)", borderTop: "1px solid var(--border-soft)" }}>
-        PiStation — Retro Gaming Dashboard · Built with React, FastAPI, and NVIDIA NIM
+      <footer className="text-center py-6 text-[0.62rem] uppercase tracking-[0.18em]" style={{ color: "var(--text-muted)", borderTop: "1px solid var(--border-soft)" }}>
+        PiStation Retro Dashboard · React · FastAPI · NVIDIA NIM
       </footer>
     </div>
   );
