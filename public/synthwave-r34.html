@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Synthwave R34 GT-R</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #07010f; }
+canvas { display: block; width: 100%; height: 100%; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const C = document.getElementById('c');
+const X = C.getContext('2d');
+let W, H, VX, VY;
+const DPR = Math.min(window.devicePixelRatio || 1, 2);
+
+function resize() {
+  W = window.innerWidth; H = window.innerHeight;
+  C.width = W * DPR; C.height = H * DPR;
+  C.style.width = W + 'px'; C.style.height = H + 'px';
+  X.setTransform(DPR, 0, 0, DPR, 0, 0);
+  VX = W / 2;
+  VY = H * 0.44;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ─── Stars ───
+const stars = Array.from({length: 140}, () => ({
+  x: Math.random(), y: Math.random() * 0.46,
+  r: Math.random() * 1.8 + 0.4,
+  o: Math.random() * 0.5 + 0.5,
+  phase: Math.random() * 6.28
+}));
+
+// ─── Draw functions ───
+
+function sky() {
+  const g = X.createLinearGradient(0, 0, 0, VY + 10);
+  g.addColorStop(0, '#06001a');
+  g.addColorStop(0.25, '#14043a');
+  g.addColorStop(0.5, '#28084e');
+  g.addColorStop(0.75, '#4a0e6a');
+  g.addColorStop(1, '#6a1878');
+  X.fillStyle = g;
+  X.fillRect(0, 0, W, VY + 10);
+}
+
+function drawStars(t) {
+  for (const s of stars) {
+    const a = s.o * (0.55 + 0.45 * Math.sin(t * 0.0008 + s.phase));
+    X.beginPath();
+    X.arc(s.x * W, s.y * H, s.r, 0, 6.28);
+    X.fillStyle = `rgba(255, 225, 255, ${a})`;
+    X.fill();
+  }
+}
+
+function sun() {
+  const r = Math.min(W, H) * 0.17;
+  // Outer glow
+  const gl = X.createRadialGradient(VX, VY, r * 0.6, VX, VY, r * 2.2);
+  gl.addColorStop(0, 'rgba(255, 130, 50, 0.18)');
+  gl.addColorStop(0.4, 'rgba(255, 80, 90, 0.07)');
+  gl.addColorStop(1, 'rgba(200, 50, 100, 0)');
+  X.fillStyle = gl;
+  X.fillRect(0, 0, W, VY + r);
+
+  X.save();
+  X.beginPath();
+  X.arc(VX, VY, r, 0, 6.28);
+  X.clip();
+
+  const sg = X.createLinearGradient(VX, VY - r, VX, VY + r);
+  sg.addColorStop(0, '#FFD44F');
+  sg.addColorStop(0.25, '#FFA844');
+  sg.addColorStop(0.5, '#FF7755');
+  sg.addColorStop(0.75, '#DD4488');
+  sg.addColorStop(1, '#AA3399');
+  X.fillStyle = sg;
+  X.fillRect(VX - r, VY - r, r * 2, r * 2);
+
+  // Stripe cutouts — get wider toward bottom
+  const n = 8;
+  for (let i = 1; i < n; i++) {
+    const frac = i / n;
+    const y = VY - r + frac * r * 2;
+    const h = (2 + frac * 6);
+    X.fillStyle = '#28084e';
+    X.fillRect(VX - r, y - h / 2, r * 2, h);
+  }
+  X.restore();
+}
+
+function mountains() {
+  X.fillStyle = '#14042e';
+  // Left mountain range
+  X.beginPath();
+  X.moveTo(0, VY);
+  X.lineTo(W * 0.04, VY - H * 0.06);
+  X.lineTo(W * 0.10, VY - H * 0.13);
+  X.lineTo(W * 0.16, VY - H * 0.08);
+  X.lineTo(W * 0.21, VY - H * 0.16);
+  X.lineTo(W * 0.28, VY - H * 0.10);
+  X.lineTo(W * 0.36, VY);
+  X.fill();
+  // Right mountain range (mirrored)
+  X.beginPath();
+  X.moveTo(W, VY);
+  X.lineTo(W * 0.96, VY - H * 0.06);
+  X.lineTo(W * 0.90, VY - H * 0.13);
+  X.lineTo(W * 0.84, VY - H * 0.08);
+  X.lineTo(W * 0.79, VY - H * 0.16);
+  X.lineTo(W * 0.72, VY - H * 0.10);
+  X.lineTo(W * 0.64, VY);
+  X.fill();
+}
+
+function palm(x, baseY, h, flip) {
+  const dir = flip ? -1 : 1;
+  X.fillStyle = '#10042a';
+  X.strokeStyle = '#10042a';
+  // Trunk (curved)
+  X.lineWidth = h * 0.05;
+  X.lineCap = 'round';
+  X.beginPath();
+  X.moveTo(x, baseY);
+  X.quadraticCurveTo(x + dir * h * 0.12, baseY - h * 0.55, x + dir * h * 0.06, baseY - h);
+  X.stroke();
+  // Fronds
+  const tx = x + dir * h * 0.06, ty = baseY - h;
+  const angles = [-170, -140, -110, -70, -40, -10, 20];
+  for (const a of angles) {
+    const rad = (a + (flip ? 180 : 0)) * Math.PI / 180;
+    const len = h * (0.35 + Math.random() * 0.15);
+    const ex = tx + Math.cos(rad) * len;
+    const ey = ty + Math.sin(rad) * len;
+    const cx = tx + Math.cos(rad) * len * 0.4;
+    const cy = ty + Math.sin(rad) * len * 0.4 - len * 0.18;
+    X.lineWidth = h * 0.025;
+    X.beginPath();
+    X.moveTo(tx, ty);
+    X.quadraticCurveTo(cx, cy, ex, ey);
+    X.stroke();
+    // Leaf blobs along frond
+    for (let j = 0.3; j <= 0.95; j += 0.13) {
+      const px = tx + (cx - tx) * j * 2 * (1 - j) + (ex - tx) * j * j;
+      const py = ty + (cy - ty) * j * 2 * (1 - j) + (ey - ty) * j * j;
+      X.beginPath();
+      X.ellipse(px, py, h * 0.06, h * 0.018, rad, 0, 6.28);
+      X.fill();
+    }
+  }
+}
+
+function palms() {
+  palm(W * 0.06, VY + (H - VY) * 0.12, H * 0.15, false);
+  palm(W * 0.94, VY + (H - VY) * 0.12, H * 0.15, true);
+  palm(W * 0.14, VY + (H - VY) * 0.28, H * 0.20, false);
+  palm(W * 0.86, VY + (H - VY) * 0.28, H * 0.20, true);
+}
+
+function road(t) {
+  // Fill road area
+  X.fillStyle = '#08020e';
+  X.fillRect(0, VY, W, H - VY);
+
+  // Vertical converging lines
+  const nv = 28;
+  X.lineWidth = 0.8;
+  for (let i = -nv; i <= nv; i++) {
+    const bx = VX + i * (W / nv) * 2;
+    const alpha = 0.12 + 0.1 * (1 - Math.abs(i) / nv);
+    X.strokeStyle = `rgba(0, 230, 200, ${alpha})`;
+    X.beginPath();
+    X.moveTo(VX, VY);
+    X.lineTo(bx, H);
+    X.stroke();
+  }
+
+  // Horizontal scrolling lines with perspective
+  const nh = 28;
+  const offset = (t * 0.00035) % (1 / nh);
+  for (let i = 0; i < nh; i++) {
+    let f = (i / nh + offset);
+    if (f > 1) f -= 1;
+    const p = f * f * f; // cubic for strong perspective
+    const y = VY + p * (H - VY);
+    const spread = p * W * 1.4;
+    const alpha = 0.06 + p * 0.38;
+    X.strokeStyle = `rgba(0, 230, 200, ${alpha})`;
+    X.lineWidth = 0.4 + p * 2.2;
+    X.beginPath();
+    X.moveTo(VX - spread, y);
+    X.lineTo(VX + spread, y);
+    X.stroke();
+  }
+
+  // Horizon glow line
+  X.strokeStyle = 'rgba(0, 230, 200, 0.25)';
+  X.lineWidth = 1.5;
+  X.beginPath();
+  X.moveTo(0, VY);
+  X.lineTo(W, VY);
+  X.stroke();
+}
+
+// ─── R34 GT-R V-Spec (rear view) ───
+function car() {
+  X.save();
+  const carW = Math.min(W * 0.34, 440);
+  const s = carW / 400;
+  X.translate(W / 2, H * 0.73);
+  X.scale(s, s);
+
+  const B = '#2968E8';       // body blue
+  const BD = '#1E52BB';      // darker blue
+  const O = '#151520';       // outline
+  const BMP = '#1a1a2a';     // bumper dark
+  const LW = 2.8;            // outline width
+
+  // Helper for rounded rect
+  function rr(x, y, w, h, r) {
+    X.beginPath();
+    X.roundRect(x, y, w, h, r);
+  }
+
+  // ─── WING ───
+  X.lineWidth = LW;
+  X.strokeStyle = O;
+
+  // Wing blade
+  X.fillStyle = '#2e2e42';
+  X.beginPath();
+  X.moveTo(-182, -130); X.lineTo(182, -130);
+  X.lineTo(186, -120); X.lineTo(-186, -120);
+  X.closePath(); X.fill(); X.stroke();
+
+  // End plates
+  X.fillStyle = '#26263a';
+  for (const side of [-1, 1]) {
+    X.beginPath();
+    X.moveTo(side * 180, -134); X.lineTo(side * 190, -134);
+    X.lineTo(side * 190, -116); X.lineTo(side * 178, -116);
+    X.closePath(); X.fill(); X.stroke();
+  }
+
+  // Stalks
+  X.fillStyle = '#333346';
+  X.lineWidth = 2;
+  for (const sx of [-108, 108]) {
+    X.beginPath();
+    X.moveTo(sx - 5, -120); X.lineTo(sx + 5, -120);
+    X.lineTo(sx + 4, -90); X.lineTo(sx - 4, -90);
+    X.closePath(); X.fill(); X.stroke();
+  }
+
+  // ─── MAIN BODY ───
+  X.lineWidth = LW;
+  X.strokeStyle = O;
+  X.fillStyle = B;
+  X.beginPath();
+  // Left side going up
+  X.moveTo(-186, 68);
+  X.lineTo(-192, 30);
+  X.lineTo(-192, -8);
+  X.lineTo(-186, -42);
+  X.lineTo(-172, -62);
+  X.lineTo(-152, -76);
+  X.lineTo(-128, -86);
+  X.lineTo(-118, -96);
+  // Roof
+  X.lineTo(118, -96);
+  // Right side going down
+  X.lineTo(128, -86);
+  X.lineTo(152, -76);
+  X.lineTo(172, -62);
+  X.lineTo(186, -42);
+  X.lineTo(192, -8);
+  X.lineTo(192, 30);
+  X.lineTo(186, 68);
+  X.closePath();
+  X.fill(); X.stroke();
+
+  // Body darker blue lower fade
+  const bodyFade = X.createLinearGradient(0, -50, 0, 70);
+  bodyFade.addColorStop(0, 'rgba(0,0,0,0)');
+  bodyFade.addColorStop(0.6, 'rgba(0,0,0,0)');
+  bodyFade.addColorStop(1, 'rgba(0,0,30,0.2)');
+  X.fillStyle = bodyFade;
+  X.fill();
+
+  // Left body highlight
+  const hl = X.createLinearGradient(-195, 0, -160, 0);
+  hl.addColorStop(0, 'rgba(255,255,255,0.09)');
+  hl.addColorStop(1, 'rgba(255,255,255,0)');
+  X.fillStyle = hl;
+  X.beginPath();
+  X.moveTo(-192, -8); X.lineTo(-186, -42); X.lineTo(-172, -62);
+  X.lineTo(-160, -62); X.lineTo(-174, -42); X.lineTo(-180, -8);
+  X.lineTo(-180, 30); X.lineTo(-192, 30);
+  X.closePath(); X.fill();
+
+  // ─── REAR WINDOW ───
+  X.fillStyle = '#080816';
+  X.strokeStyle = O;
+  X.lineWidth = 2.5;
+  X.beginPath();
+  X.moveTo(-112, -84); X.lineTo(-100, -94);
+  X.lineTo(100, -94); X.lineTo(112, -84);
+  X.lineTo(104, -63); X.lineTo(-104, -63);
+  X.closePath(); X.fill(); X.stroke();
+
+  // Glass tint/reflection
+  const wg = X.createLinearGradient(-60, -92, 60, -68);
+  wg.addColorStop(0, 'rgba(70,110,170,0.12)');
+  wg.addColorStop(0.5, 'rgba(100,150,200,0.06)');
+  wg.addColorStop(1, 'rgba(60,100,160,0.1)');
+  X.fillStyle = wg; X.fill();
+
+  // ─── TRUNK AREA ───
+  // Horizontal trunk crease
+  X.strokeStyle = O; X.lineWidth = 1.8;
+  X.beginPath();
+  X.moveTo(-168, -56); X.lineTo(168, -56);
+  X.stroke();
+
+  // Nissan emblem
+  X.fillStyle = '#8888a0';
+  X.strokeStyle = O; X.lineWidth = 1.8;
+  X.beginPath(); X.arc(0, -46, 9, 0, 6.28); X.fill(); X.stroke();
+  X.strokeStyle = O; X.lineWidth = 2;
+  X.beginPath(); X.moveTo(-9, -46); X.lineTo(9, -46); X.stroke();
+
+  // ─── TAILLIGHT GARNISH BAR ───
+  X.fillStyle = '#0e0e20';
+  X.strokeStyle = O; X.lineWidth = 2;
+  X.beginPath();
+  X.moveTo(-160, -28); X.lineTo(160, -28);
+  X.lineTo(160, -14); X.lineTo(-160, -14);
+  X.closePath(); X.fill(); X.stroke();
+
+  // ─── TAILLIGHTS ───
+  function taillight(cx, cy, r, color) {
+    // Glow
+    const glo = X.createRadialGradient(cx, cy, r * 0.3, cx, cy, r * 3);
+    glo.addColorStop(0, color === 'red' ? 'rgba(255,50,30,0.25)' : 'rgba(255,160,40,0.18)');
+    glo.addColorStop(1, 'transparent');
+    X.fillStyle = glo;
+    X.fillRect(cx - r * 3.5, cy - r * 3.5, r * 7, r * 7);
+
+    // Housing
+    X.fillStyle = '#0c0c1a';
+    X.beginPath(); X.arc(cx, cy, r + 3, 0, 6.28); X.fill();
+
+    // Light
+    const lg = X.createRadialGradient(cx - r * 0.2, cy - r * 0.25, r * 0.05, cx, cy, r);
+    if (color === 'red') {
+      lg.addColorStop(0, '#ffaaaa');
+      lg.addColorStop(0.25, '#ff4040');
+      lg.addColorStop(0.6, '#dd1111');
+      lg.addColorStop(1, '#880000');
+    } else {
+      lg.addColorStop(0, '#ffee99');
+      lg.addColorStop(0.25, '#ffaa33');
+      lg.addColorStop(0.6, '#dd8811');
+      lg.addColorStop(1, '#885500');
+    }
+    X.fillStyle = lg;
+    X.beginPath(); X.arc(cx, cy, r, 0, 6.28); X.fill();
+    X.strokeStyle = O; X.lineWidth = 2;
+    X.stroke();
+
+    // Specular highlight
+    X.fillStyle = 'rgba(255,255,255,0.18)';
+    X.beginPath();
+    X.ellipse(cx - r * 0.22, cy - r * 0.28, r * 0.4, r * 0.25, -0.3, 0, 6.28);
+    X.fill();
+  }
+
+  const TY = -21;
+  const TR = 15;
+  // Left: red outer, orange inner
+  taillight(-145, TY, TR, 'red');
+  taillight(-112, TY, TR, 'orange');
+  // Right: orange inner, red outer
+  taillight(112, TY, TR, 'orange');
+  taillight(145, TY, TR, 'red');
+
+  // ─── TEXT / BADGES ───
+  X.fillStyle = '#bbbbd0';
+  X.font = 'bold 13px "Segoe UI", Arial, sans-serif';
+  X.textAlign = 'center';
+  X.fillText('S K Y L I N E', 0, 4);
+
+  X.fillStyle = '#ee2222';
+  X.font = 'bold 11px "Segoe UI", Arial, sans-serif';
+  X.textAlign = 'right';
+  X.fillText('GT-R', 152, -32);
+
+  X.fillStyle = '#bbbbd0';
+  X.font = '9px "Segoe UI", Arial, sans-serif';
+  X.fillText('V-spec', 158, 2);
+
+  // ─── LOWER BUMPER ───
+  X.fillStyle = BMP;
+  X.strokeStyle = O; X.lineWidth = LW;
+  X.beginPath();
+  X.moveTo(-186, 68);
+  X.lineTo(-178, 20);
+  X.lineTo(-165, 12);
+  X.lineTo(165, 12);
+  X.lineTo(178, 20);
+  X.lineTo(186, 68);
+  X.lineTo(182, 100);
+  X.lineTo(-182, 100);
+  X.closePath(); X.fill(); X.stroke();
+
+  // Bumper crease
+  X.strokeStyle = '#333';
+  X.lineWidth = 1.2;
+  X.beginPath();
+  X.moveTo(-170, 62); X.lineTo(170, 62); X.stroke();
+
+  // Red reflector strip (right side)
+  X.fillStyle = '#cc1111';
+  X.strokeStyle = O; X.lineWidth = 1.5;
+  rr(55, 52, 55, 8, 2); X.fill(); X.stroke();
+
+  // License plate
+  X.fillStyle = '#cccccc';
+  X.strokeStyle = O; X.lineWidth = 1.5;
+  rr(-38, 44, 76, 20, 3); X.fill(); X.stroke();
+  X.fillStyle = '#eee';
+  X.fillRect(-33, 48, 66, 12);
+
+  // ─── EXHAUST ───
+  const EX = -58, EY = 88, ER = 17;
+  // Chrome ring
+  X.fillStyle = '#9999a8';
+  X.strokeStyle = O; X.lineWidth = 2;
+  X.beginPath(); X.arc(EX, EY, ER, 0, 6.28); X.fill(); X.stroke();
+  // Inner bore
+  const eg = X.createRadialGradient(EX, EY, 1, EX, EY, ER - 3);
+  eg.addColorStop(0, '#0a0a0a');
+  eg.addColorStop(0.7, '#1a1a1a');
+  eg.addColorStop(1, '#444');
+  X.fillStyle = eg;
+  X.beginPath(); X.arc(EX, EY, ER - 3, 0, 6.28); X.fill();
+  X.strokeStyle = '#555'; X.lineWidth = 0.8; X.stroke();
+  // Chrome highlight
+  X.fillStyle = 'rgba(255,255,255,0.12)';
+  X.beginPath();
+  X.ellipse(EX - 3, EY - 5, ER * 0.28, ER * 0.16, -0.4, 0, 6.28);
+  X.fill();
+
+  // ─── FENDER PANEL LINES ───
+  X.strokeStyle = 'rgba(10,10,30,0.5)';
+  X.lineWidth = 1.2;
+  X.beginPath(); X.moveTo(-178, -52); X.quadraticCurveTo(-188, 0, -190, 55); X.stroke();
+  X.beginPath(); X.moveTo(178, -52); X.quadraticCurveTo(188, 0, 190, 55); X.stroke();
+
+  // ─── BOTTOM EDGE SHADOW ───
+  X.fillStyle = 'rgba(0,0,0,0.35)';
+  X.beginPath();
+  X.moveTo(-182, 100); X.lineTo(182, 100);
+  X.lineTo(190, 108); X.lineTo(-190, 108);
+  X.closePath(); X.fill();
+
+  X.restore();
+}
+
+// ─── LOW FOG ───
+function fog() {
+  const g = X.createLinearGradient(0, VY - 15, 0, VY + 30);
+  g.addColorStop(0, 'rgba(100, 40, 120, 0)');
+  g.addColorStop(0.5, 'rgba(80, 30, 100, 0.15)');
+  g.addColorStop(1, 'rgba(60, 20, 80, 0)');
+  X.fillStyle = g;
+  X.fillRect(0, VY - 15, W, 45);
+}
+
+// ─── Scanlines overlay (subtle) ───
+function scanlines() {
+  X.fillStyle = 'rgba(0, 0, 0, 0.06)';
+  for (let y = 0; y < H; y += 3) {
+    X.fillRect(0, y, W, 1);
+  }
+}
+
+// ─── Main loop ───
+function frame(t) {
+  X.clearRect(0, 0, W, H);
+  sky();
+  drawStars(t);
+  sun();
+  mountains();
+  fog();
+  road(t);
+  palms();
+  car();
+  scanlines();
+  requestAnimationFrame(frame);
+}
+
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
