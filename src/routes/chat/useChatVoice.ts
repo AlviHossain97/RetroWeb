@@ -57,6 +57,7 @@ export function useChatVoice(opts: {
   const { kokoroOnline, onTranscript } = opts;
   const [voiceState, setVoiceState] = useState<VoiceState>("idle");
   const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [voiceModeActive, setVoiceModeActive] = useState(false);
 
   // Settings
   const [voiceEnabled, setVoiceEnabled] = useState(true);
@@ -110,6 +111,7 @@ export function useChatVoice(opts: {
       if (!voiceModeRef.current) {
         mediaStreamRef.current?.getTracks().forEach(t => t.stop());
         mediaStreamRef.current = null;
+        setVoiceModeActive(false);
         setVoiceState("idle");
         return;
       }
@@ -250,6 +252,7 @@ export function useChatVoice(opts: {
         if (isPTTNow) {
           voiceModeRef.current = false;
           pttSourceRef.current = null;
+          setVoiceModeActive(false);
           setVoiceState("idle");
         } else if (voiceModeRef.current && !ttsPlayingRef.current) {
           startRecRef.current();
@@ -264,6 +267,7 @@ export function useChatVoice(opts: {
         if (isPTTNow || !voiceModeRef.current) {
           voiceModeRef.current = false;
           pttSourceRef.current = null;
+          setVoiceModeActive(false);
           setVoiceState("idle");
         } else {
           setVoiceState("listening");
@@ -292,6 +296,7 @@ export function useChatVoice(opts: {
       if (isPTTNow) {
         voiceModeRef.current = false;
         pttSourceRef.current = null;
+        setVoiceModeActive(false);
         if (mediaStreamRef.current) {
           mediaStreamRef.current.getTracks().forEach(t => t.stop());
           mediaStreamRef.current = null;
@@ -324,6 +329,7 @@ export function useChatVoice(opts: {
         voiceModeRef.current = false;
         retryCountRef.current = 0;
         pttSourceRef.current = null;
+        setVoiceModeActive(false);
         setVoiceError(
           name === "NotFoundError"
             ? "No microphone found. Connect a mic and try again."
@@ -344,6 +350,7 @@ export function useChatVoice(opts: {
         voiceModeRef.current = false;
         retryCountRef.current = 0;
         pttSourceRef.current = null;
+        setVoiceModeActive(false);
         setVoiceError("Voice pipeline error. Please try again.");
       }
     }
@@ -358,6 +365,7 @@ export function useChatVoice(opts: {
     if (voiceModeRef.current) return;
     voiceModeRef.current = true;
     pttSourceRef.current = null;
+    setVoiceModeActive(true);
     setVoiceState("listening");
     setVoiceError(null);
     void checkAndUnlock("voice_mode");
@@ -367,6 +375,7 @@ export function useChatVoice(opts: {
   const stopVoiceMode = useCallback(() => {
     voiceModeRef.current = false;
     pttSourceRef.current = null;
+    setVoiceModeActive(false);
     setVoiceState("idle");
     setVoiceError(null);
     if (retryTimeoutRef.current) {
@@ -393,6 +402,7 @@ export function useChatVoice(opts: {
     if (voiceState !== "idle" && voiceState !== "error") return;
     pttSourceRef.current = source;
     voiceModeRef.current = true;
+    setVoiceModeActive(true);
     setVoiceState("listening");
     setVoiceError(null);
     void checkAndUnlock("voice_mode");
@@ -408,8 +418,21 @@ export function useChatVoice(opts: {
   }, []);
 
   const dismissError = useCallback(() => {
+    setVoiceModeActive(false);
     setVoiceState("idle");
     setVoiceError(null);
+  }, []);
+
+  const recoverAfterAssistantTurn = useCallback(() => {
+    if (ttsPlayingRef.current) return;
+    if (voiceModeRef.current) {
+      setVoiceModeActive(true);
+      setVoiceState("listening");
+      startRecRef.current();
+      return;
+    }
+    setVoiceModeActive(false);
+    setVoiceState("idle");
   }, []);
 
   // Unmount cleanup
@@ -489,9 +512,11 @@ export function useChatVoice(opts: {
         ttsPlayingRef.current = false;
         muteMic(false);
         if (voiceModeRef.current) {
+          setVoiceModeActive(true);
           setVoiceState("listening");
           startRecRef.current();
         } else {
+          setVoiceModeActive(false);
           setVoiceState("idle");
         }
       },
@@ -499,9 +524,11 @@ export function useChatVoice(opts: {
         ttsPlayingRef.current = false;
         muteMic(false);
         if (voiceModeRef.current) {
+          setVoiceModeActive(true);
           setVoiceState("listening");
           startRecRef.current();
         } else {
+          setVoiceModeActive(false);
           setVoiceState("idle");
         }
       },
@@ -513,12 +540,14 @@ export function useChatVoice(opts: {
 
   return {
     voiceState,
+    voiceModeActive,
     voiceError,
     startVoiceMode,
     stopVoiceMode,
     startRecording,
     stopRecording,
     dismissError,
+    recoverAfterAssistantTurn,
     voiceEnabled, setVoiceEnabled,
     activationMode, setActivationMode,
     noiseSuppressionEnabled, setNoiseSuppressionEnabled,

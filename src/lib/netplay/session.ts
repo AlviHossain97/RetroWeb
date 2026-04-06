@@ -38,7 +38,6 @@ export class NetplaySession {
   private _connected = false;
   private onStateChange: OnStateChange;
   private onRemoteInput: OnRemoteInput;
-  private iceCandidates: RTCIceCandidate[] = [];
   private iceGatheringDone = false;
 
   constructor(

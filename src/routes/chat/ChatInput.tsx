@@ -13,6 +13,7 @@ interface ChatInputProps {
   hasContent: boolean;
   convState: ConvState;
   voiceState: VoiceState;
+  voiceModeActive: boolean;
   kokoroOnline: boolean;
   activationMode: ActivationMode;
   onSend: () => void;
@@ -29,7 +30,7 @@ export function ChatInput({
   input, setInput,
   pendingImages, pendingFiles,
   removePendingImage, removePendingFile,
-  hasContent, convState, voiceState, kokoroOnline,
+  hasContent, convState, voiceState, voiceModeActive, kokoroOnline,
   activationMode,
   onSend, onCancelStream,
   onStartVoiceMode, onStopVoiceMode,
@@ -40,7 +41,8 @@ export function ChatInput({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const streaming = convState === "streaming";
-  const listening = voiceState === "listening" || voiceState === "processing" || voiceState === "speaking";
+  const listening = voiceModeActive && (voiceState === "listening" || voiceState === "processing" || voiceState === "speaking");
+  const passiveReplySpeaking = !voiceModeActive && voiceState === "speaking";
   const isPTT = activationMode === "push_to_talk";
 
   const handleInput = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -102,7 +104,7 @@ export function ChatInput({
 
   const micTitle = isPTT
     ? "Hold to record"
-    : listening ? "Stop listening" : "Start voice";
+    : listening ? "Stop listening" : passiveReplySpeaking ? "Assistant is speaking" : "Start voice";
 
   return (
     <div className="shrink-0 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2 px-4" style={{ background: "var(--bg-primary)" }}>
@@ -201,16 +203,18 @@ export function ChatInput({
             </button>
           ) : kokoroOnline ? (
             <button
-              onClick={isPTT ? undefined : handleMicClick}
-              onPointerDown={isPTT ? handleMicPointerDown : undefined}
-              onPointerUp={isPTT ? handleMicPointerUp : undefined}
-              onPointerCancel={isPTT ? handleMicPointerUp : undefined}
-              onPointerLeave={isPTT ? handleMicPointerUp : undefined}
+              onClick={passiveReplySpeaking ? undefined : isPTT ? undefined : handleMicClick}
+              onPointerDown={passiveReplySpeaking ? undefined : isPTT ? handleMicPointerDown : undefined}
+              onPointerUp={passiveReplySpeaking ? undefined : isPTT ? handleMicPointerUp : undefined}
+              onPointerCancel={passiveReplySpeaking ? undefined : isPTT ? handleMicPointerUp : undefined}
+              onPointerLeave={passiveReplySpeaking ? undefined : isPTT ? handleMicPointerUp : undefined}
+              disabled={passiveReplySpeaking}
               className={`p-2 rounded-xl shrink-0 transition-colors hover:opacity-80 ${listening ? "animate-pulse" : ""}`}
               style={{
                 background: listening ? "var(--danger)" : "var(--surface-3)",
                 color: listening ? "#fff" : "var(--text-muted)",
                 touchAction: "none",
+                opacity: passiveReplySpeaking ? 0.5 : 1,
               }}
               aria-label={micTitle}
             >

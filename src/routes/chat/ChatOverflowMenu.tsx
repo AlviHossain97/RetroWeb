@@ -59,7 +59,7 @@ export function ChatOverflowMenu({
         >
           <div className="flex items-center gap-2">
             <Volume2 size={14} style={{ color: "var(--text-muted)" }} />
-            TTS
+            Speak Replies
           </div>
           <span
             className="text-[10px] font-bold px-2 py-0.5 rounded-full"
