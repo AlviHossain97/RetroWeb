@@ -4,6 +4,8 @@ import { getDashboardData } from "@/lib/api/dashboard";
 import { getSystemStats } from "@/lib/api/systems";
 import type { Session, TopGame, SystemStats } from "@/lib/types/api";
 import { useGamepadNavigation } from "@/hooks/useGamepadNavigation";
+import { RetroPiece } from "@/components/RetroPiece";
+import SynthwaveBackground from "@/components/SynthwaveBackground";
 
 function formatPlaytime(seconds: number): string {
   if (!seconds || seconds <= 0) return "0m";
@@ -79,24 +81,31 @@ export default function Kiosk() {
 
   return (
     <div
-      className="fixed inset-0 flex flex-col overflow-hidden"
-      style={{ background: "var(--bg-primary, #0a0a0a)", color: "var(--text-primary)" }}
+      className="fixed inset-0 flex flex-col overflow-hidden relative"
+      style={{ background: "linear-gradient(180deg, rgba(13,13,16,0.72), rgba(13,13,16,0.88))", color: "var(--text-primary)" }}
     >
+      <SynthwaveBackground />
+
       {/* Top Bar */}
-      <div className="flex items-center justify-between px-8 py-4" style={{ borderBottom: "1px solid var(--border-soft)" }}>
-        <h1 className="text-3xl font-black tracking-tight">
-          <span className="bg-gradient-to-r from-red-500 via-purple-500 to-blue-500 bg-clip-text text-transparent">
-            PiStation
-          </span>
-        </h1>
+      <div className="retro-chat-header relative z-10 flex items-center justify-between px-8 py-5" style={{ borderBottom: "3px solid rgba(204, 0, 0, 0.18)" }}>
+        <div className="flex items-center gap-4">
+          <div className="retro-piece-frame" style={{ minWidth: "4rem", minHeight: "4rem", padding: "0.75rem" }}>
+            <RetroPiece size="lg" />
+          </div>
+          <div>
+            <h1 className="retro-heading text-[2rem]">
+              <span className="retro-title-gradient">PiStation</span>
+            </h1>
+            <p className="text-xs uppercase tracking-[0.18em]" style={{ color: "var(--text-muted)" }}>Kiosk Broadcast</p>
+          </div>
+        </div>
         <div className="flex items-center gap-6">
-          <span className="text-2xl font-mono tabular-nums" style={{ color: "var(--text-muted)" }}>
+          <span className="text-2xl font-mono tabular-nums" style={{ color: "var(--accent-secondary)" }}>
             {formatTime(time)}
           </span>
           <button
             onClick={toggleFullscreen}
-            className="p-2 rounded-lg hover:opacity-80"
-            style={{ background: "var(--surface-2)" }}
+            className="retro-button retro-button--ghost retro-icon-button min-h-0 text-[0.56rem]"
           >
             {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
           </button>
@@ -104,21 +113,17 @@ export default function Kiosk() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 grid grid-cols-3 gap-6 p-8 overflow-hidden">
+      <div className="relative z-10 flex-1 grid grid-cols-3 gap-6 p-8 overflow-hidden">
         {/* Left Column — Now Playing + Stats */}
         <div className="flex flex-col gap-6">
           {/* Now Playing */}
           {activeSession ? (
             <div
-              className="p-6 rounded-2xl"
-              style={{
-                background: "linear-gradient(135deg, rgba(139,92,246,0.15), rgba(239,68,68,0.1))",
-                border: "1px solid rgba(139,92,246,0.3)",
-              }}
+              className="retro-panel retro-panel--highlight p-6 rounded-[1.6rem]"
             >
               <div className="flex items-center gap-2 mb-3">
-                <Activity size={20} className="text-green-400 animate-pulse" />
-                <span className="text-sm font-bold uppercase tracking-wider text-green-400">Now Playing</span>
+                <Activity size={20} className="animate-pulse" style={{ color: "var(--success)" }} />
+                <span className="text-sm font-bold uppercase tracking-wider" style={{ color: "var(--success)" }}>Now Playing</span>
               </div>
               <p className="text-2xl font-bold mb-1">{extractTitle(activeSession.rom_path)}</p>
               <p className="text-lg" style={{ color: "var(--text-muted)" }}>
@@ -126,7 +131,7 @@ export default function Kiosk() {
               </p>
             </div>
           ) : (
-            <div className="p-6 rounded-2xl" style={{ background: "var(--surface-1)", border: "1px solid var(--border-soft)" }}>
+            <div className="retro-panel p-6 rounded-[1.6rem]">
               <div className="flex items-center gap-2 mb-3">
                 <Gamepad2 size={20} style={{ color: "var(--text-muted)" }} />
                 <span className="text-sm font-bold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
@@ -145,7 +150,7 @@ export default function Kiosk() {
               { icon: <Cpu size={24} />, label: "Systems", value: String(systems.length) },
               { icon: <Activity size={24} />, label: "Games", value: String(topGames.length) },
             ].map((s) => (
-              <div key={s.label} className="p-4 rounded-xl" style={{ background: "var(--surface-1)", border: "1px solid var(--border-soft)" }}>
+              <div key={s.label} className="retro-stat-card">
                 <div className="flex items-center gap-2 mb-2" style={{ color: "var(--text-muted)" }}>
                   {s.icon}
                   <span className="text-xs uppercase tracking-wider font-bold">{s.label}</span>
@@ -158,13 +163,13 @@ export default function Kiosk() {
 
         {/* Center Column — Top Games */}
         <div className="flex flex-col">
-          <h2 className="text-lg font-bold uppercase tracking-wider mb-4" style={{ color: "var(--text-muted)" }}>
+          <h2 className="retro-section-title text-lg mb-4" style={{ color: "var(--accent-secondary)" }}>
             Top Games
           </h2>
           <div className="flex-1 space-y-3 overflow-y-auto">
             {topGames.map((game, i) => (
-              <div key={game.rom_path} className="flex items-center gap-4 p-4 rounded-xl" style={{ background: "var(--surface-1)", border: "1px solid var(--border-soft)" }}>
-                <span className="text-lg font-bold w-8 text-center" style={{ color: "var(--accent-primary)" }}>
+              <div key={game.rom_path} className="retro-list-item flex items-center gap-4 p-4">
+                <span className="text-lg font-bold w-8 text-center" style={{ color: "var(--accent-secondary)" }}>
                   #{i + 1}
                 </span>
                 <div className="flex-1 min-w-0">
@@ -173,7 +178,7 @@ export default function Kiosk() {
                     {game.system_name?.toUpperCase()} · {game.session_count} sessions
                   </p>
                 </div>
-                <span className="text-lg font-mono" style={{ color: "var(--accent-primary)" }}>
+                <span className="text-lg font-mono" style={{ color: "var(--accent-secondary)" }}>
                   {formatPlaytime(game.total_seconds)}
                 </span>
               </div>
@@ -184,12 +189,12 @@ export default function Kiosk() {
         {/* Right Column — Recent Sessions + Systems */}
         <div className="flex flex-col gap-6">
           <div className="flex-1 flex flex-col">
-            <h2 className="text-lg font-bold uppercase tracking-wider mb-4" style={{ color: "var(--text-muted)" }}>
+            <h2 className="retro-section-title text-lg mb-4" style={{ color: "var(--accent-secondary)" }}>
               Recent Sessions
             </h2>
             <div className="flex-1 space-y-2 overflow-y-auto">
               {recentSessions.slice(0, 6).map((s) => (
-                <div key={s.id} className="p-3 rounded-lg" style={{ background: "var(--surface-1)", border: "1px solid var(--border-soft)" }}>
+                <div key={s.id} className="retro-list-item p-3">
                   <p className="text-base font-medium truncate">{extractTitle(s.rom_path)}</p>
                   <p className="text-sm" style={{ color: "var(--text-muted)" }}>
                     {s.system_name?.toUpperCase()} · {s.duration_seconds ? formatPlaytime(s.duration_seconds) : "active"}
@@ -201,7 +206,7 @@ export default function Kiosk() {
 
           {/* System Bars */}
           <div>
-            <h2 className="text-lg font-bold uppercase tracking-wider mb-3" style={{ color: "var(--text-muted)" }}>
+            <h2 className="retro-section-title text-lg mb-3" style={{ color: "var(--accent-secondary)" }}>
               Systems
             </h2>
             <div className="space-y-2">
@@ -213,10 +218,10 @@ export default function Kiosk() {
                       <span>{sys.system_name.toUpperCase()}</span>
                       <span style={{ color: "var(--text-muted)" }}>{formatPlaytime(sys.total_seconds)}</span>
                     </div>
-                    <div className="h-3 rounded-full overflow-hidden" style={{ background: "var(--surface-2)" }}>
+                    <div className="retro-meter h-3">
                       <div
-                        className="h-full rounded-full"
-                        style={{ width: `${(sys.total_seconds / maxPt) * 100}%`, background: "var(--accent-primary)" }}
+                        className="retro-meter__fill"
+                        style={{ width: `${(sys.total_seconds / maxPt) * 100}%` }}
                       />
                     </div>
                   </div>

@@ -14,8 +14,7 @@ export function ChatModelPicker({ selectedModel, onSelect, onClose }: ChatModelP
       <div className="fixed inset-0 z-30" onClick={onClose} />
       {/* Popover */}
       <div
-        className="absolute left-4 top-14 z-40 w-72 rounded-xl p-1.5 animate-[scaleIn_0.15s_ease-out]"
-        style={{ background: "var(--surface-1)", border: "1px solid var(--border-soft)", boxShadow: "var(--shadow-lg)" }}
+        className="retro-modal-panel absolute left-4 top-16 z-40 w-72 rounded-[1.4rem] p-2 animate-[scaleIn_0.15s_ease-out]"
       >
         <p className="px-3 pt-2 pb-1.5 text-[10px] uppercase tracking-wider font-bold" style={{ color: "var(--text-muted)" }}>
           Choose Model
@@ -27,9 +26,10 @@ export function ChatModelPicker({ selectedModel, onSelect, onClose }: ChatModelP
             <button
               key={m}
               onClick={() => onSelect(m)}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors"
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors"
               style={{
-                background: isSelected ? "color-mix(in srgb, var(--accent-primary) 10%, transparent)" : "transparent",
+                background: isSelected ? "rgba(204, 0, 0, 0.12)" : "transparent",
+                border: isSelected ? "2px solid rgba(255, 68, 68, 0.22)" : "2px solid transparent",
                 color: "var(--text-primary)",
               }}
             >

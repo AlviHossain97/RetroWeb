@@ -120,21 +120,22 @@ export default function Settings() {
   };
 
   return (
-    <div className="flex-1 w-full max-w-4xl mx-auto p-4 md:p-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight" style={{color: 'var(--text-primary)'}}>Settings</h1>
-        <p className="text-sm mt-1" style={{color: 'var(--text-muted)'}}>Configure your PiStation experience</p>
+    <div className="retro-page-shell flex-1 max-w-4xl">
+      <div className="retro-panel retro-panel--hero rounded-[1.7rem] p-7 md:p-8 mb-8">
+        <h1 className="retro-heading mb-3">
+          <span className="retro-title-gradient">Settings</span>
+        </h1>
+        <p className="retro-subtitle">Configure your PiStation experience</p>
       </div>
 
-      <div className="relative mb-8 max-w-md">
+      <div className="retro-input-shell relative mb-8 max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={16} style={{color: 'var(--text-muted)'}} />
         <input
           type="text"
           value={searchQuery}
           onChange={(event) => setSearchQuery(event.target.value)}
           placeholder="Search settings..."
-          className="w-full pl-9 pr-3 py-2.5 text-sm rounded-xl focus:outline-none focus:ring-2"
-          style={{background: 'var(--surface-2)', color: 'var(--text-primary)', border: '1px solid var(--border-soft)'}}
+          className="retro-input w-full pl-9 pr-3 py-3 text-sm rounded-[1.1rem]"
         />
       </div>
 

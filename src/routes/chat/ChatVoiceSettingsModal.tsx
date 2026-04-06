@@ -64,19 +64,17 @@ export function ChatVoiceSettingsModal({
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
+    <div className="retro-modal-backdrop fixed inset-0 z-50 flex items-center justify-center" onClick={onClose}>
       <div
         ref={modalRef}
-        className="w-full max-w-md mx-4 rounded-2xl p-6 animate-[scaleIn_0.15s_ease-out]"
-        style={{ background: "var(--surface-1)", border: "1px solid var(--border-soft)", boxShadow: "var(--shadow-lg)" }}
+        className="retro-modal-panel w-full max-w-md mx-4 rounded-[1.6rem] p-6 animate-[scaleIn_0.15s_ease-out]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>Voice Settings</h2>
+          <h2 className="text-lg font-bold uppercase tracking-[0.14em]" style={{ color: "var(--text-primary)" }}>Voice Settings</h2>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg transition-colors hover:opacity-80"
-            style={{ color: "var(--text-muted)" }}
+            className="retro-button retro-button--ghost retro-icon-button min-h-0 text-[0.56rem]"
             aria-label="Close voice settings"
           >
             <X size={18} />
@@ -93,8 +91,8 @@ export function ChatVoiceSettingsModal({
               ref={firstFocusRef}
               value={activationMode}
               onChange={e => setActivationMode(e.target.value as ActivationMode)}
-              className="w-full rounded-xl px-3 py-2.5 text-sm outline-none cursor-pointer"
-              style={{ background: "var(--surface-2)", color: "var(--text-primary)", border: "1px solid var(--border-soft)" }}
+              className="retro-select w-full rounded-xl px-3 py-3 text-sm outline-none cursor-pointer"
+              style={{ background: "rgba(15, 18, 33, 0.65)", color: "var(--text-primary)", border: "2px solid var(--border-soft)" }}
             >
               <option value="auto_near_field">Near-Field (Quiet Room)</option>
               <option value="headset">Headset (More Permissive)</option>
@@ -119,7 +117,7 @@ export function ChatVoiceSettingsModal({
               { label: "Echo Cancellation", checked: echoCancellationEnabled, onChange: setEchoCancellationEnabled },
               { label: "Auto Gain Control (AGC)", checked: agcEnabled, onChange: setAgcEnabled },
             ].map((opt) => (
-              <label key={opt.label} className="flex items-center gap-3 cursor-pointer">
+              <label key={opt.label} className="retro-list-item flex items-center gap-3 cursor-pointer px-3 py-3">
                 <input
                   type="checkbox"
                   checked={opt.checked}

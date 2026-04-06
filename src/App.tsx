@@ -5,12 +5,13 @@ import { useState, useEffect, useRef, useMemo, lazy, Suspense } from "react";
 import { Toaster, toast } from "sonner";
 import { useInputMode } from "@/hooks/useInputMode";
 import { useGamepadNavigation } from "@/hooks/useGamepadNavigation";
+import { RetroPiece } from "@/components/RetroPiece";
 
 // Lazy-load heavy shell components (not on critical render path)
 const LegalModal = lazy(() => import("./components/LegalModal"));
 const CookieConsent = lazy(() => import("./components/CookieConsent"));
 const PacmanGhostEasterEgg = lazy(() => import("./components/PacmanGhostEasterEgg"));
-const PongBackground = lazy(() => import("./components/PongBackground"));
+const SynthwaveBackground = lazy(() => import("./components/SynthwaveBackground"));
 const OnboardingTutorial = lazy(() => import("./components/OnboardingTutorial"));
 const NotificationCenter = lazy(() => import("./components/NotificationCenter"));
 
@@ -23,97 +24,6 @@ interface NavItem {
   label: string;
   icon: ReactNode;
 }
-
-/* From Uiverse.io by Admin12121 */
-const NAV_CSS = `
-.rw-menu {
-  padding: 0.5rem;
-  background-color: var(--surface-1);
-  position: fixed;
-  top: 1rem;
-  left: 1rem;
-  z-index: 30;
-  display: flex;
-  justify-content: center;
-  border-radius: 15px;
-  box-shadow: 0 10px 25px 0 rgba(0, 0, 0, 0.4);
-  border: 1px solid var(--border-soft);
-  color: var(--text-muted);
-}
-
-.rw-link {
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  width: 70px;
-  height: 50px;
-  border-radius: 8px;
-  position: relative;
-  z-index: 1;
-  overflow: hidden;
-  transform-origin: center left;
-  transition: width 0.2s ease-in;
-  text-decoration: none;
-  color: inherit;
-}
-
-.rw-link:before {
-  position: absolute;
-  z-index: -1;
-  content: "";
-  display: block;
-  border-radius: 8px;
-  width: 100%;
-  height: 100%;
-  top: 0;
-  transform: translateX(100%);
-  transition: transform 0.2s ease-in;
-  transform-origin: center right;
-  background-color: rgba(204, 0, 0, 0.15);
-}
-
-.rw-link:hover,
-.rw-link:focus {
-  outline: 0;
-  width: 130px;
-  color: var(--accent-secondary);
-}
-
-.rw-link:hover:before,
-.rw-link:focus:before {
-  transform: translateX(0);
-}
-
-.rw-link:hover .rw-link-title,
-.rw-link:focus .rw-link-title {
-  transform: translateX(0);
-  opacity: 1;
-}
-
-.rw-link-icon {
-  width: 28px;
-  height: 28px;
-  display: block;
-  flex-shrink: 0;
-  left: 18px;
-  position: absolute;
-}
-
-.rw-link-icon svg {
-  width: 28px;
-  height: 28px;
-}
-
-.rw-link-title {
-  transform: translateX(100%);
-  transition: transform 0.2s ease-in;
-  transform-origin: center right;
-  display: block;
-  text-align: center;
-  text-indent: 28px;
-  width: 100%;
-}
-`;
 
 export default function App() {
   const [showInstallBanner, setShowInstallBanner] = useState(false);
@@ -212,29 +122,39 @@ export default function App() {
     { to: "/settings", label: "Settings", icon: <Settings2 size={18} /> },
   ] satisfies NavItem[], []);
 
+  const isRouteActive = (to: string) => {
+    if (to === "/") return location.pathname === "/";
+    return location.pathname === to || location.pathname.startsWith(`${to}/`);
+  };
+
+  const shellTop = isOffline ? 48 : 16;
+  const mainPaddingTop = isOffline ? 124 : 92;
+
   return (
     <div
-      className="min-h-screen bg-background text-foreground flex flex-col relative"
+      className="retro-shell min-h-screen bg-background text-foreground flex flex-col relative"
     >
-      <style dangerouslySetInnerHTML={{ __html: NAV_CSS }} />
-
       {/* PWA Install Banner */}
       {showInstallBanner && (
-        <div className="fixed bottom-20 md:bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-80 z-40 rounded-xl p-4 flex items-center gap-3 shadow-lg" style={{ background: 'var(--surface-1)', border: '1px solid var(--border-soft)' }}>
+        <div className="retro-banner fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-[22rem] z-40 rounded-[1.4rem] p-4 flex items-center gap-3">
           <Download size={24} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Install RetroWeb</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--text-primary)' }}>Install PiStation</p>
             <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Add to home screen for the best experience</p>
           </div>
-          <button onClick={() => void handleInstallPWA()} className="px-3 py-1.5 rounded-lg text-xs font-bold" style={{ background: 'var(--accent-primary)', color: '#fff' }}>Install</button>
-          <button onClick={() => setShowInstallBanner(false)} style={{ color: 'var(--text-muted)' }}><X size={16} /></button>
+          <button onClick={() => void handleInstallPWA()} className="retro-button px-4 py-2 min-h-0 text-[0.56rem]">
+            Install
+          </button>
+          <button onClick={() => setShowInstallBanner(false)} className="retro-button retro-button--ghost retro-icon-button min-h-0 text-[0.56rem]" style={{ minWidth: '3rem' }}>
+            <X size={14} />
+          </button>
         </div>
       )}
 
       {/* Offline mode indicator */}
       {isOffline && (
-        <div className="fixed top-0 left-0 right-0 z-50 text-center py-1.5 text-xs font-bold tracking-wider" style={{ background: '#b91c1c', color: '#fff' }}>
-          ⚠️ You are offline — AI features and cloud sync are unavailable. Local games still work!
+        <div className="fixed top-0 left-0 right-0 z-50 text-center py-2 text-[0.62rem] font-bold tracking-[0.2em] uppercase" style={{ background: 'linear-gradient(90deg, rgba(204,0,0,0.96), rgba(229,20,0,0.96))', color: '#f0f0f5', boxShadow: '0 8px 24px rgba(0,0,0,0.28)' }}>
+          Offline Mode: AI features and cloud sync are unavailable. Local games still work.
         </div>
       )}
 
@@ -246,53 +166,43 @@ export default function App() {
         <PacmanGhostEasterEgg frightenThreshold={5} frightenDuration={4000} />
       </Suspense>
 
-      <main
-        key={location.pathname}
-        className="flex-1 flex flex-col relative overflow-hidden bg-background pt-20 pb-16 md:pb-0 page-transition"
-      >
-        <Suspense fallback={null}><PongBackground /></Suspense>
-        <Outlet />
-      </main>
-
-      {/* Fixed top-left nav — Uiverse by Admin12121 (hidden on mobile) */}
-      <nav className="rw-menu hidden md:flex">
-        {navItems.map(item => (
-          <Link
-            key={item.to}
-            to={item.to}
-            className="rw-link"
-          >
-            <span className="rw-link-icon">{item.icon}</span>
-            <span className="rw-link-title">{item.label}</span>
+      <header className="retro-topbar" style={{ top: `${shellTop}px` }}>
+        <div className="retro-topbar__inner">
+          <Link to="/" className="retro-topbar__brand hidden sm:flex" aria-label="Go to PiStation home">
+            <RetroPiece size="sm" />
+            <span className="retro-topbar__brand-text">PiStation</span>
           </Link>
-        ))}
-      </nav>
 
-      {/* Mobile bottom tab bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 flex justify-around items-center py-2 px-1" style={{ background: 'var(--surface-1)', borderTop: '1px solid var(--border-soft)' }}>
-          {[
-            { to: "/", label: "Home", icon: <Home size={20} /> },
-            { to: "/dashboard", label: "Dashboard", icon: <LayoutDashboard size={20} /> },
-            { to: "/games", label: "Games", icon: <Gamepad2 size={20} /> },
-            { to: "/chat", label: "Chat", icon: <MessageCircle size={20} /> },
-            { to: "/settings", label: "Settings", icon: <Settings2 size={20} /> },
-          ].map(item => (
-            <Link
-              key={item.to}
-              to={item.to}
-              className="flex flex-col items-center gap-0.5 text-[10px] transition-colors"
-              style={{ color: location.pathname === item.to ? 'var(--accent-primary)' : 'var(--text-muted)' }}
-            >
-              {item.icon}
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+          <nav className="retro-topbar__scroll" aria-label="Primary navigation">
+            <div className="retro-topbar__links">
+              {navItems.map((item) => (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className={`retro-top-link ${isRouteActive(item.to) ? "retro-top-link--active" : ""}`}
+                >
+                  <span>{item.icon}</span>
+                  <span>{item.label}</span>
+                </Link>
+              ))}
+            </div>
+          </nav>
 
-      {/* Fixed top-right controls */}
-      <div className="fixed top-4 right-4 z-40 flex items-center gap-2">
-        <Suspense fallback={null}><NotificationCenter /></Suspense>
-      </div>
+          <div className="retro-topbar__actions">
+            <Suspense fallback={null}><NotificationCenter /></Suspense>
+          </div>
+        </div>
+      </header>
+
+      <main
+        className="retro-main flex-1 flex flex-col relative overflow-hidden bg-background"
+        style={{ paddingTop: `${mainPaddingTop}px`, paddingBottom: "1.5rem" }}
+      >
+        <Suspense fallback={null}><SynthwaveBackground /></Suspense>
+        <div key={location.pathname} className="relative z-10 flex flex-1 flex-col min-h-0 page-transition">
+          <Outlet />
+        </div>
+      </main>
     </div>
   );
 }

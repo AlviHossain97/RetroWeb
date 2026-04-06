@@ -102,7 +102,7 @@ export default function Chat() {
   const voiceActive = voice.voiceModeActive;
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden" style={{ background: "var(--bg-primary)" }}>
+    <div className="retro-chat-shell flex-1 flex flex-col h-full overflow-hidden">
       {/* Zone 1: Header */}
       <ChatHeader
         selectedModel={selectedModel}
