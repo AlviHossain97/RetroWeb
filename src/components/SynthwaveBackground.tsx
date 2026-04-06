@@ -16,12 +16,18 @@ const SYNTHWAVE_CSS = `
 .synthwave-preview {
   position: fixed;
   inset: 0;
-  z-index: 0;
+  z-index: 14;
   overflow: hidden;
   pointer-events: none;
   user-select: none;
-  opacity: 0.28;
+  opacity: 0.13;
   mix-blend-mode: screen;
+}
+
+.synthwave-preview--showcase {
+  z-index: 1;
+  opacity: 1;
+  mix-blend-mode: normal;
 }
 
 .synthwave-preview::after {
@@ -29,8 +35,14 @@ const SYNTHWAVE_CSS = `
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at 50% 42%, rgba(255, 236, 154, 0.09), transparent 24%),
-    linear-gradient(180deg, rgba(7, 8, 14, 0.78), rgba(7, 8, 14, 0.42) 28%, rgba(7, 8, 14, 0.16) 58%, rgba(7, 8, 14, 0.72));
+    radial-gradient(circle at 50% 42%, rgba(255, 236, 154, 0.06), transparent 22%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 34%, rgba(255, 79, 79, 0.02) 78%, rgba(1, 235, 252, 0.03));
+}
+
+.synthwave-preview--showcase::after {
+  background:
+    radial-gradient(circle at 50% 42%, rgba(255, 236, 154, 0.14), transparent 24%),
+    linear-gradient(180deg, rgba(5, 6, 11, 0.12), rgba(5, 6, 11, 0.04) 30%, rgba(5, 6, 11, 0.08) 72%, rgba(5, 6, 11, 0.2));
 }
 
 .synthwave-preview #synthwave {
@@ -42,7 +54,11 @@ const SYNTHWAVE_CSS = `
   background-color: #2e0d3f;
   transform: translate(-50%, -50%);
   transform-origin: center center;
-  filter: saturate(0.72) brightness(0.74);
+  filter: saturate(0.56) brightness(0.56);
+}
+
+.synthwave-preview--showcase #synthwave {
+  filter: saturate(0.94) brightness(0.92);
 }
 
 .synthwave-preview #sunReflection {
@@ -380,60 +396,211 @@ const SYNTHWAVE_CSS = `
   perspective: 800px;
 }
 
-.synthwave-preview #car {
-  display: grid;
-  grid-template-rows: repeat(3, 1fr);
+/* ── R34 Skyline GT-R (rear view) ── */
+.synthwave-preview #r34 {
   position: absolute;
-  height: 50%;
-  width: 55%;
   left: 50%;
-  bottom: 0;
-  transform: translate(-50%);
-  animation: synthwave-movingCar infinite 4s;
+  bottom: 36px;
+  width: 152px;
+  height: 86px;
+  transform: translateX(-50%);
+  filter:
+    drop-shadow(0 8px 12px rgba(0, 0, 0, 0.52))
+    drop-shadow(0 0 14px rgba(255, 50, 50, 0.14));
 }
 
-@keyframes synthwave-movingCar {
-  0% {
-    bottom: 0;
-    scale: 1;
-    left: 50%;
-  }
-  19% {
-    bottom: 40px;
-    scale: 0;
-    left: 23%;
-  }
-  20% {
-    bottom: -600px;
-    scale: 2;
-    left: 80%;
-  }
-  30% {
-    bottom: 0;
-    scale: 1;
-    left: 50%;
-  }
-}
-
-.synthwave-preview #cutout {
-  background-color: transparent;
-  width: 100%;
-  height: 100%;
+/* GT wing — wide flat blade on two stalks, with end plates */
+.synthwave-preview #r34Wing {
   position: absolute;
-  overflow: hidden;
+  top: 0;
+  left: 50%;
+  width: 96px;
+  height: 5px;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg, rgba(100, 104, 126, 0.96), rgba(30, 33, 48, 0.98));
+  border: 1px solid rgba(180, 190, 218, 0.22);
+  border-radius: 2px;
+  box-shadow: 0 -1px 4px rgba(1, 235, 252, 0.05);
 }
 
-.synthwave-preview #cutout::before {
+/* Wing stalks */
+.synthwave-preview #r34Wing::before,
+.synthwave-preview #r34Wing::after {
   content: "";
   position: absolute;
-  top: 50%;
+  bottom: -14px;
+  width: 4px;
+  height: 14px;
+  background: linear-gradient(180deg, rgba(78, 82, 100, 0.96), rgba(20, 22, 32, 0.98));
+  border-radius: 1px;
+}
+
+.synthwave-preview #r34Wing::before {
+  left: 16px;
+}
+
+.synthwave-preview #r34Wing::after {
+  right: 16px;
+}
+
+/* Cabin — R34's compact, squared rear window with thick C-pillars */
+.synthwave-preview #r34Cabin {
+  position: absolute;
   left: 50%;
-  transform: translate(-50%, -50%);
-  width: 260px;
-  height: 225px;
-  background-color: transparent;
-  border-radius: 20px;
-  box-shadow: 0 0 0 1000px rgba(19, 19, 19, 0.5);
+  top: 14px;
+  width: 76px;
+  height: 18px;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg, rgba(26, 32, 54, 0.92), rgba(6, 8, 14, 0.98));
+  clip-path: polygon(10% 100%, 90% 100%, 78% 0%, 22% 0%);
+}
+
+.synthwave-preview #r34Glass {
+  position: absolute;
+  inset: 2px 10px 1px;
+  background: linear-gradient(180deg, rgba(62, 98, 148, 0.42), rgba(8, 10, 16, 0.94));
+  clip-path: polygon(8% 100%, 92% 100%, 80% 0%, 20% 0%);
+}
+
+/* Body — wide muscular rear with pronounced fender flares */
+.synthwave-preview #r34Body {
+  position: absolute;
+  inset: 28px 0 0;
+  background: linear-gradient(
+    180deg,
+    rgba(62, 67, 90, 0.98) 0%,
+    rgba(44, 48, 68, 0.99) 35%,
+    rgba(22, 25, 38, 1) 100%
+  );
+  border: 1px solid rgba(190, 200, 226, 0.18);
+  border-radius: 14px 14px 10px 10px;
+  clip-path: polygon(
+    3% 100%,
+    97% 100%,
+    100% 58%,
+    99% 38%,
+    94% 18%,
+    76% 0%,
+    24% 0%,
+    6% 18%,
+    1% 38%,
+    0% 58%
+  );
+}
+
+/* Horizontal trunk/bumper crease — R34 has a visible seam across the rear */
+.synthwave-preview #r34Body::before {
+  content: "";
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 52%;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(140, 150, 180, 0.18) 15%,
+    rgba(140, 150, 180, 0.22) 50%,
+    rgba(140, 150, 180, 0.18) 85%,
+    transparent 100%
+  );
+}
+
+/* Badge/garnish bar — the R34's signature strip connecting tail light clusters */
+.synthwave-preview #r34BadgeBar {
+  position: absolute;
+  left: 50%;
+  top: 6px;
+  width: 104px;
+  height: 6px;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg, rgba(8, 10, 16, 0.92), rgba(36, 40, 56, 0.88));
+  border-radius: 1px;
+  border: 1px solid rgba(80, 86, 108, 0.16);
+}
+
+/* Quad round tail lights — R34's most iconic feature */
+.synthwave-preview .r34-taillight {
+  position: absolute;
+  top: 7px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 38% 38%,
+    rgba(255, 200, 200, 0.98) 0%,
+    rgba(255, 80, 80, 0.96) 30%,
+    rgba(220, 30, 30, 0.94) 55%,
+    rgba(120, 0, 0, 0.98) 100%
+  );
+  box-shadow:
+    0 0 8px rgba(255, 50, 50, 0.5),
+    0 0 16px rgba(255, 30, 30, 0.2);
+  border: 1px solid rgba(255, 120, 120, 0.15);
+}
+
+/* Left cluster — tightly paired */
+.synthwave-preview .r34-taillight--leftA {
+  left: 14px;
+}
+
+.synthwave-preview .r34-taillight--leftB {
+  left: 30px;
+}
+
+/* Right cluster — mirrored */
+.synthwave-preview .r34-taillight--rightA {
+  right: 30px;
+}
+
+.synthwave-preview .r34-taillight--rightB {
+  right: 14px;
+}
+
+/* License plate — small and recessed */
+.synthwave-preview #r34Plate {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  width: 26px;
+  height: 8px;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg, rgba(238, 242, 252, 0.78), rgba(130, 142, 168, 0.64));
+  border-radius: 1.5px;
+  box-shadow: inset 0 0 0 1px rgba(8, 10, 16, 0.32);
+}
+
+/* Rear diffuser / lower bumper — wide to match fender stance */
+.synthwave-preview #r34Diffuser {
+  position: absolute;
+  left: 50%;
+  bottom: 2px;
+  width: 86px;
+  height: 12px;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg, rgba(10, 12, 18, 0.97), rgba(24, 26, 36, 0.94));
+  clip-path: polygon(3% 100%, 97% 100%, 92% 0%, 8% 0%);
+  border-top: 1px solid rgba(60, 66, 86, 0.18);
+}
+
+/* Dual exhaust tips — visible through diffuser */
+.synthwave-preview #r34Diffuser::before,
+.synthwave-preview #r34Diffuser::after {
+  content: "";
+  position: absolute;
+  bottom: 1px;
+  width: 10px;
+  height: 6px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(140, 144, 160, 0.8), rgba(40, 42, 52, 0.96));
+  box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.6);
+}
+
+.synthwave-preview #r34Diffuser::before {
+  left: 10px;
+}
+
+.synthwave-preview #r34Diffuser::after {
+  right: 10px;
 }
 
 .synthwave-preview #hill,
@@ -863,7 +1030,12 @@ const SYNTHWAVE_CSS = `
 
 .a11y-reduced-motion .synthwave-preview,
 .lite-mode .synthwave-preview {
-  opacity: 0.16;
+  opacity: 0.08;
+}
+
+.a11y-reduced-motion .synthwave-preview--showcase,
+.lite-mode .synthwave-preview--showcase {
+  opacity: 0.82;
 }
 
 .a11y-reduced-motion .synthwave-preview *,
@@ -879,7 +1051,7 @@ const SYNTHWAVE_CSS = `
 
 @media (max-width: 768px) {
   .synthwave-preview {
-    opacity: 0.2;
+    opacity: 0.1;
   }
 
   .synthwave-preview #synthwave {
@@ -887,8 +1059,10 @@ const SYNTHWAVE_CSS = `
     transform: translate(-50%, -50%) scale(1.32);
   }
 
-  .synthwave-preview #cutout::before {
-    box-shadow: 0 0 0 1000px rgba(19, 19, 19, 0.35);
+  .synthwave-preview #r34 {
+    width: 114px;
+    height: 64px;
+    bottom: 28px;
   }
 }
 `;
@@ -911,7 +1085,7 @@ function HillSvg({ mirrored = false }: { mirrored?: boolean }) {
   );
 }
 
-export default function SynthwaveBackground() {
+export default function SynthwaveBackground({ variant = "default" }: { variant?: "default" | "showcase" }) {
   const [scale, setScale] = useState(1);
 
   useEffect(() => {
@@ -929,7 +1103,10 @@ export default function SynthwaveBackground() {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: SYNTHWAVE_CSS }} />
-      <div className="synthwave-preview" aria-hidden="true">
+      <div
+        className={`synthwave-preview ${variant === "showcase" ? "synthwave-preview--showcase" : ""}`}
+        aria-hidden="true"
+      >
         <div id="synthwave" style={{ transform: `translate(-50%, -50%) scale(${scale})` }}>
           <div id="stars">
             {STAR_IDS.map((index) => (
@@ -972,6 +1149,22 @@ export default function SynthwaveBackground() {
               {LINE_IDS.map((index) => (
                 <div key={index} id={`line${index}`} />
               ))}
+            </div>
+          </div>
+
+          <div id="r34">
+            <div id="r34Wing" />
+            <div id="r34Cabin">
+              <div id="r34Glass" />
+            </div>
+            <div id="r34Body">
+              <div id="r34BadgeBar" />
+              <div className="r34-taillight r34-taillight--leftA" />
+              <div className="r34-taillight r34-taillight--leftB" />
+              <div className="r34-taillight r34-taillight--rightA" />
+              <div className="r34-taillight r34-taillight--rightB" />
+              <div id="r34Plate" />
+              <div id="r34Diffuser" />
             </div>
           </div>
 
