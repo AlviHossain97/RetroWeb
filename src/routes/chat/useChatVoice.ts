@@ -1,8 +1,22 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { KOKORO_BASE, STT_BASE } from "./constants";
+import { KOKORO_BASE, PISTATION_API, STT_BASE } from "./constants";
 import type { VoiceState } from "./constants";
 import type { TTSSession } from "./useChatSend";
 import { checkAndUnlock } from "../../lib/achievements";
+
+function logVoiceStage(stage: string, detail?: string) {
+  if (detail) {
+    console.log(`[VOICE] ${stage} —`, detail);
+  } else {
+    console.log(`[VOICE] ${stage}`);
+  }
+  fetch(`${PISTATION_API}/ai/voice-stage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ stage, detail: detail ?? null }),
+    keepalive: true,
+  }).catch(() => {});
+}
 
 export type ActivationMode = "auto_near_field" | "headset" | "push_to_talk";
 
@@ -95,6 +109,7 @@ export function useChatVoice(opts: {
   // Core recording loop — handles both continuous (near-field/headset) and PTT modes
   const startListeningLoop = useCallback(async () => {
     if (!voiceModeRef.current) return;
+    logVoiceStage("recording_start", `mode=${activationModeRef.current}`);
     retryCountRef.current = 0;
 
     try {
@@ -176,6 +191,7 @@ export function useChatVoice(opts: {
 
         const startTime = Date.now();
         let lastFrameTime = performance.now();
+        let lastDebugLog = 0;
 
         const checkSilence = () => {
           if (recorder.state !== "recording") return;
@@ -204,12 +220,21 @@ export function useChatVoice(opts: {
           speechBandEnergy /= (binEnd - binStart + 1);
 
           const smoothingFactor = 0.03;
-          if (!speechDetected) {
+          // Only adapt the noise floor during quiet frames — otherwise it chases the voice
+          if (!speechDetected && speechBandEnergy < 25) {
             noiseFloor = (noiseFloor * (1 - smoothingFactor)) + (speechBandEnergy * smoothingFactor);
           }
 
           const snrRatio = noiseFloor > 0 ? speechBandEnergy / noiseFloor : 1;
-          const isCurrentFrameSpeech = speechBandEnergy >= MIN_ABSOLUTE_ENERGY && snrRatio >= TARGET_SNR_MARGIN;
+          const LOUD_ENERGY_BYPASS = 60;
+          const isCurrentFrameSpeech =
+            (speechBandEnergy >= MIN_ABSOLUTE_ENERGY && snrRatio >= TARGET_SNR_MARGIN) ||
+            speechBandEnergy >= LOUD_ENERGY_BYPASS;
+
+          if (pNow - lastDebugLog > 500) {
+            lastDebugLog = pNow;
+            console.log(`[VOICE-DBG] energy=${speechBandEnergy.toFixed(1)} floor=${noiseFloor.toFixed(1)} snr=${snrRatio.toFixed(2)} speech=${isCurrentFrameSpeech} detected=${speechDetected}`);
+          }
 
           if (isCurrentFrameSpeech) {
             consecutiveSpeechMs += dt;
@@ -249,6 +274,7 @@ export function useChatVoice(opts: {
       const isPTTNow = activationModeRef.current === "push_to_talk";
       const MIN_BYTES = isPTTNow ? 2000 : (activationModeRef.current === "headset" ? 2000 : 4000);
       if (audioBlob.size < MIN_BYTES) {
+        logVoiceStage("audio_rejected", `${audioBlob.size}B < ${MIN_BYTES}B min — looping`);
         if (isPTTNow) {
           voiceModeRef.current = false;
           pttSourceRef.current = null;
@@ -259,9 +285,12 @@ export function useChatVoice(opts: {
         }
         return;
       }
+      logVoiceStage("recording_done", `${audioBlob.size} bytes`);
 
       setVoiceState("processing");
+      logVoiceStage("transcribing", `${audioBlob.size} bytes`);
       const transcript = await transcribeChunk(audioBlob);
+      if (transcript) logVoiceStage("transcribed", transcript);
 
       if (!transcript) {
         if (isPTTNow || !voiceModeRef.current) {
@@ -290,6 +319,7 @@ export function useChatVoice(opts: {
         }
       }
 
+      logVoiceStage("ai_receiving", transcript);
       onTranscript(transcript);
 
       // For PTT, clean up after sending
@@ -368,6 +398,7 @@ export function useChatVoice(opts: {
     setVoiceModeActive(true);
     setVoiceState("listening");
     setVoiceError(null);
+    logVoiceStage("listening");
     void checkAndUnlock("voice_mode");
     startRecRef.current();
   }, []);
@@ -501,6 +532,7 @@ export function useChatVoice(opts: {
           setVoiceState("speaking");
           muteMic(true);
         }
+        logVoiceStage("kokoro_speaking", text);
         const audioPromise = fetchAudio(text);
         audioQueue.push(audioPromise);
         playChain = playChain.then(() =>

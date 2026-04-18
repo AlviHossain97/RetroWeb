@@ -35,6 +35,10 @@ class Settings(BaseSettings):
     grounded_temperature: float = 0.2
     normal_temperature: float = 0.7
 
+    # Image generation (ImageRouter)
+    imagerouter_api_key: str = os.getenv("IMAGEROUTER_API_KEY", "")
+    imagerouter_image_model: str = "google/nano-banana-2:free"
+
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8",

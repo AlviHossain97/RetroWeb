@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation } from "react-router";
 import type { ReactNode } from "react";
-import { Gamepad2, Settings2, MessageCircle, Home, Download, X, LayoutDashboard, Activity, Monitor, Trophy, BarChart3 } from "lucide-react";
+import { Gamepad2, Settings2, MessageCircle, Home, Download, X, LayoutDashboard, Activity, Monitor, Trophy, BarChart3, Image } from "lucide-react";
 import { useState, useEffect, useRef, useMemo, lazy, Suspense } from "react";
 import { Toaster, toast } from "sonner";
 import { useInputMode } from "@/hooks/useInputMode";
@@ -115,6 +115,7 @@ export default function App() {
     { to: "/games", label: "Games", icon: <Gamepad2 size={18} /> },
     { to: "/systems", label: "Systems", icon: <Gamepad2 size={18} /> },
     { to: "/devices", label: "Devices", icon: <Monitor size={18} /> },
+    { to: "/background", label: "Background", icon: <Image size={18} /> },
     { to: "/chat", label: "Chat", icon: <MessageCircle size={18} /> },
     { to: "/controller", label: "Controller", icon: <Gamepad2 size={18} /> },
     { to: "/achievements", label: "Achievements", icon: <Trophy size={18} /> },
@@ -127,6 +128,7 @@ export default function App() {
     return location.pathname === to || location.pathname.startsWith(`${to}/`);
   };
 
+  const isBackgroundShowcase = location.pathname === "/background";
   const shellTop = isOffline ? 48 : 16;
   const mainPaddingTop = isOffline ? 124 : 92;
 
@@ -179,10 +181,11 @@ export default function App() {
                 <Link
                   key={item.to}
                   to={item.to}
+                  aria-label={item.label}
                   className={`retro-top-link ${isRouteActive(item.to) ? "retro-top-link--active" : ""}`}
                 >
-                  <span>{item.icon}</span>
-                  <span>{item.label}</span>
+                  <span className="retro-top-link__icon">{item.icon}</span>
+                  <span className="retro-top-link__label" aria-hidden="true">{item.label}</span>
                 </Link>
               ))}
             </div>
@@ -195,13 +198,19 @@ export default function App() {
       </header>
 
       <main
-        className="retro-main flex-1 flex flex-col relative overflow-hidden bg-background"
+        className={`retro-main flex-1 flex flex-col relative overflow-hidden bg-background ${isBackgroundShowcase ? "retro-main--showcase" : ""}`}
         style={{ paddingTop: `${mainPaddingTop}px`, paddingBottom: "1.5rem" }}
       >
-        <Suspense fallback={null}><SynthwaveBackground /></Suspense>
-        <div key={location.pathname} className="relative z-10 flex flex-1 flex-col min-h-0 page-transition">
+        <Suspense fallback={null}>
+          <SynthwaveBackground variant={isBackgroundShowcase ? "showcase" : "default"} />
+        </Suspense>
+        {isBackgroundShowcase ? (
           <Outlet />
-        </div>
+        ) : (
+          <div key={location.pathname} className="relative z-10 flex flex-1 flex-col min-h-0 page-transition">
+            <Outlet />
+          </div>
+        )}
       </main>
     </div>
   );

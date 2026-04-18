@@ -141,6 +141,21 @@ def get_ai_context_get():
         raise HTTPException(status_code=500, detail=f"Failed to fetch AI context: {e}")
 
 
+class VoiceStageRequest(BaseModel):
+    stage: str
+    detail: str | None = None
+
+
+@router.post("/voice-stage")
+def log_voice_stage(req: VoiceStageRequest):
+    """Prints a voice pipeline stage marker to the server terminal."""
+    if req.detail:
+        print(f"[VOICE] {req.stage} — {req.detail}", flush=True)
+    else:
+        print(f"[VOICE] {req.stage}", flush=True)
+    return {"ok": True}
+
+
 class GroundingRequest(BaseModel):
     question: str
     history: list = []

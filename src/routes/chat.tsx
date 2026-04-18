@@ -12,7 +12,7 @@ import { ChatInput } from "./chat/ChatInput";
 import { ChatVoiceBar } from "./chat/ChatVoiceBar";
 import { ChatClearDialog } from "./chat/ChatClearDialog";
 import { ChatVoiceSettingsModal } from "./chat/ChatVoiceSettingsModal";
-import { DEFAULT_MODEL, type OverlayState } from "./chat/constants";
+import { DEFAULT_MODEL, PISTATION_API, type OverlayState, type GeneratedImage } from "./chat/constants";
 
 function isInteractiveElement(el: Element | null): boolean {
   if (!el) return false;
@@ -33,6 +33,8 @@ export default function Chat() {
   const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_MODEL);
   const [webMode, setWebMode] = useState<"auto" | "always" | "never">("auto");
   const [overlay, setOverlay] = useState<OverlayState>("none");
+  const [imageMode, setImageMode] = useState(false);
+  const [imageGenerating, setImageGenerating] = useState(false);
 
   // Ref to break circular dependency: voice needs send, send needs voice's TTS
   const sendRef = useRef<(text: string) => void>(() => {});
@@ -63,6 +65,57 @@ export default function Chat() {
 
   // Keep ref in sync
   sendRef.current = send.sendMessage;
+
+  // ── Image generation handler ──
+  const handleImageGenerate = useCallback(async () => {
+    const prompt = composer.input.trim();
+    if (!prompt || imageGenerating) return;
+
+    transcript.appendUser({ role: "user", content: prompt });
+    composer.clearComposer();
+    setImageGenerating(true);
+    transcript.appendAssistant({ role: "assistant", content: "" });
+
+    try {
+      const resp = await fetch(`${PISTATION_API}/ai/generate-image`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt }),
+      });
+
+      if (!resp.ok) {
+        const body = await resp.json().catch(() => ({}));
+        throw new Error(body.detail || `Generation failed (${resp.status})`);
+      }
+
+      const data = await resp.json();
+      const genImage: GeneratedImage = {
+        base64: data.imageBase64,
+        mimeType: data.mimeType,
+        prompt: data.finalPrompt,
+        title: data.title || "",
+        stylePreset: data.stylePreset || "",
+      };
+
+      transcript.patchLastAssistant({
+        content: data.title ? `Here's your generated artwork: "${data.title}"` : "Here's your generated artwork!",
+        generatedImage: genImage,
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Image generation failed";
+      transcript.patchLastAssistant({ content: `Image generation error: ${msg}` });
+    } finally {
+      setImageGenerating(false);
+    }
+  }, [composer, transcript, imageGenerating]);
+
+  const handleSend = useCallback(() => {
+    if (imageMode) {
+      handleImageGenerate();
+    } else {
+      send.sendMessage();
+    }
+  }, [imageMode, handleImageGenerate, send]);
 
   // Escape key closes overlays + Global T key for push-to-talk
   useEffect(() => {
@@ -169,7 +222,10 @@ export default function Chat() {
         voiceModeActive={voice.voiceModeActive}
         kokoroOnline={health.kokoroOnline}
         activationMode={voice.activationMode}
-        onSend={() => send.sendMessage()}
+        imageMode={imageMode}
+        imageGenerating={imageGenerating}
+        onToggleImageMode={() => setImageMode(!imageMode)}
+        onSend={handleSend}
         onCancelStream={send.cancelStream}
         onStartVoiceMode={voice.startVoiceMode}
         onStopVoiceMode={voice.stopVoiceMode}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 /* From Uiverse.io by BlackisPlay — adapted as a full-screen PiStation preview overlay */
 
@@ -8,9 +8,19 @@ const HILL_IMAGE_DATA_URL =
 const TREE_PATH =
   "m 155.60965,35.459235 c -0.0814,0.008 -0.31512,0.299173 -0.78443,0.882632 -1.7494,2.17484 -3.447,4.9281 -4.54187,7.365971 -0.88828,1.977919 -1.69331,4.417089 -2.0257,6.138648 -0.0809,0.4191 -0.16343,0.814411 -0.18243,0.879001 -0.0196,0.0647 -0.34327,-0.33465 -0.72036,-0.88882 -3.166,-4.652722 -7.95419,-8.60562 -11.96879,-9.880542 -1.66259,-0.528 -2.18504,-0.606189 -4.06435,-0.607189 -1.2941,0 -1.87949,0.0348 -2.48459,0.152421 -4.0318,0.784151 -8.02201,3.218339 -11.87681,7.245559 l -1.08984,1.13896 -4.95805,5.473141 c 1.89642,-0.39947 3.7248,-1.168691 5.65621,-1.37882 0.89619,-0.0976 4.56115,-0.121531 5.80326,-0.0377 0.52567,0.0354 1.61168,0.17661 2.41379,0.31369 4.62079,0.7897 8.39399,2.650941 11.32438,5.585691 0.7162,0.71721 4.0155,4.734561 3.9455,4.804361 -0.0148,0.01479 -0.34812,-0.0159 -0.74002,-0.0687 -0.90569,-0.121999 -3.11983,-0.0447 -3.97184,0.13902 -1.01039,0.21785 -2.58316,0.771552 -3.59566,1.265552 -1.41359,0.689719 -3.46382,2.0964 -4.18733,2.873219 l -0.20515,0.22066 0.62838,0.004 c 3.4857,0.0222 8.13279,0.893001 10.88718,2.039681 l 0.65011,0.270241 -0.9271,0.266149 c -2.76789,0.794618 -5.83965,2.274959 -7.87495,3.794599 -4.5692,3.411511 -8.52292,9.364469 -11.65252,17.544139 -0.5003,1.307532 -1.19988,3.36441 -1.53429,4.510842 -0.14409,0.49421 -0.15486,0.492779 0.45424,0.0584 4.1248,-2.941601 9.74902,-5.96596 13.46224,-7.239331 0.5821,-0.199628 1.08738,-0.38712 1.12138,-0.41651 0.0661,-0.0563 -0.70718,-3.25411 -1.4945,-6.181539 -0.2563,-0.95286 -0.45321,-1.74448 -0.4382,-1.75959 0.0386,-0.0386 1.12895,1.64973 1.65364,2.56056 0.5329,0.92514 1.18026,2.26509 1.78025,3.6835 0.2463,0.582092 0.47443,1.08744 0.50644,1.12345 0.0322,0.036 0.32242,0.01011 0.64492,-0.0579 1.15589,-0.243051 3.03943,-0.322421 4.42143,-0.18657 0.4355,0.0429 0.52554,0.0299 0.52554,-0.0765 0,-0.66117 -1.63663,-6.974473 -2.83083,-10.920262 l -0.12816,-0.42322 0.25632,0.29609 c 0.141,0.162992 0.51594,0.677421 0.83355,1.14308 1.7662,2.589429 3.02604,5.152551 4.20282,8.55141 l 0.52764,1.523949 1.41695,-0.0269 c 1.34061,-0.02569 1.41356,-0.019 1.35755,0.126632 -0.0326,0.0847 -0.30234,0.99246 -0.59944,2.016908 -2.8502,9.827227 -5.06434,19.827962 -6.85075,30.945402 -0.6835,4.25393 -1.92657,12.66834 -2.54506,17.22997 -0.12001,0.88476 -0.27141,1.98948 -0.33642,2.45515 -0.0652,0.46566 -0.15978,1.15138 -0.20878,1.52393 -0.33218,2.5039 -0.43201,3.26675 -0.47799,3.64062 -0.0284,0.23283 -0.24892,1.98562 -0.49041,3.89484 l -0.43926,3.47113 -0.84439,0.0153 c -28.84504,4.49091 -40.188808,24.98454 -17.30841,25.768 l 38.19237,-0.0616 c 33.41732,-0.10707 -1.30485,-24.46415 -13.72317,-25.73324 -0.0303,-0.0286 0.23651,-3.44618 0.3824,-4.89893 0.0188,-0.1863 0.13047,-1.36735 0.24858,-2.62465 0.11818,-1.2573 0.2726,-2.85735 0.3426,-3.55585 0.0702,-0.6985 0.16587,-1.651 0.21188,-2.11667 1.3997,-14.08029 3.19511,-25.08541 6.60321,-40.470935 0.19661,-0.88794 0.41696,-1.678089 0.49197,-1.763708 0.0873,-0.0999 0.15523,-0.401979 0.19222,-0.84696 0.0674,-0.82196 0.96014,-4.561258 1.17564,-4.924769 0.0828,-0.1397 0.21879,-0.47231 0.30179,-0.739481 0.0831,-0.267208 0.16597,-0.470991 0.18396,-0.45271 0.0539,0.0538 0.32266,2.325481 0.57156,4.832781 0.027,0.2794 0.0658,0.641609 0.0847,0.804619 0.0193,0.162959 0.0763,0.75324 0.12661,1.31204 0.0503,0.5588 0.10617,1.149618 0.12454,1.312598 0.0185,0.16299 0.0577,0.60107 0.0873,0.97359 0.0295,0.37253 0.0672,0.772405 0.0832,0.888815 0.0161,0.11645 0.0528,0.51685 0.0822,0.88937 0.0294,0.37254 0.07,0.86786 0.0899,1.1007 0.0199,0.23284 0.0772,0.91858 0.12767,1.52394 0.0504,0.60537 0.10718,1.23384 0.12607,1.39682 0.019,0.16298 0.0357,0.48366 0.0377,0.7126 0.003,0.22897 0.0212,0.39844 0.0429,0.37674 0.0651,-0.0651 0.61052,-2.88158 0.88315,-4.56046 0.5393,-3.320925 0.73829,-5.114853 0.93379,-8.424282 l 0.0548,-0.93173 0.23567,0.50797 c 0.38584,0.8318 1.44256,3.536099 1.99625,5.108727 1.56298,4.439465 3.10028,10.476105 3.90311,15.327775 0.13385,0.80889 0.2585,1.4858 0.27699,1.50429 0.0789,0.0789 0.51149,-3.14339 0.60979,-4.54131 0.0279,-0.39584 0.0818,-1.15793 0.11988,-1.69344 0.21212,-2.98285 0.17182,-10.011205 -0.0811,-14.139713 -0.16777,-2.73806 -0.16912,-2.76124 -0.29147,-4.190969 -0.35277,-4.122901 -0.54448,-5.90841 -0.93998,-8.76019 -0.16447,-1.185891 -0.27766,-2.24065 -0.25167,-2.344031 0.0729,-0.29051 1.32789,-1.562229 1.85364,-1.87843 1.36005,-0.81802 4.33267,-1.704369 5.71954,-1.70638 0.27051,0 0.24389,0.0259 -0.44495,0.44392 -0.40296,0.24447 -0.96901,0.616241 -1.2578,0.825791 -0.75663,0.54904 -2.13937,1.951379 -2.7962,2.83599 -0.68828,0.926938 -1.63681,2.57093 -1.53531,2.66134 0.0406,0.0361 0.51196,0.42132 1.04747,0.855761 1.14853,0.931788 3.72153,3.107798 5.03794,4.260717 0.51225,0.448601 0.95027,0.81439 0.97358,0.813382 0.0233,0 0.1641,-0.202911 0.31266,-0.44854 0.53192,-0.87953 1.67727,-2.2378 2.97863,-3.53156 0.72779,-0.72358 1.45653,-1.408509 1.61954,-1.52241 l 0.29609,-0.207222 -0.16536,0.252701 c -1.06977,1.63177 -1.74853,2.900522 -2.37091,4.4328 -0.44354,1.09197 -0.92056,2.513441 -0.88005,2.622082 0.0161,0.0436 0.77107,0.759859 1.6774,1.591627 0.90636,0.831771 2.2316,2.079411 2.94452,2.772961 0.71295,0.693531 1.30919,1.24614 1.32501,1.22783 0.0159,-0.01831 0.15229,-0.35711 0.30332,-0.75293 0.45466,-1.191469 1.24756,-2.936949 1.88515,-4.148579 0.62318,-1.184201 0.9711,-1.77483 0.87231,-1.481571 -0.68051,2.020181 -1.36181,5.164621 -1.60869,7.42434 l -0.0527,0.48165 0.79997,0.872808 c 1.23341,1.34575 2.57776,2.934285 3.80492,4.497395 l 1.11726,1.4237 0.10128,-1.04233 c 0.12941,-1.33186 0.43947,-3.831885 0.52295,-4.217305 0.0404,-0.18658 0.0857,0.42489 0.12247,1.651065 0.0322,1.07102 0.078,2.13756 0.10234,2.37039 0.0243,0.23284 0.10263,0.95193 0.17362,1.59786 l 0.12867,1.17458 1.46502,2.21229 c 2.22327,3.35745 3.43853,5.44158 4.89376,8.39277 0.51885,1.05219 0.81828,1.58094 0.79119,1.39681 -0.0241,-0.16298 -0.0847,-0.67741 -0.13539,-1.1431 -0.17867,-1.64093 -0.79161,-5.89289 -1.09813,-7.61969 -0.38613,-2.17515 -0.56295,-3.11938 -0.89609,-4.78368 -1.85409,-9.263344 -4.36822,-17.216713 -7.29308,-23.071971 -1.95416,-3.912021 -4.22762,-7.061912 -6.51692,-9.028401 -1.23299,-1.05913 -3.23311,-2.36718 -4.78264,-3.128492 l -0.56742,-0.279048 0.24444,-0.148301 c 0.38775,-0.235829 2.24248,-1.03545 3.26957,-1.409759 1.91468,-0.697762 4.8614,-1.453779 6.84969,-1.756992 1.47677,-0.225189 1.43602,-0.193569 0.8537,-0.650608 -0.27196,-0.213442 -0.86315,-0.58089 -1.3136,-0.81648 -2.74942,-1.43782 -6.08401,-2.092561 -10.61022,-2.082561 -0.82655,0.003 -1.50275,-0.006 -1.50275,-0.0169 0,-0.0114 0.24157,-0.39391 0.53692,-0.85006 0.70646,-1.09111 1.45822,-2.3595 2.47375,-4.1739 0.91921,-1.64235 1.08148,-1.90744 2.18024,-3.55587 1.54192,-2.313281 3.49568,-4.795549 5.72109,-7.269321 1.2346,-1.37237 4.51038,-4.669319 5.58054,-5.61671 l 0.53329,-0.472329 -0.74517,-0.13486 c -1.68124,-0.304351 -2.90039,-0.410581 -5.02036,-0.4372 -2.46679,-0.031 -3.48848,0.0406 -5.56451,0.389651 -5.15739,0.867069 -9.75521,3.25814 -13.1687,6.848161 -2.03155,2.136589 -4.24087,5.271428 -5.62033,7.974198 l -0.40463,0.79272 -0.0569,-0.67697 c -0.0312,-0.37256 -0.0815,-0.98242 -0.1116,-1.354951 -0.094,-1.161999 -0.12845,-6.142519 -0.0481,-6.942748 0.19267,-1.91728 0.27945,-2.633581 0.47698,-3.936712 0.23537,-1.552869 0.7482,-4.110299 1.1162,-5.566069 0.13951,-0.55186 0.21063,-0.827899 0.1292,-0.820099 z";
 
+const HILL_PATH = "M0 44 L12 29 L30 11 L48 24 L63 4 L84 19 L108 44 Z";
+void HILL_IMAGE_DATA_URL;
+
 const STAR_IDS = Array.from({ length: 14 }, (_, index) => index);
 const STRIPE_IDS = Array.from({ length: 8 }, (_, index) => index);
 const LINE_IDS = Array.from({ length: 8 }, (_, index) => index);
+const SCENE_WIDTH = 300;
+const SCENE_HEIGHT = 250;
+
+function getSceneScale(width: number, height: number) {
+  const nextScale = Math.max(width / SCENE_WIDTH, height / SCENE_HEIGHT) * 1.01;
+  return Number(nextScale.toFixed(4));
+}
 
 const SYNTHWAVE_CSS = `
 .synthwave-preview {
@@ -52,9 +62,11 @@ const SYNTHWAVE_CSS = `
   width: 300px;
   height: 250px;
   background-color: #2e0d3f;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) scale(var(--synthwave-scale, 1));
   transform-origin: center center;
   filter: saturate(0.56) brightness(0.56);
+  will-change: transform;
+  transition: transform 180ms ease-out;
 }
 
 .synthwave-preview--showcase #synthwave {
@@ -396,229 +408,57 @@ const SYNTHWAVE_CSS = `
   perspective: 800px;
 }
 
-/* ── R34 Skyline GT-R (rear view) ── */
-.synthwave-preview #r34 {
-  position: absolute;
-  left: 50%;
-  bottom: 36px;
-  width: 152px;
-  height: 86px;
-  transform: translateX(-50%);
-  filter:
-    drop-shadow(0 8px 12px rgba(0, 0, 0, 0.52))
-    drop-shadow(0 0 14px rgba(255, 50, 50, 0.14));
-}
-
-/* GT wing — wide flat blade on two stalks, with end plates */
-.synthwave-preview #r34Wing {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  width: 96px;
-  height: 5px;
-  transform: translateX(-50%);
-  background: linear-gradient(180deg, rgba(100, 104, 126, 0.96), rgba(30, 33, 48, 0.98));
-  border: 1px solid rgba(180, 190, 218, 0.22);
-  border-radius: 2px;
-  box-shadow: 0 -1px 4px rgba(1, 235, 252, 0.05);
-}
-
-/* Wing stalks */
-.synthwave-preview #r34Wing::before,
-.synthwave-preview #r34Wing::after {
-  content: "";
-  position: absolute;
-  bottom: -14px;
-  width: 4px;
-  height: 14px;
-  background: linear-gradient(180deg, rgba(78, 82, 100, 0.96), rgba(20, 22, 32, 0.98));
-  border-radius: 1px;
-}
-
-.synthwave-preview #r34Wing::before {
-  left: 16px;
-}
-
-.synthwave-preview #r34Wing::after {
-  right: 16px;
-}
-
-/* Cabin — R34's compact, squared rear window with thick C-pillars */
-.synthwave-preview #r34Cabin {
-  position: absolute;
-  left: 50%;
-  top: 14px;
-  width: 76px;
-  height: 18px;
-  transform: translateX(-50%);
-  background: linear-gradient(180deg, rgba(26, 32, 54, 0.92), rgba(6, 8, 14, 0.98));
-  clip-path: polygon(10% 100%, 90% 100%, 78% 0%, 22% 0%);
-}
-
-.synthwave-preview #r34Glass {
-  position: absolute;
-  inset: 2px 10px 1px;
-  background: linear-gradient(180deg, rgba(62, 98, 148, 0.42), rgba(8, 10, 16, 0.94));
-  clip-path: polygon(8% 100%, 92% 100%, 80% 0%, 20% 0%);
-}
-
-/* Body — wide muscular rear with pronounced fender flares */
-.synthwave-preview #r34Body {
-  position: absolute;
-  inset: 28px 0 0;
-  background: linear-gradient(
-    180deg,
-    rgba(62, 67, 90, 0.98) 0%,
-    rgba(44, 48, 68, 0.99) 35%,
-    rgba(22, 25, 38, 1) 100%
-  );
-  border: 1px solid rgba(190, 200, 226, 0.18);
-  border-radius: 14px 14px 10px 10px;
-  clip-path: polygon(
-    3% 100%,
-    97% 100%,
-    100% 58%,
-    99% 38%,
-    94% 18%,
-    76% 0%,
-    24% 0%,
-    6% 18%,
-    1% 38%,
-    0% 58%
-  );
-}
-
-/* Horizontal trunk/bumper crease — R34 has a visible seam across the rear */
-.synthwave-preview #r34Body::before {
-  content: "";
-  position: absolute;
-  left: 8%;
-  right: 8%;
-  top: 52%;
-  height: 1px;
-  background: linear-gradient(90deg,
-    transparent 0%,
-    rgba(140, 150, 180, 0.18) 15%,
-    rgba(140, 150, 180, 0.22) 50%,
-    rgba(140, 150, 180, 0.18) 85%,
-    transparent 100%
-  );
-}
-
-/* Badge/garnish bar — the R34's signature strip connecting tail light clusters */
-.synthwave-preview #r34BadgeBar {
-  position: absolute;
-  left: 50%;
-  top: 6px;
-  width: 104px;
-  height: 6px;
-  transform: translateX(-50%);
-  background: linear-gradient(180deg, rgba(8, 10, 16, 0.92), rgba(36, 40, 56, 0.88));
-  border-radius: 1px;
-  border: 1px solid rgba(80, 86, 108, 0.16);
-}
-
-/* Quad round tail lights — R34's most iconic feature */
-.synthwave-preview .r34-taillight {
-  position: absolute;
-  top: 7px;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: radial-gradient(
-    circle at 38% 38%,
-    rgba(255, 200, 200, 0.98) 0%,
-    rgba(255, 80, 80, 0.96) 30%,
-    rgba(220, 30, 30, 0.94) 55%,
-    rgba(120, 0, 0, 0.98) 100%
-  );
-  box-shadow:
-    0 0 8px rgba(255, 50, 50, 0.5),
-    0 0 16px rgba(255, 30, 30, 0.2);
-  border: 1px solid rgba(255, 120, 120, 0.15);
-}
-
-/* Left cluster — tightly paired */
-.synthwave-preview .r34-taillight--leftA {
-  left: 14px;
-}
-
-.synthwave-preview .r34-taillight--leftB {
-  left: 30px;
-}
-
-/* Right cluster — mirrored */
-.synthwave-preview .r34-taillight--rightA {
-  right: 30px;
-}
-
-.synthwave-preview .r34-taillight--rightB {
-  right: 14px;
-}
-
-/* License plate — small and recessed */
-.synthwave-preview #r34Plate {
+.synthwave-preview #car {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: repeat(3, 1fr);
   position: absolute;
   left: 50%;
   bottom: 14px;
-  width: 26px;
-  height: 8px;
+  width: 55%;
+  height: 50%;
   transform: translateX(-50%);
-  background: linear-gradient(180deg, rgba(238, 242, 252, 0.78), rgba(130, 142, 168, 0.64));
-  border-radius: 1.5px;
-  box-shadow: inset 0 0 0 1px rgba(8, 10, 16, 0.32);
+  animation: synthwave-movingCar infinite 4s;
 }
 
-/* Rear diffuser / lower bumper — wide to match fender stance */
-.synthwave-preview #r34Diffuser {
-  position: absolute;
-  left: 50%;
-  bottom: 2px;
-  width: 86px;
-  height: 12px;
-  transform: translateX(-50%);
-  background: linear-gradient(180deg, rgba(10, 12, 18, 0.97), rgba(24, 26, 36, 0.94));
-  clip-path: polygon(3% 100%, 97% 100%, 92% 0%, 8% 0%);
-  border-top: 1px solid rgba(60, 66, 86, 0.18);
-}
-
-/* Dual exhaust tips — visible through diffuser */
-.synthwave-preview #r34Diffuser::before,
-.synthwave-preview #r34Diffuser::after {
-  content: "";
-  position: absolute;
-  bottom: 1px;
-  width: 10px;
-  height: 6px;
-  border-radius: 50%;
-  background: radial-gradient(ellipse at center, rgba(140, 144, 160, 0.8), rgba(40, 42, 52, 0.96));
-  box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.6);
-}
-
-.synthwave-preview #r34Diffuser::before {
-  left: 10px;
-}
-
-.synthwave-preview #r34Diffuser::after {
-  right: 10px;
+@keyframes synthwave-movingCar {
+  0% {
+    bottom: 0;
+    scale: 1;
+    left: 50%;
+  }
+  19% {
+    bottom: 40px;
+    scale: 0;
+    left: 23%;
+  }
+  20% {
+    bottom: -600px;
+    scale: 2;
+    left: 80%;
+  }
+  30% {
+    bottom: 0;
+    scale: 1;
+    left: 50%;
+  }
 }
 
 .synthwave-preview #hill,
 .synthwave-preview #hill2 {
-  width: 100px;
-  height: 100px;
+  width: 134px;
+  height: 56px;
   position: absolute;
-  top: 50px;
-  scale: 0.2;
+  top: 94px;
+  opacity: 0.98;
 }
 
 .synthwave-preview #hill {
-  right: 30px;
+  left: -4px;
 }
 
 .synthwave-preview #hill2 {
-  left: 30px;
-  transform: scaleX(-1);
+  right: -4px;
 }
 
 .synthwave-preview #tree {
@@ -998,6 +838,18 @@ const SYNTHWAVE_CSS = `
   animation: synthwave-movingGrid1 infinite 0.2s linear;
 }
 
+.synthwave-preview .synthwave-r34 {
+  position: absolute;
+  left: 50%;
+  bottom: 54px;
+  width: 58%;
+  max-width: 200px;
+  min-width: 112px;
+  aspect-ratio: 11 / 7;
+  transform: translateX(-50%);
+  display: block;
+}
+
 @keyframes synthwave-movingGrid0 {
   0% {
     transform: rotateX(85deg) rotateZ(10deg) translateY(0);
@@ -1043,12 +895,6 @@ const SYNTHWAVE_CSS = `
   animation: none !important;
 }
 
-@media (max-width: 1100px) {
-  .synthwave-preview #synthwave {
-    transform: translate(-50%, -50%) scale(2.05);
-  }
-}
-
 @media (max-width: 768px) {
   .synthwave-preview {
     opacity: 0.1;
@@ -1056,13 +902,18 @@ const SYNTHWAVE_CSS = `
 
   .synthwave-preview #synthwave {
     top: 58%;
-    transform: translate(-50%, -50%) scale(1.32);
   }
 
-  .synthwave-preview #r34 {
-    width: 114px;
-    height: 64px;
-    bottom: 28px;
+  .synthwave-preview #hill,
+  .synthwave-preview #hill2 {
+    width: 122px;
+    height: 52px;
+    top: 98px;
+  }
+
+  .synthwave-preview .synthwave-r34 {
+    bottom: 38px;
+    max-width: 156px;
   }
 }
 `;
@@ -1079,35 +930,459 @@ function TreeSvg({ mirrored = false }: { mirrored?: boolean }) {
 
 function HillSvg({ mirrored = false }: { mirrored?: boolean }) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="453" height="384" viewBox="0 0 453 384">
-      <image x="0" y="0" width="453" height="384" href={HILL_IMAGE_DATA_URL} transform={mirrored ? "scale(-1,1) translate(-453,0)" : undefined} />
+    <svg xmlns="http://www.w3.org/2000/svg" width="108" height="44" viewBox="0 0 108 44">
+      <path fill="#14042e" d={HILL_PATH} transform={mirrored ? "scale(-1,1) translate(-108,0)" : undefined} />
     </svg>
   );
 }
 
-export default function SynthwaveBackground({ variant = "default" }: { variant?: "default" | "showcase" }) {
-  const [scale, setScale] = useState(1);
+function drawR34Car(ctx: CanvasRenderingContext2D, width: number, height: number) {
+  const scale = Math.min(width / 440, height / 240);
+  const bodyColor = "#2968E8";
+  const outline = "#151520";
+  const bumperColor = "#1a1a2a";
+  const lineWidth = 2.8;
+
+  const roundedRect = (x: number, y: number, rectWidth: number, rectHeight: number, radius: number) => {
+    ctx.beginPath();
+    ctx.roundRect(x, y, rectWidth, rectHeight, radius);
+  };
+
+  ctx.clearRect(0, 0, width, height);
+  ctx.save();
+  ctx.translate(width / 2, height * 0.58);
+  ctx.scale(scale, scale);
+
+  ctx.lineWidth = lineWidth;
+  ctx.strokeStyle = outline;
+
+  ctx.fillStyle = "#2e2e42";
+  ctx.beginPath();
+  ctx.moveTo(-182, -130);
+  ctx.lineTo(182, -130);
+  ctx.lineTo(186, -120);
+  ctx.lineTo(-186, -120);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = "#26263a";
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(side * 180, -134);
+    ctx.lineTo(side * 190, -134);
+    ctx.lineTo(side * 190, -116);
+    ctx.lineTo(side * 178, -116);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  ctx.fillStyle = "#333346";
+  ctx.lineWidth = 2;
+  for (const supportX of [-108, 108]) {
+    ctx.beginPath();
+    ctx.moveTo(supportX - 5, -120);
+    ctx.lineTo(supportX + 5, -120);
+    ctx.lineTo(supportX + 4, -90);
+    ctx.lineTo(supportX - 4, -90);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  ctx.lineWidth = lineWidth;
+  ctx.strokeStyle = outline;
+  ctx.fillStyle = bodyColor;
+  ctx.beginPath();
+  ctx.moveTo(-186, 68);
+  ctx.lineTo(-192, 30);
+  ctx.lineTo(-192, -8);
+  ctx.lineTo(-186, -42);
+  ctx.lineTo(-172, -62);
+  ctx.lineTo(-152, -76);
+  ctx.lineTo(-128, -86);
+  ctx.lineTo(-118, -96);
+  ctx.lineTo(118, -96);
+  ctx.lineTo(128, -86);
+  ctx.lineTo(152, -76);
+  ctx.lineTo(172, -62);
+  ctx.lineTo(186, -42);
+  ctx.lineTo(192, -8);
+  ctx.lineTo(192, 30);
+  ctx.lineTo(186, 68);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  const bodyFade = ctx.createLinearGradient(0, -50, 0, 70);
+  bodyFade.addColorStop(0, "rgba(0,0,0,0)");
+  bodyFade.addColorStop(0.6, "rgba(0,0,0,0)");
+  bodyFade.addColorStop(1, "rgba(0,0,30,0.2)");
+  ctx.fillStyle = bodyFade;
+  ctx.fill();
+
+  const leftHighlight = ctx.createLinearGradient(-195, 0, -160, 0);
+  leftHighlight.addColorStop(0, "rgba(255,255,255,0.09)");
+  leftHighlight.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = leftHighlight;
+  ctx.beginPath();
+  ctx.moveTo(-192, -8);
+  ctx.lineTo(-186, -42);
+  ctx.lineTo(-172, -62);
+  ctx.lineTo(-160, -62);
+  ctx.lineTo(-174, -42);
+  ctx.lineTo(-180, -8);
+  ctx.lineTo(-180, 30);
+  ctx.lineTo(-192, 30);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = "#080816";
+  ctx.strokeStyle = outline;
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(-112, -84);
+  ctx.lineTo(-100, -94);
+  ctx.lineTo(100, -94);
+  ctx.lineTo(112, -84);
+  ctx.lineTo(104, -63);
+  ctx.lineTo(-104, -63);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  const windowGradient = ctx.createLinearGradient(-60, -92, 60, -68);
+  windowGradient.addColorStop(0, "rgba(70,110,170,0.12)");
+  windowGradient.addColorStop(0.5, "rgba(100,150,200,0.06)");
+  windowGradient.addColorStop(1, "rgba(60,100,160,0.1)");
+  ctx.fillStyle = windowGradient;
+  ctx.fill();
+
+  ctx.strokeStyle = outline;
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  ctx.moveTo(-168, -56);
+  ctx.lineTo(168, -56);
+  ctx.stroke();
+
+  ctx.fillStyle = "#8888a0";
+  ctx.strokeStyle = outline;
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  ctx.arc(0, -21, 9, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(-9, -21);
+  ctx.lineTo(9, -21);
+  ctx.stroke();
+
+  const taillight = (centerX: number, centerY: number, radius: number, color: "red" | "orange") => {
+    const glow = ctx.createRadialGradient(centerX, centerY, radius * 0.3, centerX, centerY, radius * 3);
+    glow.addColorStop(0, color === "red" ? "rgba(255,50,30,0.25)" : "rgba(255,160,40,0.18)");
+    glow.addColorStop(1, "transparent");
+    ctx.fillStyle = glow;
+    ctx.fillRect(centerX - radius * 3.5, centerY - radius * 3.5, radius * 7, radius * 7);
+
+    ctx.fillStyle = "#0c0c1a";
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius + 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    const lightGradient = ctx.createRadialGradient(
+      centerX - radius * 0.2,
+      centerY - radius * 0.25,
+      radius * 0.05,
+      centerX,
+      centerY,
+      radius,
+    );
+
+    if (color === "red") {
+      lightGradient.addColorStop(0, "#ffaaaa");
+      lightGradient.addColorStop(0.25, "#ff4040");
+      lightGradient.addColorStop(0.6, "#dd1111");
+      lightGradient.addColorStop(1, "#880000");
+    } else {
+      lightGradient.addColorStop(0, "#ffee99");
+      lightGradient.addColorStop(0.25, "#ffaa33");
+      lightGradient.addColorStop(0.6, "#dd8811");
+      lightGradient.addColorStop(1, "#885500");
+    }
+
+    ctx.fillStyle = lightGradient;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = outline;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.fillStyle = "rgba(255,255,255,0.18)";
+    ctx.beginPath();
+    ctx.ellipse(centerX - radius * 0.22, centerY - radius * 0.28, radius * 0.4, radius * 0.25, -0.3, 0, Math.PI * 2);
+    ctx.fill();
+  };
+
+  const tailY = -21;
+  const redTailRadius = 17.5;
+  const orangeTailRadius = 13.5;
+  taillight(-150, tailY, redTailRadius, "red");
+  taillight(-106, tailY, orangeTailRadius, "orange");
+  taillight(106, tailY, orangeTailRadius, "orange");
+  taillight(150, tailY, redTailRadius, "red");
+
+  ctx.fillStyle = "#bbbbd0";
+  ctx.font = 'bold 13px "Segoe UI", Arial, sans-serif';
+  ctx.textAlign = "center";
+  ctx.fillText("S K Y L I N E", 0, 4);
+
+  ctx.fillStyle = "#ee2222";
+  ctx.font = 'bold 11px "Segoe UI", Arial, sans-serif';
+  ctx.textAlign = "right";
+  ctx.fillText("GT-R", 152, -32);
+
+  ctx.fillStyle = "#bbbbd0";
+  ctx.font = '9px "Segoe UI", Arial, sans-serif';
+  ctx.fillText("V-spec", 158, 2);
+
+  ctx.fillStyle = bumperColor;
+  ctx.strokeStyle = outline;
+  ctx.lineWidth = lineWidth;
+  ctx.beginPath();
+  ctx.moveTo(-186, 68);
+  ctx.lineTo(-178, 20);
+  ctx.lineTo(-165, 12);
+  ctx.lineTo(165, 12);
+  ctx.lineTo(178, 20);
+  ctx.lineTo(186, 68);
+  ctx.lineTo(182, 100);
+  ctx.lineTo(-182, 100);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.strokeStyle = "#333";
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(-170, 62);
+  ctx.lineTo(170, 62);
+  ctx.stroke();
+
+  ctx.fillStyle = "#cc1111";
+  ctx.strokeStyle = outline;
+  ctx.lineWidth = 1.5;
+  roundedRect(55, 52, 55, 8, 2);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = "#cccccc";
+  ctx.strokeStyle = outline;
+  ctx.lineWidth = 1.5;
+  roundedRect(-38, 44, 76, 20, 3);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = "#eee";
+  ctx.fillRect(-33, 48, 66, 12);
+
+  const exhaustX = -58;
+  const exhaustY = 88;
+  const exhaustRadius = 17;
+  ctx.fillStyle = "#9999a8";
+  ctx.strokeStyle = outline;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(exhaustX, exhaustY, exhaustRadius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  const exhaustGradient = ctx.createRadialGradient(exhaustX, exhaustY, 1, exhaustX, exhaustY, exhaustRadius - 3);
+  exhaustGradient.addColorStop(0, "#0a0a0a");
+  exhaustGradient.addColorStop(0.7, "#1a1a1a");
+  exhaustGradient.addColorStop(1, "#444");
+  ctx.fillStyle = exhaustGradient;
+  ctx.beginPath();
+  ctx.arc(exhaustX, exhaustY, exhaustRadius - 3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "#555";
+  ctx.lineWidth = 0.8;
+  ctx.stroke();
+
+  ctx.fillStyle = "rgba(255,255,255,0.12)";
+  ctx.beginPath();
+  ctx.ellipse(exhaustX - 3, exhaustY - 5, exhaustRadius * 0.28, exhaustRadius * 0.16, -0.4, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = "rgba(10,10,30,0.5)";
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(-178, -52);
+  ctx.quadraticCurveTo(-188, 0, -190, 55);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(178, -52);
+  ctx.quadraticCurveTo(188, 0, 190, 55);
+  ctx.stroke();
+
+  const bodyBottomFade = ctx.createLinearGradient(0, 30, 0, 105);
+  bodyBottomFade.addColorStop(0, "rgba(0,0,0,0)");
+  bodyBottomFade.addColorStop(1, "rgba(0, 0, 18, 0.26)");
+  ctx.fillStyle = bodyBottomFade;
+  ctx.beginPath();
+  ctx.moveTo(-182, 0);
+  ctx.lineTo(182, 0);
+  ctx.lineTo(190, 108);
+  ctx.lineTo(-190, 108);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = "rgba(0,0,0,0.35)";
+  ctx.beginPath();
+  ctx.moveTo(-182, 100);
+  ctx.lineTo(182, 100);
+  ctx.lineTo(190, 108);
+  ctx.lineTo(-190, 108);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function R34CarCanvas() {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
-    const updateScale = () => {
-      const widthScale = window.innerWidth / 300;
-      const heightScale = window.innerHeight / 250;
-      setScale(Math.max(widthScale, heightScale));
+    const canvas = canvasRef.current;
+
+    if (!canvas) {
+      return;
+    }
+
+    const context = canvas.getContext("2d");
+
+    if (!context) {
+      return;
+    }
+
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    let frameId = 0;
+
+    const render = () => {
+      const bounds = canvas.getBoundingClientRect();
+      const width = Math.max(1, Math.round(bounds.width));
+      const height = Math.max(1, Math.round(bounds.height));
+
+      canvas.width = Math.round(width * dpr);
+      canvas.height = Math.round(height * dpr);
+      context.setTransform(dpr, 0, 0, dpr, 0, 0);
+      drawR34Car(context, width, height);
     };
 
-    updateScale();
-    window.addEventListener("resize", updateScale);
-    return () => window.removeEventListener("resize", updateScale);
+    const scheduleRender = () => {
+      cancelAnimationFrame(frameId);
+      frameId = requestAnimationFrame(render);
+    };
+
+    scheduleRender();
+
+    if (typeof ResizeObserver !== "undefined") {
+      const resizeObserver = new ResizeObserver(() => {
+        scheduleRender();
+      });
+
+      resizeObserver.observe(canvas);
+
+      return () => {
+        cancelAnimationFrame(frameId);
+        resizeObserver.disconnect();
+      };
+    }
+
+    window.addEventListener("resize", scheduleRender);
+    return () => {
+      cancelAnimationFrame(frameId);
+      window.removeEventListener("resize", scheduleRender);
+    };
   }, []);
+
+  return <canvas ref={canvasRef} className="synthwave-r34" aria-hidden="true" />;
+}
+
+export default function SynthwaveBackground({ variant = "default" }: { variant?: "default" | "showcase" }) {
+  const previewRef = useRef<HTMLDivElement | null>(null);
+  const [scale, setScale] = useState(() => {
+    if (typeof window === "undefined") {
+      return 1;
+    }
+
+    return getSceneScale(window.innerWidth, window.innerHeight);
+  });
+
+  useEffect(() => {
+    const preview = previewRef.current;
+
+    if (!preview) {
+      return;
+    }
+
+    let frameId = 0;
+
+    const updateScale = (width: number, height: number) => {
+      const nextScale = getSceneScale(width, height);
+      setScale((currentScale) => (Math.abs(currentScale - nextScale) < 0.001 ? currentScale : nextScale));
+    };
+
+    const measure = () => {
+      cancelAnimationFrame(frameId);
+      frameId = requestAnimationFrame(() => {
+        const { width, height } = preview.getBoundingClientRect();
+        updateScale(width, height);
+      });
+    };
+
+    measure();
+
+    if (typeof ResizeObserver !== "undefined") {
+      const resizeObserver = new ResizeObserver((entries) => {
+        const entry = entries[0];
+
+        if (!entry) {
+          return;
+        }
+
+        const { width, height } = entry.contentRect;
+        updateScale(width, height);
+      });
+
+      resizeObserver.observe(preview);
+
+      return () => {
+        cancelAnimationFrame(frameId);
+        resizeObserver.disconnect();
+      };
+    }
+
+    window.addEventListener("resize", measure);
+    return () => {
+      cancelAnimationFrame(frameId);
+      window.removeEventListener("resize", measure);
+    };
+  }, []);
+
+  const sceneStyle: CSSProperties & { "--synthwave-scale": string } = {
+    "--synthwave-scale": String(scale),
+  };
 
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: SYNTHWAVE_CSS }} />
       <div
+        ref={previewRef}
         className={`synthwave-preview ${variant === "showcase" ? "synthwave-preview--showcase" : ""}`}
         aria-hidden="true"
       >
-        <div id="synthwave" style={{ transform: `translate(-50%, -50%) scale(${scale})` }}>
+        <div id="synthwave" style={sceneStyle}>
           <div id="stars">
             {STAR_IDS.map((index) => (
               <div key={index} id={`star${index}`} />
@@ -1152,21 +1427,7 @@ export default function SynthwaveBackground({ variant = "default" }: { variant?:
             </div>
           </div>
 
-          <div id="r34">
-            <div id="r34Wing" />
-            <div id="r34Cabin">
-              <div id="r34Glass" />
-            </div>
-            <div id="r34Body">
-              <div id="r34BadgeBar" />
-              <div className="r34-taillight r34-taillight--leftA" />
-              <div className="r34-taillight r34-taillight--leftB" />
-              <div className="r34-taillight r34-taillight--rightA" />
-              <div className="r34-taillight r34-taillight--rightB" />
-              <div id="r34Plate" />
-              <div id="r34Diffuser" />
-            </div>
-          </div>
+          <R34CarCanvas />
 
           <div id="fog2" />
         </div>
