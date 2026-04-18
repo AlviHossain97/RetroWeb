@@ -1,4 +1,4 @@
-const API_BASE = '/api/pistation';
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api/pistation';
 
 class ApiError extends Error {
   status: number;

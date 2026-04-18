@@ -48,9 +48,11 @@ def create_app() -> FastAPI:
     )
 
     # CORS middleware
+    cors_env = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:4173")
+    allowed_origins = [o.strip() for o in cors_env.split(",") if o.strip()]
     application.add_middleware(
         CORSMiddleware,
-        allow_origins=["http://localhost:5173", "http://localhost:4173"],
+        allow_origins=allowed_origins,
         allow_methods=["*"],
         allow_headers=["*"],
     )
