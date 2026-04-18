@@ -19,7 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.routes import (
     session_routes, stats_routes, dashboard_routes, health_routes,
     game_routes, system_routes, device_routes, achievement_routes,
-    ai_routes,
+    ai_routes, image_routes,
 )
 
 # Paths
@@ -75,6 +75,7 @@ def create_app() -> FastAPI:
     application.include_router(device_routes.router)
     application.include_router(achievement_routes.router)
     application.include_router(ai_routes.router)
+    application.include_router(image_routes.router)
 
     return application
 

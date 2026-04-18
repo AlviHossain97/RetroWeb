@@ -164,10 +164,23 @@ export function useChatSend(opts: {
 
       const apiMessages = [
         { role: "system", content: systemPrompt },
-        ...[...previousMessages, userMsg].map(m => ({
-          role: m.role,
-          content: m.content,
-        })),
+        ...[...previousMessages, userMsg].map(m => {
+          if (m.images && m.images.length > 0) {
+            return {
+              role: m.role,
+              content: [
+                { type: "text", text: m.content || "What's in this image?" },
+                ...m.images.map(img => ({
+                  type: "image_url",
+                  image_url: {
+                    url: img.startsWith("data:") ? img : `data:image/jpeg;base64,${img}`,
+                  },
+                })),
+              ],
+            };
+          }
+          return { role: m.role, content: m.content };
+        }),
       ];
 
       const res = await fetch(`${NVIDIA_BASE}/v1/chat/completions`, {
@@ -182,7 +195,11 @@ export function useChatSend(opts: {
         signal: controller.signal,
       });
 
-      if (!res.ok || !res.body) throw new Error("Stream failed");
+      if (!res.ok || !res.body) {
+        const errBody = await res.text().catch(() => "<no body>");
+        console.error("[NVIDIA] API error", res.status, errBody);
+        throw new Error(`Stream failed: ${res.status} ${errBody.slice(0, 500)}`);
+      }
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let full = "";
@@ -232,7 +249,9 @@ export function useChatSend(opts: {
         // User cancelled — just go idle
         setConvState("idle");
       } else {
-        const errorMsg = "Sorry, I couldn't connect to the AI. Check your NVIDIA API key and internet connection.";
+        console.error("[NVIDIA] Chat turn failed", err);
+        const detail = err instanceof Error ? err.message : String(err);
+        const errorMsg = `Sorry, the AI request failed: ${detail}`;
         transcript.patchLastAssistant({ content: errorMsg });
         setConvState("error");
         setLastError(errorMsg);

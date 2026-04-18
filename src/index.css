@@ -1,6 +1,8 @@
-@import "tailwindcss";
+@import "tailwindcss" source(none);
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@source "../index.html";
+@source "./";
 
 @font-face {
   font-family: "RoSpritendo";
@@ -551,6 +553,10 @@ select {
   pointer-events: none;
 }
 
+.retro-main--showcase::before {
+  display: none;
+}
+
 .retro-panel,
 .retro-banner,
 .retro-table,
@@ -943,6 +949,7 @@ select {
   flex: 1;
   min-width: 0;
   overflow-x: auto;
+  overflow-y: hidden;
   scrollbar-width: none;
 }
 
@@ -953,42 +960,109 @@ select {
 .retro-topbar__links {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.35rem;
   width: max-content;
 }
 
 .retro-top-link {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 0.55rem;
-  padding: 0.8rem 0.95rem;
-  border-radius: 1rem;
+  justify-content: center;
+  width: 4.4rem;
+  height: 3.2rem;
+  padding: 0;
+  flex-shrink: 0;
+  overflow: hidden;
+  transform-origin: center left;
+  border-radius: 0.9rem;
   border: 2px solid transparent;
   color: var(--text-muted);
   text-decoration: none;
-  font-size: 0.54rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  white-space: nowrap;
   transition:
+    width 0.2s ease-in,
     transform var(--transition-fast),
     color var(--transition-fast),
     border-color var(--transition-fast),
     background var(--transition-fast);
 }
 
+.retro-top-link::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(204, 0, 0, 0.12));
+  transform: translateX(100%);
+  transform-origin: center right;
+  transition: transform 0.2s ease-in;
+}
+
+.retro-top-link__icon {
+  position: absolute;
+  left: 1rem;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+}
+
+.retro-top-link__label {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  padding-inline: 0.65rem 0.45rem;
+  text-align: center;
+  text-indent: 1.45rem;
+  font-size: 0.46rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(100%);
+  transform-origin: center right;
+  pointer-events: none;
+  transition:
+    opacity var(--transition-fast),
+    transform 0.2s ease-in;
+}
+
 .retro-top-link:hover,
 .retro-top-link:focus-visible {
   color: var(--text-primary);
-  transform: translateY(-2px);
-  background: rgba(204, 0, 0, 0.12);
+  width: 9.6rem;
+  outline: 0;
+}
+
+.retro-top-link:hover::before,
+.retro-top-link:focus-visible::before {
+  transform: translateX(0);
+}
+
+.retro-top-link:hover .retro-top-link__label,
+.retro-top-link:focus-visible .retro-top-link__label {
+  opacity: 1;
+  transform: translateX(0);
 }
 
 .retro-top-link--active {
   color: var(--accent-secondary);
   border-color: rgba(255, 68, 68, 0.28);
-  background: linear-gradient(180deg, rgba(204, 0, 0, 0.18), rgba(26, 26, 36, 0.12));
+  background: linear-gradient(180deg, rgba(204, 0, 0, 0.1), rgba(26, 26, 36, 0.1));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 0 18px rgba(204, 0, 0, 0.1);
+}
+
+.retro-top-link--active::before {
+  transform: translateX(0);
+  background: linear-gradient(180deg, rgba(204, 0, 0, 0.22), rgba(26, 26, 36, 0.12));
+}
+
+.retro-top-link--active .retro-top-link__label {
+  color: var(--accent-secondary);
 }
 
 .retro-topbar__actions {

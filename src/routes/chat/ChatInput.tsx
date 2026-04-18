@@ -1,5 +1,5 @@
 import { useRef, useCallback } from "react";
-import { Paperclip, ArrowUp, Mic, X, Square } from "lucide-react";
+import { Paperclip, ArrowUp, Mic, X, Square, ImagePlus, Sparkles } from "lucide-react";
 import type { ConvState, VoiceState } from "./constants";
 import type { ActivationMode } from "./useChatVoice";
 
@@ -16,6 +16,9 @@ interface ChatInputProps {
   voiceModeActive: boolean;
   kokoroOnline: boolean;
   activationMode: ActivationMode;
+  imageMode: boolean;
+  imageGenerating: boolean;
+  onToggleImageMode: () => void;
   onSend: () => void;
   onCancelStream: () => void;
   onStartVoiceMode: () => void;
@@ -32,6 +35,7 @@ export function ChatInput({
   removePendingImage, removePendingFile,
   hasContent, convState, voiceState, voiceModeActive, kokoroOnline,
   activationMode,
+  imageMode, imageGenerating, onToggleImageMode,
   onSend, onCancelStream,
   onStartVoiceMode, onStopVoiceMode,
   onStartRecording, onStopRecording,
@@ -41,6 +45,7 @@ export function ChatInput({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const streaming = convState === "streaming";
+  const busy = streaming || imageGenerating;
   const listening = voiceModeActive && (voiceState === "listening" || voiceState === "processing" || voiceState === "speaking");
   const passiveReplySpeaking = !voiceModeActive && voiceState === "speaking";
   const isPTT = activationMode === "push_to_talk";
@@ -81,9 +86,8 @@ export function ChatInput({
     e.target.value = "";
   }, [onAddImages, onAddFiles]);
 
-  // Mic button click for continuous modes, pointer events for PTT
   const handleMicClick = useCallback(() => {
-    if (isPTT) return; // PTT uses pointer events, not click
+    if (isPTT) return;
     if (listening) {
       onStopVoiceMode();
     } else {
@@ -149,9 +153,22 @@ export function ChatInput({
           </div>
         )}
 
+        {imageMode && (
+          <div
+            className="flex items-center gap-2 px-3 py-1.5 mb-2 rounded-xl text-xs"
+            style={{ background: "color-mix(in srgb, var(--accent-primary) 10%, transparent)", color: "var(--accent-primary)" }}
+          >
+            <Sparkles size={12} />
+            <span className="font-medium">Image generation mode</span>
+            <span style={{ color: "var(--text-muted)" }}>— your prompt will generate artwork</span>
+          </div>
+        )}
+
         <div
           className="retro-input-shell flex items-end gap-2 rounded-[1.4rem] px-3 py-3"
+          style={imageMode ? { borderColor: "var(--accent-primary)", borderWidth: "2px" } : undefined}
         >
+          {/* Attach files */}
           <button
             onClick={() => fileInputRef.current?.click()}
             className="retro-button retro-button--ghost retro-icon-button min-h-0 shrink-0 text-[0.56rem]"
@@ -161,36 +178,52 @@ export function ChatInput({
           </button>
           <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileChange} />
 
+          {/* Image generation toggle */}
+          <button
+            onClick={onToggleImageMode}
+            className={`retro-button ${imageMode ? "" : "retro-button--ghost"} retro-icon-button min-h-0 shrink-0 text-[0.56rem]`}
+            aria-label={imageMode ? "Switch to chat mode" : "Switch to image generation"}
+            title={imageMode ? "Back to chat" : "Generate art"}
+          >
+            <ImagePlus size={18} />
+          </button>
+
           {/* Textarea */}
           <textarea
             ref={textareaRef}
             rows={1}
-            placeholder="Message PiStation AI..."
+            placeholder={imageMode ? "Describe the artwork you want..." : "Message PiStation AI..."}
             value={input}
             onChange={handleInput}
             onKeyDown={handleKeyDown}
-            disabled={streaming}
+            disabled={busy}
             className="retro-textarea flex-1 resize-none text-sm py-2 px-1 placeholder:opacity-60"
             style={{ maxHeight: "160px" }}
           />
 
-          {streaming ? (
+          {/* Action button */}
+          {busy ? (
             <button
-              onClick={onCancelStream}
+              onClick={imageGenerating ? undefined : onCancelStream}
               className="retro-button retro-button--danger retro-icon-button min-h-0 shrink-0 text-[0.56rem]"
-              aria-label="Stop generating"
+              aria-label={imageGenerating ? "Generating image..." : "Stop generating"}
+              disabled={imageGenerating}
             >
-              <Square size={16} />
+              {imageGenerating ? (
+                <Sparkles size={16} className="animate-spin" />
+              ) : (
+                <Square size={16} />
+              )}
             </button>
           ) : hasContent ? (
             <button
               onClick={onSend}
-              className="retro-button retro-icon-button min-h-0 shrink-0 text-[0.56rem]"
-              aria-label="Send message"
+              className={`retro-button ${imageMode ? "" : ""} retro-icon-button min-h-0 shrink-0 text-[0.56rem]`}
+              aria-label={imageMode ? "Generate image" : "Send message"}
             >
-              <ArrowUp size={16} />
+              {imageMode ? <Sparkles size={16} /> : <ArrowUp size={16} />}
             </button>
-          ) : kokoroOnline ? (
+          ) : kokoroOnline && !imageMode ? (
             <button
               onClick={passiveReplySpeaking ? undefined : isPTT ? undefined : handleMicClick}
               onPointerDown={passiveReplySpeaking ? undefined : isPTT ? handleMicPointerDown : undefined}

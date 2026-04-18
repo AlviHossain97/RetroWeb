@@ -3,12 +3,12 @@ import { useState } from "react";
 const STORAGE_KEY = "retroweb.onboardingDone";
 
 const STEPS = [
-  { title: "Welcome to RetroWeb! 🎮", description: "Your browser-based retro gaming platform. Let's take a quick tour of the key features.", icon: "🏠" },
-  { title: "Game Library 📚", description: "Upload ROM files to build your collection. Drag & drop or use the upload button. We support NES, SNES, Game Boy, Genesis, PS1 and more.", icon: "📁" },
-  { title: "Play Games 🕹️", description: "Select any game to launch it instantly in your browser. Use keyboard or connect a gamepad. Press F2 for fast-forward, F3 for FPS overlay.", icon: "🎮" },
-  { title: "AI Assistant 🤖", description: "Chat with an AI that knows retro games. Get tips, cheats, walkthroughs, and game recommendations. Try voice mode for hands-free help!", icon: "💬" },
-  { title: "Customize ⚙️", description: "Choose themes, configure controllers, set shader effects, and personalize your experience. Check Settings for all options.", icon: "🎨" },
-  { title: "You're Ready! 🚀", description: "Start by uploading a ROM to your library. Have fun and enjoy the nostalgia!", icon: "✨" },
+  { title: "Welcome to RetroWeb! 🎮", description: "A companion dashboard for your RetroPie setup. It tracks what you play on the Pi and surfaces the stats here. Quick tour below.", icon: "🏠" },
+  { title: "Analytics & Sessions 📊", description: "The Dashboard, Sessions, Games, and Systems pages break down your playtime, session history, most-played titles, and per-platform usage.", icon: "📈" },
+  { title: "Devices & Achievements 🏆", description: "Devices shows live heartbeat status and last-seen info for each Pi. Achievements tracks unlocks as you hit playtime, streak, and exploration milestones.", icon: "🕹️" },
+  { title: "AI Assistant 🤖", description: "Chat with a local AI (Ollama) that knows your library and activity. Voice mode, attachments, and optional web-grounded answers with sources are supported.", icon: "💬" },
+  { title: "Controllers & Customize ⚙️", description: "Run controller diagnostics, remap buttons, and save profiles. Settings covers themes, audio, accessibility, language, and kiosk mode for TV displays.", icon: "🎨" },
+  { title: "You're Ready! 🚀", description: "Games are played on the Pi itself — not in the browser. This site is where you watch the stats, health, and history come in. Enjoy!", icon: "✨" },
 ];
 
 export default function OnboardingTutorial() {

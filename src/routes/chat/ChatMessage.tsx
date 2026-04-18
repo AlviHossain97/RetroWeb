@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { Copy, Check } from "lucide-react";
+import { Copy, Check, Download } from "lucide-react";
 import { RenderCleanMessage } from "./RenderCleanMessage";
-import { MODEL_ICONS } from "./constants";
 import type { Message } from "./constants";
 
 interface ChatMessageProps {
@@ -11,10 +10,9 @@ interface ChatMessageProps {
   selectedModel: string;
 }
 
-export function ChatMessage({ msg, isLast, streaming, selectedModel }: ChatMessageProps) {
+export function ChatMessage({ msg, isLast, streaming }: ChatMessageProps) {
   const [copied, setCopied] = useState(false);
   const isUser = msg.role === "user";
-  const modelInfo = MODEL_ICONS[selectedModel];
 
   const handleCopy = () => {
     navigator.clipboard.writeText(msg.content);
@@ -24,22 +22,16 @@ export function ChatMessage({ msg, isLast, streaming, selectedModel }: ChatMessa
 
   return (
     <div
-      className={`flex gap-3 animate-[fadeSlideIn_0.2s_ease-out] ${isUser ? "flex-row-reverse" : ""}`}
+      className={`flex animate-[fadeSlideIn_0.2s_ease-out] ${isUser ? "justify-end" : "justify-start"}`}
       style={{ maxWidth: "100%" }}
     >
-      {!isUser && (
-        <div className="retro-piece-frame mt-1 shrink-0 overflow-hidden" style={{ minWidth: "3rem", minHeight: "3rem", padding: "0.5rem" }}>
-          {modelInfo ? (
-            <img src={modelInfo.icon} alt="" className="w-7 h-7 object-cover" />
-          ) : (
-            <div className="w-7 h-7 rounded-full" style={{ background: "var(--surface-3)" }} />
-          )}
-        </div>
-      )}
-
-      <div className={`group flex flex-col ${isUser ? "items-end" : "items-start"} min-w-0 max-w-[85%] md:max-w-[65%]`}>
+      <div className={`group flex flex-col ${isUser ? "items-end max-w-[85%] md:max-w-[65%]" : "items-start w-full"} min-w-0`}>
         <div
-          className={`retro-chat-bubble ${isUser ? "retro-chat-bubble--user rounded-br-sm" : "retro-chat-bubble--assistant rounded-bl-sm"} px-4 py-3 text-sm break-words`}
+          className={
+            isUser
+              ? "retro-chat-bubble retro-chat-bubble--user rounded-br-sm px-4 py-3 text-sm break-words"
+              : "text-sm break-words w-full"
+          }
           style={{ color: "var(--text-primary)" }}
         >
           {msg.images && msg.images.length > 0 && (
@@ -56,10 +48,50 @@ export function ChatMessage({ msg, isLast, streaming, selectedModel }: ChatMessa
             </div>
           )}
 
+          {/* Generated image */}
+          {msg.generatedImage && (
+            <div className="mb-2 space-y-2">
+              <div className="rounded-xl overflow-hidden" style={{ border: "2px solid var(--border-soft)" }}>
+                <img
+                  src={`data:${msg.generatedImage.mimeType};base64,${msg.generatedImage.base64}`}
+                  alt={msg.generatedImage.title || "Generated art"}
+                  className="w-full object-contain"
+                  style={{ maxHeight: "400px", background: "#0a0a0a" }}
+                />
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                {msg.generatedImage.title && (
+                  <span className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>
+                    {msg.generatedImage.title}
+                  </span>
+                )}
+                {msg.generatedImage.stylePreset && (
+                  <span className="retro-chip retro-chip--success text-[9px]">
+                    {msg.generatedImage.stylePreset}
+                  </span>
+                )}
+                <button
+                  onClick={() => {
+                    const gi = msg.generatedImage!;
+                    const ext = gi.mimeType.includes("png") ? "png" : "jpg";
+                    const link = document.createElement("a");
+                    link.href = `data:${gi.mimeType};base64,${gi.base64}`;
+                    link.download = `${gi.title || "pistation-art"}.${ext}`;
+                    link.click();
+                  }}
+                  className="retro-button retro-button--ghost retro-icon-button min-h-0 text-[0.5rem]"
+                  aria-label="Download image"
+                >
+                  <Download size={12} />
+                </button>
+              </div>
+            </div>
+          )}
+
           {msg.content ? (
             <RenderCleanMessage content={msg.content} isUser={isUser} />
           ) : (
-            streaming && isLast && (
+            streaming && isLast && !msg.generatedImage && (
               <span className="animate-pulse" style={{ color: "var(--text-muted)" }}>|</span>
             )
           )}

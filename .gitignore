@@ -26,6 +26,19 @@ dist-ssr
 # Kokoro TTS model files
 scripts/kokoro-models/
 
+# Secrets
+backend/.env
+.env
+.env.local
+
+# ROM dumps (copyright)
+public/roms/
+
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+
 # Windows reserved device names
 NUL
 

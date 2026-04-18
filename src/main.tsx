@@ -18,6 +18,7 @@ const Games = lazy(() => import('./routes/games.tsx'))
 const Devices = lazy(() => import('./routes/devices.tsx'))
 const Admin = lazy(() => import('./routes/admin.tsx'))
 const Kiosk = lazy(() => import('./routes/kiosk.tsx'))
+const BackgroundView = lazy(() => import('./routes/background.tsx'))
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -41,6 +42,7 @@ createRoot(document.getElementById('root')!).render(
             <Route path="sessions" element={<Sessions />} />
             <Route path="games" element={<Games />} />
             <Route path="devices" element={<Devices />} />
+            <Route path="background" element={<BackgroundView />} />
             <Route path="admin" element={<Admin />} />
           </Route>
           <Route path="/kiosk" element={<Kiosk />} />
