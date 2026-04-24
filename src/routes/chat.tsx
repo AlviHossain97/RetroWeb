@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useChatHealth } from "./chat/useChatHealth";
 import { useChatComposer } from "./chat/useChatComposer";
 import { useChatTranscript } from "./chat/useChatTranscript";
@@ -36,21 +36,19 @@ export default function Chat() {
   const [imageMode, setImageMode] = useState(false);
   const [imageGenerating, setImageGenerating] = useState(false);
 
-  // Ref to break circular dependency: voice needs send, send needs voice's TTS
-  const sendRef = useRef<(text: string) => void>(() => {});
-
   // Voice hook
   const voice = useChatVoice({
-    kokoroOnline: health.kokoroOnline,
-    onTranscript: useCallback((text: string) => {
-      sendRef.current(text);
-    }, []),
+    voiceAvailable: health.voiceAvailable,
+    selectedModel,
+    transcript,
   });
 
-  // Create TTS session when voice mode is active
-  const ttsSession = useMemo(() => {
-    return voice.createTTSSession();
-  }, [voice.createTTSSession]);
+  // Text-chat TTS: when voice is enabled, assistant replies to typed messages
+  // are spoken aloud. The session is null when voice is off so TTS is skipped.
+  const ttsSession = useMemo(
+    () => voice.createTTSSession(),
+    [voice.createTTSSession, voice.voiceEnabled],
+  );
 
   // Send hook
   const send = useChatSend({
@@ -63,13 +61,10 @@ export default function Chat() {
     onAssistantTurnRecovered: voice.recoverAfterAssistantTurn,
   });
 
-  // Keep ref in sync
-  sendRef.current = send.sendMessage;
-
   // ── Image generation handler ──
   const handleImageGenerate = useCallback(async () => {
     const prompt = composer.input.trim();
-    if (!prompt || imageGenerating) return;
+    if (!prompt || imageGenerating || voice.voiceModeActive) return;
 
     transcript.appendUser({ role: "user", content: prompt });
     composer.clearComposer();
@@ -110,12 +105,13 @@ export default function Chat() {
   }, [composer, transcript, imageGenerating]);
 
   const handleSend = useCallback(() => {
+    if (voice.voiceModeActive) return;
     if (imageMode) {
       handleImageGenerate();
     } else {
       send.sendMessage();
     }
-  }, [imageMode, handleImageGenerate, send]);
+  }, [imageMode, handleImageGenerate, send, voice.voiceModeActive]);
 
   // Escape key closes overlays + Global T key for push-to-talk
   useEffect(() => {
@@ -160,7 +156,7 @@ export default function Chat() {
       <ChatHeader
         selectedModel={selectedModel}
         nvidiaOnline={health.nvidiaOnline}
-        kokoroOnline={health.kokoroOnline}
+        voiceAvailable={health.voiceAvailable}
         overlay={overlay}
         setOverlay={setOverlay}
       />
@@ -195,8 +191,8 @@ export default function Chat() {
         convState={send.convState}
         lastError={send.lastError}
         selectedModel={selectedModel}
-        onQuickAction={(prompt) => send.sendMessage(prompt)}
-        onRetry={send.retryLastMessage}
+        onQuickAction={(prompt) => { if (!voice.voiceModeActive) send.sendMessage(prompt); }}
+        onRetry={() => { if (!voice.voiceModeActive) send.retryLastMessage(); }}
       />
 
       {/* Voice status bar */}
@@ -204,6 +200,8 @@ export default function Chat() {
         <ChatVoiceBar
           voiceState={voice.voiceState}
           activationMode={voice.activationMode}
+          liveTranscript={voice.liveTranscript}
+          provider={voice.activeProvider ?? health.voiceProvider}
           onStop={voice.stopVoiceMode}
         />
       )}
@@ -220,11 +218,11 @@ export default function Chat() {
         convState={send.convState}
         voiceState={voice.voiceState}
         voiceModeActive={voice.voiceModeActive}
-        kokoroOnline={health.kokoroOnline}
+        voiceAvailable={health.voiceAvailable && voice.voiceEnabled}
         activationMode={voice.activationMode}
         imageMode={imageMode}
         imageGenerating={imageGenerating}
-        onToggleImageMode={() => setImageMode(!imageMode)}
+        onToggleImageMode={() => { if (!voice.voiceModeActive) setImageMode(!imageMode); }}
         onSend={handleSend}
         onCancelStream={send.cancelStream}
         onStartVoiceMode={voice.startVoiceMode}

@@ -14,7 +14,7 @@ interface ChatInputProps {
   convState: ConvState;
   voiceState: VoiceState;
   voiceModeActive: boolean;
-  kokoroOnline: boolean;
+  voiceAvailable: boolean;
   activationMode: ActivationMode;
   imageMode: boolean;
   imageGenerating: boolean;
@@ -33,7 +33,7 @@ export function ChatInput({
   input, setInput,
   pendingImages, pendingFiles,
   removePendingImage, removePendingFile,
-  hasContent, convState, voiceState, voiceModeActive, kokoroOnline,
+  hasContent, convState, voiceState, voiceModeActive, voiceAvailable,
   activationMode,
   imageMode, imageGenerating, onToggleImageMode,
   onSend, onCancelStream,
@@ -46,6 +46,7 @@ export function ChatInput({
 
   const streaming = convState === "streaming";
   const busy = streaming || imageGenerating;
+  const composeLocked = voiceModeActive;
   const listening = voiceModeActive && (voiceState === "listening" || voiceState === "processing" || voiceState === "speaking");
   const passiveReplySpeaking = !voiceModeActive && voiceState === "speaking";
   const isPTT = activationMode === "push_to_talk";
@@ -173,6 +174,8 @@ export function ChatInput({
             onClick={() => fileInputRef.current?.click()}
             className="retro-button retro-button--ghost retro-icon-button min-h-0 shrink-0 text-[0.56rem]"
             aria-label="Attach files"
+            disabled={composeLocked}
+            style={{ opacity: composeLocked ? 0.4 : 1 }}
           >
             <Paperclip size={18} />
           </button>
@@ -184,6 +187,8 @@ export function ChatInput({
             className={`retro-button ${imageMode ? "" : "retro-button--ghost"} retro-icon-button min-h-0 shrink-0 text-[0.56rem]`}
             aria-label={imageMode ? "Switch to chat mode" : "Switch to image generation"}
             title={imageMode ? "Back to chat" : "Generate art"}
+            disabled={composeLocked}
+            style={{ opacity: composeLocked ? 0.4 : 1 }}
           >
             <ImagePlus size={18} />
           </button>
@@ -215,7 +220,7 @@ export function ChatInput({
                 <Square size={16} />
               )}
             </button>
-          ) : hasContent ? (
+          ) : hasContent && !composeLocked ? (
             <button
               onClick={onSend}
               className={`retro-button ${imageMode ? "" : ""} retro-icon-button min-h-0 shrink-0 text-[0.56rem]`}
@@ -223,7 +228,16 @@ export function ChatInput({
             >
               {imageMode ? <Sparkles size={16} /> : <ArrowUp size={16} />}
             </button>
-          ) : kokoroOnline && !imageMode ? (
+          ) : hasContent ? (
+            <button
+              className="retro-button retro-button--ghost retro-icon-button min-h-0 shrink-0 text-[0.56rem] opacity-40"
+              disabled
+              aria-label="Voice mode active"
+              title="Stop voice mode before sending typed messages"
+            >
+              {imageMode ? <Sparkles size={16} /> : <ArrowUp size={16} />}
+            </button>
+          ) : voiceAvailable && !imageMode ? (
             <button
               onClick={passiveReplySpeaking ? undefined : isPTT ? undefined : handleMicClick}
               onPointerDown={passiveReplySpeaking ? undefined : isPTT ? handleMicPointerDown : undefined}

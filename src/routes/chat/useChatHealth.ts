@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
-import { NVIDIA_BASE, KOKORO_BASE } from "./constants";
+import { NVIDIA_BASE, PISTATION_API } from "./constants";
+import type { VoiceHealthResponse } from "./voiceProtocol";
 
 export function useChatHealth() {
   const [nvidiaOnline, setNvidiaOnline] = useState(false);
-  const [kokoroOnline, setKokoroOnline] = useState(false);
+  const [voiceAvailable, setVoiceAvailable] = useState(false);
+  const [voiceProvider, setVoiceProvider] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -13,14 +15,24 @@ export function useChatHealth() {
         if (!cancelled) setNvidiaOnline(res.ok);
       } catch { if (!cancelled) setNvidiaOnline(false); }
       try {
-        const kRes = await fetch(`${KOKORO_BASE}/health`, { signal: AbortSignal.timeout(8000) });
-        if (!cancelled) setKokoroOnline(kRes.ok);
-      } catch { if (!cancelled) setKokoroOnline(false); }
+        const voiceRes = await fetch(`${PISTATION_API}/ai/voice/health`, { signal: AbortSignal.timeout(8000) });
+        if (!voiceRes.ok) throw new Error(`voice health ${voiceRes.status}`);
+        const voiceData = await voiceRes.json() as VoiceHealthResponse;
+        if (!cancelled) {
+          setVoiceAvailable(!!voiceData.available);
+          setVoiceProvider(voiceData.active_provider ?? null);
+        }
+      } catch {
+        if (!cancelled) {
+          setVoiceAvailable(false);
+          setVoiceProvider(null);
+        }
+      }
     };
     check();
     const interval = setInterval(check, 15000);
     return () => { cancelled = true; clearInterval(interval); };
   }, []);
 
-  return { nvidiaOnline, kokoroOnline };
+  return { nvidiaOnline, voiceAvailable, voiceProvider };
 }
