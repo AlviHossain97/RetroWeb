@@ -121,24 +121,24 @@ sequenceDiagram
     actor User
     participant Mic as Browser Mic<br/>(AudioWorklet)
     participant WS as Voice Gateway<br/>(FastAPI WS)
-    participant Par as Parakeet STT<br/>(:8786 GPU)
+    participant Parakeet as Parakeet STT<br/>(:8786 GPU)
     participant LLM as NVIDIA LLM<br/>(integrate API)
-    participant Kok as Kokoro TTS<br/>(:8787 GPU)
-    participant Spk as Browser Playback<br/>(AudioContext)
+    participant Kokoro as Kokoro TTS<br/>(:8787 GPU)
+    participant Speaker as Browser Playback<br/>(AudioContext)
 
     User->>Mic: speaks
     Mic->>WS: input_audio.chunk<br/>(PCM16 @ 16kHz, base64, 80ms frames)
     Mic->>WS: input_audio.stop (silence cutoff)
-    WS->>Par: POST audio.wav (16kHz mono)
-    Par-->>WS: { text: "..." }
+    WS->>Parakeet: POST audio.wav (16kHz mono)
+    Parakeet-->>WS: { text: "..." }
     WS-->>User: user.transcript.final
     WS->>LLM: chat/completions (stream)
     LLM-->>WS: delta tokens
     WS-->>User: assistant.text.delta (streamed)
-    WS->>Kok: POST speech text
-    Kok-->>WS: WAV @ 22.05kHz
-    WS-->>Spk: assistant.audio.chunk<br/>(PCM16 chunks, base64)
-    Spk->>User: plays voice reply
+    WS->>Kokoro: POST speech text
+    Kokoro-->>WS: WAV @ 22.05kHz
+    WS-->>Speaker: assistant.audio.chunk<br/>(PCM16 chunks, base64)
+    Speaker->>User: plays voice reply
 ```
 
 **Key invariants:**
