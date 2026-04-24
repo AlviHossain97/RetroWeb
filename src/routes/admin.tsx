@@ -12,8 +12,7 @@ export default function Admin() {
   const [services, setServices] = useState<ServiceStatus[]>([
     { name: "PiStation API", url: "/api/pistation/health", status: "checking" },
     { name: "NVIDIA (LLM)", url: "/api/nvidia/v1/models", status: "checking" },
-    { name: "Kokoro (TTS)", url: "/api/kokoro/health", status: "checking" },
-    { name: "Whisper (STT)", url: "/api/whisper/health", status: "checking" },
+    { name: "Voice Gateway", url: "/api/pistation/ai/voice/health", status: "checking" },
   ]);
   const [dbStats, setDbStats] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
@@ -143,7 +142,7 @@ export default function Admin() {
           Backend Endpoints
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          {["/health", "/games", "/systems", "/devices", "/achievements", "/stats/recent", "/stats/active", "/ai/context"].map((ep) => (
+          {["/health", "/games", "/systems", "/devices", "/achievements", "/stats/recent", "/stats/active", "/ai/context", "/ai/voice/health"].map((ep) => (
             <a
               key={ep}
               href={`/api/pistation${ep}`}

@@ -8,7 +8,8 @@ export const NVIDIA_MODELS = [
   "moonshotai/kimi-k2-thinking",
   "mistralai/mistral-large-3-675b-instruct-2512",
   "stepfun-ai/step-3.5-flash",
-  "deepseek-ai/deepseek-v3.2",
+  "deepseek-ai/deepseek-v4-pro",
+  "minimaxai/minimax-m2.7",
   "z-ai/glm4.7",
 ];
 
@@ -17,8 +18,9 @@ export const MODEL_ICONS: Record<string, { icon: string; label: string }> = {
   "moonshotai/kimi-k2-thinking": { icon: "/model-icons/moonshot.jpeg", label: "Kimi K2 Thinking" },
   "mistralai/mistral-large-3-675b-instruct-2512": { icon: "/model-icons/mistral.png", label: "Mistral Large 3 675B" },
   "stepfun-ai/step-3.5-flash": { icon: "/model-icons/stepfun.jpeg", label: "Step 3.5 Flash" },
-  "deepseek-ai/deepseek-v3.2": { icon: "/model-icons/deepseek.jpg", label: "DeepSeek V3.2" },
-  "z-ai/glm4.7": { icon: "/model-icons/zhipu.png", label: "GLM 4.7" },
+  "deepseek-ai/deepseek-v4-pro": { icon: "/model-icons/deepseek.jpg", label: "DeepSeek V4 Pro" },
+  "minimaxai/minimax-m2.7": { icon: "/model-icons/minimax.png", label: "MiniMax M2.7" },
+  "z-ai/glm4.7": { icon: "/model-icons/zai.png", label: "GLM 4.7" },
 };
 
 export const SENTENCE_END = /[.!?]\s*$/;

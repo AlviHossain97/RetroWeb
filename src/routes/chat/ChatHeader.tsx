@@ -5,12 +5,12 @@ import type { OverlayState } from "./constants";
 interface ChatHeaderProps {
   selectedModel: string;
   nvidiaOnline: boolean;
-  kokoroOnline: boolean;
+  voiceAvailable: boolean;
   overlay: OverlayState;
   setOverlay: (v: OverlayState) => void;
 }
 
-export function ChatHeader({ selectedModel, nvidiaOnline, kokoroOnline, overlay, setOverlay }: ChatHeaderProps) {
+export function ChatHeader({ selectedModel, nvidiaOnline, voiceAvailable, overlay, setOverlay }: ChatHeaderProps) {
   const info = MODEL_ICONS[selectedModel];
   const statusDot = nvidiaOnline ? "var(--success)" : "var(--danger)";
 
@@ -34,7 +34,7 @@ export function ChatHeader({ selectedModel, nvidiaOnline, kokoroOnline, overlay,
         <div className="flex items-center gap-2 flex-wrap justify-end">
           <div className="w-1.5 h-1.5 rounded-full" style={{ background: statusDot }} />
           <span className="text-sm font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--text-primary)" }}>PiStation AI</span>
-          {kokoroOnline && (
+          {voiceAvailable && (
             <span className="retro-chip">Voice</span>
           )}
         </div>

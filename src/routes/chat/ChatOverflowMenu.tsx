@@ -57,7 +57,7 @@ export function ChatOverflowMenu({
         >
           <div className="flex items-center gap-2">
             <Volume2 size={14} style={{ color: "var(--text-muted)" }} />
-            Speak Replies
+            Realtime Voice
           </div>
           <span
             className={`retro-chip ${voiceEnabled ? "retro-chip--success" : ""}`}
@@ -66,7 +66,7 @@ export function ChatOverflowMenu({
               color: voiceEnabled ? undefined : "var(--text-muted)",
             }}
           >
-            {voiceEnabled ? "ON" : "OFF"}
+            {voiceEnabled ? "ENABLED" : "OFF"}
           </span>
         </button>
         <button

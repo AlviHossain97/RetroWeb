@@ -1,157 +1,153 @@
-"""OpenAI-compatible STT Server using NVIDIA Parakeet TDT 0.6B v2 (NeMo), GPU-accelerated."""
-import os, tempfile, subprocess, time, traceback, threading
-from contextlib import asynccontextmanager
-from fastapi import FastAPI, UploadFile, File, Form
+"""Parakeet ASR server — NVIDIA NeMo, GPU-accelerated.
+
+OpenAI-compatible transcription endpoint on :8786:
+    POST /v1/audio/transcriptions  (multipart form, field `file`, WAV)
+    -> {"text": "..."}
+
+Matches the contract the voice gateway's LegacyCascadeSession expects.
+"""
+
+from __future__ import annotations
+
+import io
+import os
+import tempfile
+import threading
+from pathlib import Path
+
+from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 
-# Suppress noisy NeMo/ONNX startup warnings
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-os.environ["PYTHONWARNINGS"] = "ignore"
 
-SPEECH_FILTER_CHAIN = ",".join([
-    "highpass=f=120",
-    "lowpass=f=4200",
-    "afftdn=nf=-28",
-    "acompressor=threshold=-20dB:ratio=3:attack=5:release=120",
-])
+MODEL_NAME = os.environ.get("PARAKEET_MODEL", "nvidia/parakeet-tdt-1.1b")
+DEVICE = os.environ.get("PARAKEET_DEVICE", "cuda")
+# fp16 halves VRAM usage — required to fit the 1.1B model on an 8 GB laptop GPU
+# alongside Kokoro + Sunshine + browser GPU contexts. Set to "0" to force fp32.
+USE_HALF = os.environ.get("PARAKEET_HALF", "1") == "1"
 
-stt_model = None
-load_lock = threading.Lock()
+# Reduce CUDA allocator fragmentation when multiple processes share the GPU.
+os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
 
-def init_model():
-    global stt_model
-    import nemo.collections.asr as nemo_asr
-    from omegaconf import OmegaConf
 
-    print("[Parakeet] Loading nvidia/parakeet-tdt-0.6b-v2 ...")
-    t0 = time.time()
-    stt_model = nemo_asr.models.ASRModel.from_pretrained(model_name="nvidia/parakeet-tdt-0.6b-v2")
+app = FastAPI()
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
-    # CRITICAL: Switch from greedy_batch → greedy to avoid CUDA graph crash.
-    # greedy_batch uses CUDA graphs internally which causes:
-    #   ValueError: not enough values to unpack (expected 6, got 5)
-    # due to NeMo 2.7 / cuda-bindings 12.9 version mismatch.
-    try:
-        decoding_cfg = OmegaConf.create({
-            "strategy": "greedy",
-            "model_type": "tdt",
-            "durations": [0, 1, 2, 3, 4],
-            "greedy": {"max_symbols": 10},
-        })
-        stt_model.change_decoding_strategy(decoding_cfg)
-        print("[Parakeet] Decoding: greedy (CUDA-graph-safe)")
-    except Exception as e:
-        print(f"[Parakeet] Warning: Could not set greedy decoding: {e}")
 
-    # Move to GPU
-    try:
-        import torch
-        if torch.cuda.is_available():
-            stt_model = stt_model.cuda()
-            print(f"[Parakeet] Model ready on GPU in {time.time()-t0:.1f}s")
-        else:
-            print(f"[Parakeet] Model ready on CPU in {time.time()-t0:.1f}s")
-    except Exception as exc:
-        print(f"[Parakeet] GPU failed ({exc}), running on CPU")
-    return stt_model
+_model = None
+_model_error: str | None = None
+_load_lock = threading.Lock()
+
+
+def _load_model():
+    """Load the Parakeet model once. Heavy; runs in a background thread."""
+    global _model, _model_error
+    with _load_lock:
+        if _model is not None or _model_error is not None:
+            return
+        try:
+            import nemo.collections.asr as nemo_asr
+            import torch
+
+            print(f"[Parakeet] loading {MODEL_NAME} on {DEVICE} (half={USE_HALF}) ...", flush=True)
+            # Load to CPU first, convert to fp16 on CPU, then move to GPU.
+            # This avoids the fp32 spike on GPU (2x peak) that OOMs an 8 GB card.
+            model = nemo_asr.models.ASRModel.from_pretrained(
+                model_name=MODEL_NAME,
+                map_location="cpu",
+            )
+            if DEVICE == "cuda" and torch.cuda.is_available():
+                if USE_HALF:
+                    model = model.half()
+                torch.cuda.empty_cache()
+                model = model.to("cuda")
+            model.eval()
+
+            # NeMo's CUDA-graph decoder path currently breaks against newer CUDA
+            # driver APIs (cu_call returns 5 fields, code expects 6). Force the
+            # plain PyTorch path instead — ~5-10% slower per batch but stable.
+            try:
+                from omegaconf import OmegaConf, open_dict
+                decoding_cfg = model.cfg.decoding
+                with open_dict(decoding_cfg):
+                    if OmegaConf.select(decoding_cfg, "greedy") is not None:
+                        decoding_cfg.greedy.use_cuda_graph_decoder = False
+                        decoding_cfg.greedy.loop_labels = True
+                model.change_decoding_strategy(decoding_cfg)
+                print("[Parakeet] CUDA graph decoder disabled", flush=True)
+            except Exception as exc:
+                print(f"[Parakeet] warn: could not disable CUDA graphs: {exc}", flush=True)
+
+            _model = model
+            print("[Parakeet] model ready", flush=True)
+        except Exception as exc:
+            _model_error = f"{type(exc).__name__}: {exc}"
+            print(f"[Parakeet] model load failed: {_model_error}", flush=True)
 
 
 def get_model():
-    global stt_model
-    if stt_model is None:
-        with load_lock:
-            if stt_model is None:
-                return init_model()
-    return stt_model
+    if _model is None and _model_error is None:
+        _load_model()
+    if _model is None:
+        raise RuntimeError(_model_error or "Parakeet model not loaded")
+    return _model
 
 
-def convert_to_wav(input_path, wav_path, *, apply_filters=False):
-    cmd = ["ffmpeg", "-y", "-nostdin", "-i", input_path, "-vn"]
-    if apply_filters:
-        cmd.extend(["-af", SPEECH_FILTER_CHAIN])
-    cmd.extend(["-ar", "16000", "-ac", "1", wav_path])
-    return subprocess.run(cmd, capture_output=True, timeout=15)
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    threading.Thread(target=lambda: get_model(), daemon=True).start()
-    yield
-
-app = FastAPI(lifespan=lifespan)
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"], expose_headers=["*"])
+@app.on_event("startup")
+async def preload():
+    threading.Thread(target=_load_model, daemon=True).start()
 
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "model": "nvidia/parakeet-tdt-0.6b-v2", "ready": stt_model is not None}
+    return {
+        "status": "ok" if _model is not None else ("loading" if _model_error is None else "error"),
+        "model": MODEL_NAME,
+        "model_loaded": _model is not None,
+        "error": _model_error,
+    }
 
 
-@app.post("/v1/audio/transcriptions")
-async def transcriptions(
-    file: UploadFile = File(...),
-    model: str = Form("nvidia/parakeet-tdt-0.6b-v2"),
-):
+def _transcribe_wav_bytes(wav_bytes: bytes) -> str:
+    """Write the WAV to a temp file and run NeMo's transcribe()."""
+    model = get_model()
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+        tmp.write(wav_bytes)
+        tmp_path = tmp.name
     try:
-        mdl = get_model()
-        if mdl is None:
-            return {"text": "", "error": "Model not loaded yet"}
-
-        raw = await file.read()
-        print(f"[Parakeet] Received {len(raw)} bytes ({file.filename})")
-
-        with tempfile.NamedTemporaryFile(suffix=".webm", delete=False) as tmp:
-            tmp.write(raw)
-            tmp_path = tmp.name
-
-        wav_path = tmp_path + ".wav"
+        results = model.transcribe([tmp_path])
+    finally:
         try:
-            # Plain WAV conversion
-            proc = convert_to_wav(tmp_path, wav_path)
-            if proc.returncode != 0:
-                print(f"[Parakeet] ffmpeg failed: {proc.stderr.decode(errors='ignore')[:200]}")
-                return {"text": ""}
+            os.unlink(tmp_path)
+        except OSError:
+            pass
 
-            # Also create filtered version
-            filtered_wav = tmp_path + ".filtered.wav"
-            filt_proc = convert_to_wav(tmp_path, filtered_wav, apply_filters=True)
-            use_wav = filtered_wav if filt_proc.returncode == 0 else wav_path
+    # NeMo returns a list. Each entry can be a string, a Hypothesis object with
+    # .text, or a list of Hypothesis (for N-best). Normalize to a single string.
+    def _extract(x):
+        if isinstance(x, str):
+            return x
+        if hasattr(x, "text"):
+            return x.text
+        if isinstance(x, (list, tuple)) and x:
+            return _extract(x[0])
+        return ""
 
-            t0 = time.time()
-            output = mdl.transcribe([use_wav])
+    text = _extract(results[0]) if results else ""
+    return (text or "").strip()
 
-            # Extract text from NeMo output
-            if hasattr(output[0], 'text'):
-                text = output[0].text
-            elif isinstance(output[0], str):
-                text = output[0]
-            else:
-                text = str(output[0])
-            text = text.strip()
 
-            # Fallback to plain audio if filtered gave nothing
-            if not text and use_wav != wav_path:
-                print("[Parakeet] Filtered empty, retrying plain...")
-                output = mdl.transcribe([wav_path])
-                if hasattr(output[0], 'text'):
-                    text = output[0].text.strip()
-                elif isinstance(output[0], str):
-                    text = output[0].strip()
+# OpenAI-compatible endpoint used by the backend voice gateway.
+@app.post("/v1/audio/transcriptions")
+async def openai_transcriptions(
+    file: UploadFile = File(...),
+    model: str = Form(default=MODEL_NAME),  # noqa: ARG001 — accepted for compat, ignored
+):
+    raw = await file.read()
+    text = _transcribe_wav_bytes(raw)
+    return {"text": text}
 
-            elapsed = round((time.time() - t0) * 1000)
-            print(f"[Parakeet] '{text}' ({elapsed}ms)")
-
-        finally:
-            for p in [tmp_path, wav_path, tmp_path + ".filtered.wav"]:
-                try: os.unlink(p)
-                except: pass
-
-        return {"text": text}
-    except Exception as e:
-        traceback.print_exc()
-        return JSONResponse(content={"text": "", "error": str(e)}, status_code=200)
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8786)

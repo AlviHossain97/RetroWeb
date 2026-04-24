@@ -4,6 +4,8 @@ import type { ActivationMode } from "./useChatVoice";
 interface ChatVoiceBarProps {
   voiceState: VoiceState;
   activationMode: ActivationMode;
+  liveTranscript?: string;
+  provider?: string | null;
   onStop: () => void;
 }
 
@@ -23,7 +25,7 @@ const PTT_TEXT: Record<VoiceState, string> = {
   error: "Voice error",
 };
 
-export function ChatVoiceBar({ voiceState, activationMode, onStop }: ChatVoiceBarProps) {
+export function ChatVoiceBar({ voiceState, activationMode, liveTranscript, provider, onStop }: ChatVoiceBarProps) {
   if (voiceState === "idle") return null;
 
   const statusMap = activationMode === "push_to_talk" ? PTT_TEXT : CONTINUOUS_TEXT;
@@ -34,8 +36,8 @@ export function ChatVoiceBar({ voiceState, activationMode, onStop }: ChatVoiceBa
       className="retro-chat-header shrink-0 flex items-center justify-between px-4 py-3"
       style={{ borderTop: "3px solid rgba(204, 0, 0, 0.18)" }}
     >
-      <div className="flex items-center gap-3">
-        <div className="flex items-end gap-0.5 h-4">
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="flex items-end gap-0.5 h-4 shrink-0">
           {[0, 1, 2, 3, 4].map((i) => (
             <div
               key={i}
@@ -48,9 +50,21 @@ export function ChatVoiceBar({ voiceState, activationMode, onStop }: ChatVoiceBa
             />
           ))}
         </div>
-        <span className="text-sm" style={{ color: "var(--text-secondary)" }} aria-live="polite">
-          {statusMap[voiceState]}
-        </span>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm" style={{ color: "var(--text-secondary)" }} aria-live="polite">
+              {statusMap[voiceState]}
+            </span>
+            {provider && (
+              <span className="retro-chip text-[10px]">{provider}</span>
+            )}
+          </div>
+          {liveTranscript && (
+            <p className="text-xs truncate mt-1" style={{ color: "var(--text-muted)" }}>
+              {liveTranscript}
+            </p>
+          )}
+        </div>
       </div>
       <button
         onClick={onStop}
