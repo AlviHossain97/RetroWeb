@@ -1,0 +1,133 @@
+=== /home/pi/RetroPie/roms/zxspectrum/+Start ===
+
+=== Fuse.sh ===
+
+=== /home/pi/RetroPie/roms/pc/+Start ===
+
+=== rpix86.sh ===
+
+=== /home/pi/RetroPie/roms/pc/+Start ===
+
+=== DOSBox.sh ===
+
+=== /home/pi/RetroPie/roms/amiga/+Start ===
+
+=== UAE4All.sh ===
+
+=== /home/pi/RetroPie/roms/amiga/+Start ===
+
+=== UAE4Arm.sh ===
+
+=== /home/pi/RetroPie/roms/amiga/+Start ===
+
+=== Amiberry.sh ===
+
+=== /home/pi/RetroPie/roms/jellyfin/Jellyfin.sh ===
+#!/bin/bash
+# Jellyfin launcher (Pi 3) for EmulationStation - Kodi route (VT-safe) + MP4 animated splash
+# Leaves EmulationStation running on tty1, launches Kodi on tty8, then switches back to tty1 on exit.
+
+JELLYFIN_URL="http://192.168.1.190:8096"
+
+# ---- Splash settings ----
+SPLASH_MP4="/home/pi/RetroPie/splashscreens/jellyfin.mp4"
+SPLASH_SECONDS=3
+
+# ---- VT/X settings ----
+VTNUM=8
+DISPLAYNUM=":0"
+ES_VT=1
+
+run_in_x() {
+  local CMD="$1"
+  sudo openvt -f -c "$VTNUM" -s -- \
+    xinit /bin/sh -c "$CMD" -- "$DISPLAYNUM" vt"$VTNUM" -nolisten tcp -keeptty \
+    >/tmp/jellyfin-xinit.log 2>&1
+}
+
+play_splash() {
+  if [ -f "$SPLASH_MP4" ] && command -v omxplayer >/dev/null 2>&1; then
+    omxplayer --no-osd --aspect-mode fill --loop "$SPLASH_MP4" >/dev/null 2>&1 &
+    SPLASHPID=$!
+    sleep "$SPLASH_SECONDS"
+    kill "$SPLASHPID" >/dev/null 2>&1 || true
+    pkill -f omxplayer >/dev/null 2>&1 || true
+  fi
+}
+
+back_to_es_vt() {
+  # The key fix: always return to EmulationStation VT
+  sudo chvt "$ES_VT" 2>/dev/null || true
+}
+
+# Always switch back to ES VT if the script ends for any reason
+trap 'back_to_es_vt' EXIT
+
+# Splash first
+play_splash
+
+# ---- Kodi route ----
+if command -v kodi-standalone >/dev/null 2>&1 || command -v kodi >/dev/null 2>&1; then
+  run_in_x '
+    openbox-session &
+
+    xset s off
+    xset -dpms
+    xset s noblank
+
+    if command -v kodi-standalone >/dev/null 2>&1; then
+      kodi-standalone
+    else
+      kodi
+    fi
+
+    xset s on
+    xset +dpms
+    killall openbox >/dev/null 2>&1
+  '
+
+  # Force return to ES VT after Kodi exits
+  back_to_es_vt
+  exit 0
+fi
+
+# ---- Chromium fallback ----
+BROWSER="$(command -v chromium-browser || command -v chromium || true)"
+if [ -n "$BROWSER" ]; then
+  run_in_x "
+    openbox-session &
+
+    xset s off
+    xset -dpms
+    xset s noblank
+
+    \"$BROWSER\" --kiosk --noerrdialogs --disable-infobars --disable-session-crashed-bubble \
+      --autoplay-policy=no-user-gesture-required \"$JELLYFIN_URL\"
+
+    xset s on
+    xset +dpms
+    killall openbox >/dev/null 2>&1
+  "
+
+  back_to_es_vt
+  exit 0
+fi
+
+echo "Neither Kodi nor Chromium is installed."
+echo "Install Kodi: sudo apt update && sudo apt install -y kodi xserver-xorg xinit openbox dbus-x11 kbd xserver-xorg-legacy"
+back_to_es_vt
+exit 1
+
+
+=== /home/pi/RetroPie/roms/dreamcast/+Start ===
+
+=== Reicast.sh ===
+
+=== /home/pi/RetroPie/roms/scummvm/+Start ===
+
+=== ScummVM-SDL1.sh ===
+
+=== /home/pi/RetroPie/roms/scummvm/+Start ===
+
+=== ScummVM.sh ===
+
