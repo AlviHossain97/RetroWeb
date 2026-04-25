@@ -1,0 +1,242 @@
+    music_items_info file written in build/bn_music_items_info.h
+    sound_items_info file written in build/bn_sound_items_info.h
+    Processed audio size: 12 bytes
+range_dot.bmp
+outline.bmp
+effects.bmp
+cursor.bmp
+terrain.bmp
+projectile.bmp
+towers.bmp
+props.bmp
+hud_bg.bmp
+characters.bmp
+common_fixed_8x16_font.bmp
+common_variable_8x16_font.bmp
+common_variable_16x16_font.bmp
+common_fixed_8x8_font.bmp
+common_variable_8x8_font.bmp
+    range_dot.bmp item header written in build/bn_sprite_items_range_dot.h (graphics size: 64 bytes)
+    outline.bmp item header written in build/bn_sprite_items_outline.h (graphics size: 160 bytes)
+    effects.bmp item header written in build/bn_sprite_items_effects.h (graphics size: 544 bytes)
+    cursor.bmp item header written in build/bn_sprite_items_cursor.h (graphics size: 64 bytes)
+    terrain.bmp item header written in build/bn_sprite_items_terrain.h (graphics size: 288 bytes)
+    projectile.bmp item header written in build/bn_sprite_items_projectile.h (graphics size: 64 bytes)
+    towers.bmp item header written in build/bn_sprite_items_towers.h (graphics size: 1184 bytes)
+    props.bmp item header written in build/bn_sprite_items_props.h (graphics size: 800 bytes)
+    hud_bg.bmp item header written in build/bn_sprite_items_hud_bg.h (graphics size: 128 bytes)
+    characters.bmp item header written in build/bn_sprite_items_characters.h (graphics size: 672 bytes)
+    common_fixed_8x16_font.bmp item header written in build/bn_sprite_items_common_fixed_8x16_font.h (graphics size: 7072 bytes)
+    common_variable_8x16_font.bmp item header written in build/bn_sprite_items_common_variable_8x16_font.h (graphics size: 7072 bytes)
+    common_variable_16x16_font.bmp item header written in build/bn_sprite_items_common_variable_16x16_font.h (graphics size: 14112 bytes)
+    common_fixed_8x8_font.bmp item header written in build/bn_sprite_items_common_fixed_8x8_font.h (graphics size: 3552 bytes)
+    common_variable_8x8_font.bmp item header written in build/bn_sprite_items_common_variable_8x8_font.h (graphics size: 3552 bytes)
+    Processed graphics size: 39328 bytes
+bn_audio_soundbank.bin
+characters_bn_gfx.s
+cursor_bn_gfx.s
+effects_bn_gfx.s
+hud_bg_bn_gfx.s
+outline_bn_gfx.s
+projectile_bn_gfx.s
+props_bn_gfx.s
+range_dot_bn_gfx.s
+terrain_bn_gfx.s
+towers_bn_gfx.s
+common_fixed_8x16_font_bn_gfx.s
+common_fixed_8x8_font_bn_gfx.s
+common_variable_16x16_font_bn_gfx.s
+common_variable_8x16_font_bn_gfx.s
+common_variable_8x8_font_bn_gfx.s
+main.cpp
+In file included from /home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/game_over_state.h:3,
+                 from /home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/src/main.cpp:43:
+/home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/state.h: In member function 'virtual void State::enter(App&)':
+/home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/state.h:13:29: warning: unused parameter 'app' [-Wunused-parameter]
+   13 |     virtual void enter(App& app) {}
+      |                        ~~~~~^~~
+/home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/state.h: In member function 'virtual void State::exit(App&)':
+/home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/state.h:14:28: warning: unused parameter 'app' [-Wunused-parameter]
+   14 |     virtual void exit(App& app) {}
+      |                       ~~~~~^~~
+save_manager_gba.cpp
+economy.cpp
+effects.cpp
+enemy.cpp
+game.cpp
+grid.cpp
+map_generator.cpp
+pathfinding.cpp
+projectile.cpp
+save_manager.cpp
+tower.cpp
+wave_manager.cpp
+game_over_state.cpp
+In file included from /home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/game_over_state.h:3,
+                 from /home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/game_over_state.cpp:1:
+/home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/state.h: In member function 'virtual void State::enter(App&)':
+/home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/state.h:13:29: warning: unused parameter 'app' [-Wunused-parameter]
+   13 |     virtual void enter(App& app) {}
+      |                        ~~~~~^~~
+/home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/state.h: In member function 'virtual void State::exit(App&)':
+/home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/state.h:14:28: warning: unused parameter 'app' [-Wunused-parameter]
+   14 |     virtual void exit(App& app) {}
+      |                       ~~~~~^~~
+gameplay_state.cpp
+In file included from /home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/gameplay_state.h:3,
+                 from /home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/gameplay_state.cpp:1:
+/home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/state.h: In member function 'virtual void State::enter(App&)':
+/home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/state.h:13:29: warning: unused parameter 'app' [-Wunused-parameter]
+   13 |     virtual void enter(App& app) {}
+      |                        ~~~~~^~~
+/home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/state.h: In member function 'virtual void State::exit(App&)':
+/home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/state.h:14:28: warning: unused parameter 'app' [-Wunused-parameter]
+   14 |     virtual void exit(App& app) {}
+      |                       ~~~~~^~~
+instructions_state.cpp
+In file included from /home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/instructions_state.h:3,
+                 from /home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/instructions_state.cpp:1:
+/home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/state.h: In member function 'virtual void State::enter(App&)':
+/home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/state.h:13:29: warning: unused parameter 'app' [-Wunused-parameter]
+   13 |     virtual void enter(App& app) {}
+      |                        ~~~~~^~~
+/home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/state.h: In member function 'virtual void State::exit(App&)':
+/home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/state.h:14:28: warning: unused parameter 'app' [-Wunused-parameter]
+   14 |     virtual void exit(App& app) {}
+      |                       ~~~~~^~~
+pause_state.cpp
+In file included from /home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/pause_state.h:3,
+                 from /home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/pause_state.cpp:1:
+/home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/state.h: In member function 'virtual void State::enter(App&)':
+/home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/state.h:13:29: warning: unused parameter 'app' [-Wunused-parameter]
+   13 |     virtual void enter(App& app) {}
+      |                        ~~~~~^~~
+/home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/state.h: In member function 'virtual void State::exit(App&)':
+/home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/state.h:14:28: warning: unused parameter 'app' [-Wunused-parameter]
+   14 |     virtual void exit(App& app) {}
+      |                       ~~~~~^~~
+settings_state.cpp
+In file included from /home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/settings_state.h:3,
+                 from /home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/settings_state.cpp:1:
+/home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/state.h: In member function 'virtual void State::enter(App&)':
+/home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/state.h:13:29: warning: unused parameter 'app' [-Wunused-parameter]
+   13 |     virtual void enter(App& app) {}
+      |                        ~~~~~^~~
+/home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/state.h: In member function 'virtual void State::exit(App&)':
+/home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/state.h:14:28: warning: unused parameter 'app' [-Wunused-parameter]
+   14 |     virtual void exit(App& app) {}
+      |                       ~~~~~^~~
+title_state.cpp
+In file included from /home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/title_state.h:3,
+                 from /home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/title_state.cpp:1:
+/home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/state.h: In member function 'virtual void State::enter(App&)':
+/home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/state.h:13:29: warning: unused parameter 'app' [-Wunused-parameter]
+   13 |     virtual void enter(App& app) {}
+      |                        ~~~~~^~~
+/home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/state.h: In member function 'virtual void State::exit(App&)':
+/home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/state.h:14:28: warning: unused parameter 'app' [-Wunused-parameter]
+   14 |     virtual void exit(App& app) {}
+      |                       ~~~~~^~~
+victory_state.cpp
+In file included from /home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/victory_state.h:3,
+                 from /home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/victory_state.cpp:1:
+/home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/state.h: In member function 'virtual void State::enter(App&)':
+/home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/state.h:13:29: warning: unused parameter 'app' [-Wunused-parameter]
+   13 |     virtual void enter(App& app) {}
+      |                        ~~~~~^~~
+/home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/state.h: In member function 'virtual void State::exit(App&)':
+/home/alvi/PiStation/PiStation/games/BastionTD/src_cpp/gba_project/../states/state.h:14:28: warning: unused parameter 'app' [-Wunused-parameter]
+   14 |     virtual void exit(App& app) {}
+      |                       ~~~~~^~~
+bn_affine_bg_animate_actions.cpp
+bn_audio_manager.bn_noflto.cpp
+bn_best_fit_allocator.cpp
+bn_bg_blocks_manager.cpp
+bn_bgs_manager.cpp
+bn_cameras_manager.cpp
+bn_core.cpp
+bn_display_manager.cpp
+bn_gpio_manager.cpp
+bn_hblank_effects_manager.cpp
+bn_hdma_manager.cpp
+bn_keypad_manager.cpp
+bn_link_manager.cpp
+bn_memory_manager.cpp
+bn_palettes_manager.cpp
+bn_profiler.cpp
+bn_regular_bg_animate_actions.cpp
+bn_sprite_affine_mats_manager.cpp
+bn_sprite_animate_actions.cpp
+bn_sprites_manager.bn_iwram.cpp
+bn_sprites_manager.cpp
+bn_sprite_text_generator.cpp
+bn_sprite_tiles_manager.cpp
+bn_sstream.cpp
+bn_translation_unit.cpp
+bn_hw_audio.cpp
+bn_hw_common.bn_noflto.cpp
+bn_hw_cstdlib.cpp
+bn_hw_cstring.cpp
+bn_hw_dmg_audio.cpp
+bn_hw_game_pak.bn_ewram.cpp
+bn_hw_gpio.bn_noflto.cpp
+bn_hw_link.cpp
+bn_hw_palettes.bn_iwram.cpp
+bn_hw_palettes.cpp
+bn_hw_show.cpp
+bn_hw_sprite_tiles.bn_iwram.cpp
+bn_hw_sram.bn_ewram.cpp
+bn_hw_sram.bn_noflto.cpp
+bn_hw_system_font.cpp
+bn_hw_text.cpp
+tonc_color.c
+tonc_core.bn_iwram.c
+tonc_sbmp16.c
+tonc_schr4c.c
+tonc_schr4r.c
+tonc_surface.c
+bmp16_drawg_b1cs.c
+tte_init_bmp.c
+tte_main.c
+interrupts_gba.c
+coroutine.c
+rtc.c
+effect.c
+mas_arm.c
+mas.c
+main_gba.c
+mixer.c
+gbt_player.c
+advgm.c
+bn_hw_bg_blocks.s
+bn_hw_core.s
+bn_hw_hblank_effects.s
+bn_hw_palettes_asm.s
+clr_blend_fast.s
+clr_fade_fast.s
+tonc_bios.s
+tonc_memset.s
+tonc_nocash.s
+verdana9.s
+irq_handler.s
+posprintf.s
+atan2.s
+coroutine_asm.s
+fiq_memcpy.s
+memcpy.s
+memmove.s
+memset.s
+rmemcpy.s
+stdgba_div.s
+stdgba_ldiv.s
+stdgba_lmul.s
+stdgba_memcpy.s
+stdgba_memset.s
+clz.s
+sqrt32.s
+lz77.s
+running_length.s
+mixer_asm.s
+Linking ROM...
+Fixing BastionTD.gba...
+ROM fixed!
