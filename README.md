@@ -1,522 +1,252 @@
-<div align="center">
+# PiStation
 
-# PiStation · RetroWeb
+**A two-host retro gaming and media platform.**
+Raspberry Pi 3 at the TV runs RetroPie for native emulation; a laptop on
+the same network runs the analytics backend, media server, and an
+AI-driven dashboard streamed back to the Pi over Sunshine + Moonlight.
 
-**A self-hosted retro gaming dashboard with browser-based emulation, live stats, and a local voice assistant.**
-
-[![React 19](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)](https://react.dev)
-[![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
-[![Vite 7](https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white)](https://vitejs.dev)
-[![Tailwind v4](https://img.shields.io/badge/Tailwind-v4-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
-[![Parakeet TDT 1.1B](https://img.shields.io/badge/STT-Parakeet%20TDT%201.1B-76B900?logo=nvidia&logoColor=white)](https://huggingface.co/nvidia/parakeet-tdt-1.1b)
-[![Kokoro TTS](https://img.shields.io/badge/TTS-Kokoro%20ONNX-FF6F00)](https://github.com/thewh1teagle/kokoro-onnx)
-[![PWA](https://img.shields.io/badge/PWA-installable-5A0FC8?logo=pwa&logoColor=white)]()
-[![License](https://img.shields.io/badge/license-private-lightgrey)]()
-
-</div>
+> BSc Computer Science final-year artefact, University of Roehampton 2025–26.
+> Submitted as **PiStation**; the GitHub repository is named `RetroWeb`
+> for legacy reasons.
 
 ---
 
-## Table of Contents
+## What it actually is
 
-- [What is PiStation?](#what-is-pistation)
-- [Feature Matrix](#feature-matrix)
-- [Architecture](#architecture)
-- [Voice Pipeline](#voice-pipeline)
-- [Quick Start](#quick-start)
-- [Configuration](#configuration)
-- [Service Map](#service-map)
-- [Project Layout](#project-layout)
-- [Scripts Reference](#scripts-reference)
-- [Voice Activation Modes](#voice-activation-modes)
-- [Model Picker](#model-picker)
-- [Troubleshooting](#troubleshooting)
-- [Hardware Requirements](#hardware-requirements)
-- [Roadmap](#roadmap)
-- [Tech Stack](#tech-stack)
+The marker should be able to come away from this section saying:
+*"Pi-and-laptop system, three interaction paths, original homebrew game
+corpus, and a streamed dashboard with local AI."*
 
----
+PiStation runs as **two physical hosts cooperating over the LAN** so each
+can do what its hardware is suited for:
 
-## What is PiStation?
-
-PiStation is a **browser-first retro gaming platform** that runs entirely in the user's browser via WebAssembly, backed by a FastAPI service for analytics and a local AI voice assistant. The stack was designed to run on a laptop/desktop GPU and stream to a Raspberry Pi client via Sunshine + Moonlight.
-
-**Key properties:**
-
-- Emulation runs in the browser (no server-side game state).
-- Voice, LLM, and TTS are **self-hosted by default** — the assistant works without sending audio to third-party services.
-- Gaming stats (sessions, playtime, achievements) persist in MySQL via the FastAPI backend.
-- PWA-installable, controller-first UI.
-
----
-
-## Feature Matrix
-
-| Area | Status | Notes |
+| Host | Hardware | Role |
 |---|---|---|
-| Dashboard analytics | ✅ | Total playtime, top games, system share, recent sessions |
-| Sessions tracking | ✅ | Live "now playing" + historical search/filter |
-| Achievements | ✅ | Unlock progress + category grouping |
-| Controller diagnostics | ✅ | Live gamepad visualization + keyboard rebinding |
-| AI chat (text) | ✅ | Multi-model via NVIDIA integrate API |
-| AI chat (voice) | ✅ | Parakeet STT → NVIDIA LLM → Kokoro TTS |
-| Voice activation modes | ✅ | Auto near-field · Headset · Push-to-talk (`T` key) |
-| Web-grounded answers | ✅ | Optional Tavily / SearXNG backend |
-| Kiosk mode | ✅ | TV/cabinet-ready fullscreen, `?lite=1` minimal variant |
-| Sunshine game streaming | ✅ | NVENC → Moonlight client on Pi |
-| Pi dashboard streaming | ⚙️ Opt-in | Set `PI_IP=x.x.x.x` to enable Xvfb+FFmpeg UDP stream |
-| Library page | 🚧 | Route exists, "coming soon" |
-| Image generation | ✅ | ImageRouter API (optional) |
+| **Pi 3** | quad-core ARM, 1 GB RAM, no discrete GPU | TV-attached client. Native retro emulation, Kodi media playback, and Moonlight thin-client for the dashboard. |
+| **Laptop** | x86_64, RTX 3070 Laptop 8 GB VRAM, 16 GB RAM | Analytics backend, MySQL, Jellyfin server, local STT/TTS, and the React dashboard streamed to the Pi via Sunshine NVENC. |
 
----
-
-## Architecture
+Three independent **interaction loops** run on top of these two hosts:
 
 ```mermaid
 flowchart LR
-    subgraph Browser["🌐 Browser (React 19 PWA)"]
-        UI[Dashboard UI]
-        VC[Voice Capture<br/>AudioWorklet]
-        EM[Nostalgist + WASM<br/>RetroArch cores]
-    end
+  subgraph Pi["📺 Raspberry Pi 3 (at the TV)"]
+    ES[EmulationStation<br/>launcher]
+    RA[RetroArch<br/>+ lr-mgba core]
+    KO[Kodi<br/>+ Jellyfin add-on]
+    ML[Moonlight<br/>thin client]
+  end
 
-    subgraph Backend["⚙️ FastAPI :8000"]
-        VGW[Voice Gateway<br/>WebSocket]
-        AIC[AI Context Service<br/>+ grounding]
-        DB[(MySQL<br/>stats/sessions)]
-    end
+  subgraph Laptop["💻 Laptop (RTX 3070)"]
+    SMB[Samba share<br/>ROMs + media]
+    API[FastAPI :8000]
+    MY[(MySQL :3306)]
+    JF[Jellyfin server]
+    DASH[React 19 PWA<br/>+ Parakeet STT<br/>+ Kokoro TTS<br/>+ NVIDIA LLMs]
+    SUN[Sunshine NVENC<br/>:47990]
+  end
 
-    subgraph LocalAI["🧠 Local AI services"]
-        PAR[Parakeet STT<br/>:8786 · GPU fp16]
-        KOK[Kokoro TTS<br/>:8787 · ONNX]
-    end
-
-    subgraph Cloud["☁️ External APIs"]
-        NV[NVIDIA integrate<br/>/chat/completions]
-        IR[ImageRouter<br/>optional]
-        TV[Tavily / SearXNG<br/>optional]
-    end
-
-    UI -->|HTTPS| Backend
-    VC -.PCM16 WS.-> VGW
-    VGW -->|POST /v1/audio/transcriptions| PAR
-    VGW -->|POST /v1/chat/completions| NV
-    VGW -->|POST /v1/audio/speech| KOK
-    AIC --> NV
-    AIC -.grounding.-> TV
-    Backend --> DB
-    EM -.streams fb.-> Sunshine[Sunshine NVENC :47990]
+  ES -->|launches| RA
+  RA -.runcommand hook POST.-> API
+  API --> MY
+  RA -->|reads ROM via CIFS| SMB
+  ES -->|"system entry: Kodi"| KO
+  KO -->|Jellyfin for Kodi| JF
+  JF -->|HEVC/H.264 transcode| KO
+  ES -->|"system entry: Dashboard"| ML
+  DASH -->|fullscreen Chromium| SUN
+  SUN -->|H.264/HEVC stream| ML
+  ML -.controller input.-> SUN
 ```
+
+### Loop 1 — Native gaming (Pi-side)
+
+EmulationStation lists every system on the Pi (GBA, SNES, NES, etc.).
+The user picks a game; RetroArch launches it natively on the Pi using
+the appropriate libretro core (`lr-mgba` for the three GBA homebrew
+titles in this submission). ROMs themselves live on the laptop's Samba
+share, mounted on the Pi via CIFS, so storage is centralised but
+emulation runs on the device best suited to low-latency input.
+
+RetroPie's `runcommand-onstart.sh` and `runcommand-onend.sh` hooks fire
+before and after each game session and POST/PATCH session metadata
+(ROM path, system, emulator, core, hostname, started/ended timestamps,
+duration) to the FastAPI backend on the laptop. That's how a session
+played on the Pi shows up in the dashboard.
+
+### Loop 2 — Media (split across both hosts)
+
+Kodi is registered as an EmulationStation system entry, so it appears
+in the carousel alongside SNES and GBA. Inside Kodi, the
+**Jellyfin for Kodi** add-on connects to the Jellyfin server running on
+the laptop. Library scanning and any transcoding happen on the laptop's
+GPU; Kodi only renders playback on the Pi.
+
+### Loop 3 — Dashboard + AI (laptop, streamed to Pi)
+
+The React 19 + Vite 7 + Tailwind v4 PWA runs in a fullscreen Chromium
+window on the laptop, backed by FastAPI on `:8000`, MySQL on `:3306`,
+**Parakeet TDT 1.1B** on `:8786` (local STT, fp16 on CUDA), and
+**Kokoro ONNX** on `:8787` (local TTS). LLM completions go through
+NVIDIA's `integrate.api.nvidia.com` with a 7-model picker (Step 3.5 Flash,
+DeepSeek V4 Pro, Kimi K2 Thinking, Mistral Large 3, Gemma 3 27B,
+GLM 4.7, MiniMax M2.7).
+
+The laptop's display is captured by **Sunshine NVENC** and sent to the
+Pi as an H.264/HEVC video stream; the Pi runs **Moonlight** to decode
+and display it on the TV, with controller and keyboard input forwarded
+back over the same connection. The Pi 3 cannot render a modern React
+PWA, but it can decode hardware video, so the dashboard "appears" on
+the Pi without the Pi doing the heavy work.
 
 ---
 
-## Voice Pipeline
+## Why the architecture looks like this
 
-End-to-end flow for a single spoken turn:
+Pi 3 is strong at low-latency native emulation, weak at GPU-bound work
+(modern web stacks, AI inference, video transcoding). The laptop is
+strong at GPU work, weak at being attached to a TV. Two-host with
+Sunshine/Moonlight as the bridge gets the best of both: the user sees
+a unified single-device experience at the TV while the laptop's GPU
+transparently does the heavy lifting.
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor User
-    participant Mic as Browser Mic<br/>(AudioWorklet)
-    participant WS as Voice Gateway<br/>(FastAPI WS)
-    participant Parakeet as Parakeet STT<br/>(:8786 GPU)
-    participant LLM as NVIDIA LLM<br/>(integrate API)
-    participant Kokoro as Kokoro TTS<br/>(:8787 GPU)
-    participant Speaker as Browser Playback<br/>(AudioContext)
-
-    User->>Mic: speaks
-    Mic->>WS: input_audio.chunk<br/>(PCM16 @ 16kHz, base64, 80ms frames)
-    Mic->>WS: input_audio.stop (silence cutoff)
-    WS->>Parakeet: POST audio.wav (16kHz mono)
-    Parakeet-->>WS: { text: "..." }
-    WS-->>User: user.transcript.final
-    WS->>LLM: chat/completions (stream)
-    LLM-->>WS: delta tokens
-    WS-->>User: assistant.text.delta (streamed)
-    WS->>Kokoro: POST speech text
-    Kokoro-->>WS: WAV @ 22.05kHz
-    WS-->>Speaker: assistant.audio.chunk<br/>(PCM16 chunks, base64)
-    Speaker->>User: plays voice reply
-```
-
-**Key invariants:**
-
-- Audio leaving the browser is always **PCM16 @ 16 kHz mono** (downsampled client-side in `voice-capture-processor.js`).
-- Audio returning to the browser is always **PCM16 @ 22.05 kHz mono**, rechunked at 80 ms boundaries for smooth playback.
-- VAD auto-suppresses while TTS is playing, so the assistant can't transcribe its own voice in `auto_near_field` mode.
-
-<details>
-<summary><b>Click for deeper voice internals</b></summary>
-
-- **Providers:** `voice_provider_order` in `.env` accepts `hosted,voicechat,legacy`. `legacy` is the current local Parakeet+Kokoro cascade; `voicechat` is the NVIDIA Nemotron realtime preview (disabled by default).
-- **Graceful fallback:** if the primary provider's `health()` fails at session-start time, the gateway falls back to the next in order and emits a `provider.changed` event.
-- **Session timeout:** `VOICE_SESSION_MAX_SECONDS` (default 840s / 14 min). A `session.expiring` event fires 5–30 s before to let the client reconnect cleanly.
-- **Turn cancellation:** the frontend can send `response.cancel`; the gateway sets a `cancel_event` that interrupts both LLM streaming and TTS chunk delivery.
-- **Text-chat TTS:** typed messages also get voiced when voice is enabled. `createTTSSession()` in `useChatVoice.ts` returns a dedicated `AudioContext`-backed session that flushes at sentence/clause boundaries so playback starts while the LLM is still generating.
-
-</details>
+This is consistent with the literature reviewed in the report
+(Rzepka, Gamess, Suder) which warns against forcing modern frontend
+workloads onto Pi-class hardware. Sunshine + Moonlight are tools
+designed for exactly this thin-client/thick-server split.
 
 ---
 
-## Quick Start
+## The three original homebrew games
 
-### Prerequisites
+To avoid commercial-ROM copyright issues with the test corpus, three
+GBA homebrew titles were written specifically for this project. All
+three follow the same pipeline: rapid Python prototype on the laptop
+to iterate gameplay, then a port to GBA-native C or C++ that runs on
+the Pi via `lr-mgba`.
 
-| Requirement | Version | Why |
-|---|---|---|
-| Node.js | 20.19+ or 22.12+ | Vite 7 |
-| Python | 3.12+ | FastAPI + NeMo |
-| CUDA GPU | RTX 20-series or newer, 8 GB+ VRAM | Parakeet 1.1B fp16 + Kokoro ONNX |
-| MySQL | 8.x (XAMPP OK) | Stats/sessions persistence |
-| NVIDIA API key | [build.nvidia.com](https://build.nvidia.com) | LLM inference |
+| Game | Lang (GBA build) | Origin | Asset sourcing | README |
+|---|---|---|---|---|
+| **Red Racer** | C | Python prototype → C port | Mixed; prototype reference assets withheld; GBA build assets attributed | [games/Red Racer/](games/Red%20Racer/README.md) |
+| **Mythical** | C++ | Python prototype → C++ port | All project-author original | [games/Mythical/](games/Mythical/README.md) |
+| **Bastion Tower Defence** | C++ (Butano) | Python+SDL2 prototype → Butano port | Mix of project-original and licensed open-source | [games/BastionTD/](games/BastionTD/README.md) |
 
-### Install
-
-```bash
-git clone https://github.com/AlviHossain97/RetroWeb.git PiStation
-cd PiStation
-npm install
-python3 -m pip install -r backend/requirements.txt
-cp backend/.env.example backend/.env
-# Edit backend/.env — set NVIDIA_API_KEY and DB_PASSWORD at minimum.
-```
-
-### Run the whole stack
-
-```bash
-npm start
-```
-
-Equivalent to: `node start.mjs`, which boots **XAMPP → FastAPI → Kokoro → Parakeet → Vite → Sunshine** in that order. The dashboard lands on `http://localhost:5173`.
-
-### Run the frontend alone
-
-If you don't need the AI stack (offline dev on UI-only changes):
-
-```bash
-npm run dev
-```
-
-### Run tests
-
-```bash
-npm test
-python3 -m unittest discover -s backend/tests
-```
+The Python-to-GBA-native pipeline is itself a CS deliverable: fixed-point
+math, 240×160 framebuffer constraints, no dynamic allocation in hot
+paths, sprite tile/palette layout, ROM mapping. See
+[`games/README.md`](games/README.md) for the cross-game write-up.
 
 ---
 
-## Configuration
-
-All backend config lives in [`backend/.env`](backend/.env.example) (gitignored) and is loaded via pydantic-settings. **Shell env vars take precedence over `.env`** — set `NVIDIA_API_KEY` globally if you want it inherited by any process without editing the file.
-
-<details>
-<summary><b>Full environment variable reference</b></summary>
-
-### Required
-
-| Variable | Example | Purpose |
-|---|---|---|
-| `NVIDIA_API_KEY` | `nvapi-...` | LLM chat completions |
-| `DB_PASSWORD` | `changeme` | MySQL user password |
-
-### Voice cascade
-
-| Variable | Default | Purpose |
-|---|---|---|
-| `VOICE_PROVIDER_ORDER` | `legacy` | Ordered list: `legacy`, `voicechat`, `hosted` |
-| `VOICE_LOCAL_STT_URL` | `http://localhost:8786` | Parakeet server endpoint |
-| `VOICE_LOCAL_TTS_URL` | `http://localhost:8787` | Kokoro server endpoint |
-| `VOICE_SESSION_MAX_SECONDS` | `840` | Session lifetime before forced reconnect |
-| `NVIDIA_MODEL` | `stepfun-ai/step-3.5-flash` | LLM used by voice cascade |
-
-### Optional — NVIDIA Nemotron realtime voicechat
-
-| Variable | Default | Purpose |
-|---|---|---|
-| `NVIDIA_VOICECHAT_ENABLED` | `false` | Enable the single-provider realtime fallback |
-| `NVIDIA_VOICECHAT_MODEL` | `nemotron-voicechat` | Model name |
-| `NVIDIA_VOICECHAT_UPSTREAM_URL` | — | WebSocket URL |
-
-### Optional — web grounding
-
-| Variable | Default | Purpose |
-|---|---|---|
-| `WEB_SEARCH_MODE` | `auto` | `auto` / `always` / `never` |
-| `SEARXNG_URL` | — | Self-hosted search endpoint |
-| `TAVILY_API_KEY` | — | Managed search fallback |
-| `SEARCH_TOP_K` | `5` | Results per query |
-
-### Optional — image generation
-
-| Variable | Default | Purpose |
-|---|---|---|
-| `IMAGEROUTER_API_KEY` | — | Enables `/ai/generate-image` |
-| `IMAGEROUTER_IMAGE_MODEL` | `google/nano-banana-2:free` | Default image model |
-
-### Parakeet runtime tunables (server env, not in `.env`)
-
-| Variable | Default | Purpose |
-|---|---|---|
-| `PARAKEET_MODEL` | `nvidia/parakeet-tdt-1.1b` | Swap to `parakeet-tdt-0.6b-v2` for pure-English or lower VRAM |
-| `PARAKEET_DEVICE` | `cuda` | Set `cpu` for CPU-only (very slow) |
-| `PARAKEET_HALF` | `1` | Set `0` to force fp32 |
-
-</details>
-
----
-
-## Service Map
-
-| Service | Port | Started by | Kills gracefully via |
-|---|---|---|---|
-| Vite dev server | 5173 | `start.mjs` | Ctrl+C |
-| FastAPI backend | 8000 | `start.mjs` → `uvicorn` | SIGTERM |
-| Parakeet STT | 8786 | `start.mjs` → `scripts/parakeet-server.py` | SIGTERM |
-| Kokoro TTS | 8787 | `start.mjs` → `scripts/kokoro-tts-server.py` | SIGTERM |
-| MySQL (XAMPP) | 3306 | `/opt/lampp/lampp start` | `/opt/lampp/lampp stop` |
-| Sunshine | 47990 | `start.mjs` | systray → Quit |
-| phpMyAdmin | 80 | XAMPP Apache | XAMPP |
-
----
-
-## Project Layout
+## Repository layout
 
 ```
 PiStation/
-├── backend/                       FastAPI + pydantic-settings
-│   ├── app/
-│   │   ├── routes/                12 route modules (voice, ai, stats, sessions, …)
-│   │   ├── services/              voice_gateway, ai_context, grounding, tools, …
-│   │   ├── repositories/          MySQL query layer
-│   │   ├── models/                Pydantic DTOs
-│   │   └── config.py              Settings (pydantic-settings)
-│   ├── migrations/                SQL + seed
-│   ├── tests/                     unittest (voice gateway, Speechmatics client)
+├── README.md                  ← you are here (system overview)
+├── DEVLOG.md                  Month-by-month development log (Oct 2025 → Apr 2026)
+├── laptop/
+│   └── README.md              Laptop component: dashboard, FastAPI, voice, services
+├── pi/
+│   ├── README.md              Pi component: RetroPie, Kodi, Moonlight, hooks, mount
+│   └── scripts/               Pi-side scripts (runcommand hooks, fstab, es_systems.cfg)
+├── games/
+│   ├── README.md              Cross-game overview + Python→GBA pattern
+│   ├── Red Racer/             Original GBA homebrew (C, Python prototype origin)
+│   ├── Mythical/              Original GBA homebrew (C++, Python prototype origin)
+│   └── BastionTD/             Original GBA homebrew (Butano C++, SDL2 prototype origin)
+│
+├── backend/                   Laptop component — FastAPI implementation
+│   ├── app/                   routes, services, repositories, models
+│   ├── migrations/            SQL + seeds
 │   └── requirements.txt
+├── src/                       Laptop component — React 19 PWA implementation
+│   ├── routes/, components/, lib/, gamepad/, data/, stores/
+│   └── ARCHITECTURE.md, AI_ASSISTANT.md
 ├── scripts/
-│   ├── parakeet-server.py         NeMo ASR REST wrapper (:8786)
-│   ├── kokoro-tts-server.py       Kokoro-ONNX REST wrapper (:8787)
-│   ├── kokoro-models/             354 MB ONNX weights + voices
-│   ├── audit-cores.ts / download-cores.ts
-│   └── dashboard-stream.sh        Xvfb + FFmpeg UDP stream for Pi kiosk
-├── src/                           React app
-│   ├── routes/                    Lazy-loaded page components
-│   ├── components/                UI + shadcn primitives
-│   ├── lib/                       Business logic (emulation, storage, i18n, …)
-│   ├── gamepad/                   Input mapping
-│   ├── data/                      Static config (coreMap, system metadata)
-│   └── stores/                    Zustand stores
-├── public/
-│   ├── cores/                     RetroArch WASM cores
-│   ├── audio-worklets/            voice-capture-processor.js
-│   ├── model-icons/               Model picker thumbnails
-│   └── fonts/
-├── tests/                         Node test runner (.test.mjs)
-├── start.mjs                      Service orchestrator
-├── vite.config.ts                 Proxies: /api/nvidia, /api/pistation (ws:true), /api/kokoro, /api/whisper
-└── package.json
+│   ├── parakeet-server.py     Local STT REST wrapper (:8786)
+│   ├── kokoro-tts-server.py   Local TTS REST wrapper (:8787)
+│   └── dashboard-stream.sh    Xvfb + FFmpeg fallback streamer
+├── public/                    Static assets, audio worklets, model icons
+├── start.mjs                  Service orchestrator (XAMPP → FastAPI → STT → TTS → Vite → Sunshine)
+└── tests/                     Frontend test runner
 ```
 
+The `backend/`, `src/`, `scripts/`, and `public/` directories are the
+**laptop component's implementation** — `laptop/README.md` is the
+human-facing entry point for that component. Pi-side artefacts live
+under `pi/`.
+
 ---
 
-## Scripts Reference
+## End-to-end: how a single session flows
 
-| Script | What it does |
+A concrete walkthrough of all three loops touching one piece of state.
+
+1. User on the sofa picks **Bastion Tower Defence** in EmulationStation
+   on the Pi.
+2. ES invokes RetroArch with the lr-mgba core; runcommand-onstart fires
+   and POSTs to `http://laptop.local:8000/api/v1/sessions` with
+   `{rom_path, system="gba", emulator="retroarch", core="mgba",
+   pi_hostname, started_at}`. FastAPI writes a row to `sessions` in MySQL.
+3. RetroArch reads the ROM from `/mnt/laptop/games/BastionTD/...` (the
+   CIFS mount) and runs it natively on the Pi.
+4. User plays for 12 minutes; presses select+start to exit.
+5. runcommand-onend fires and PATCHes the session row with
+   `{ended_at, duration_seconds=720}`.
+6. User opens the **Dashboard** entry in EmulationStation. ES launches
+   Moonlight, which connects to Sunshine on the laptop. The laptop's
+   fullscreen Chromium window (already serving the React dashboard from
+   Vite on `:5173`) appears on the TV.
+7. The "Recently played" tile on the dashboard now shows BastionTD with
+   the just-completed 12-minute session — read from the same MySQL row
+   the runcommand hook wrote.
+8. User pushes-to-talk, says *"How long did I play Bastion this week?"*
+   Parakeet transcribes locally; the AI context service queries the
+   `sessions` table; NVIDIA's LLM produces an answer streamed back to
+   Kokoro for TTS. The user hears the reply on the TV speakers.
+
+That flow is the artefact. Each component README documents the
+implementation behind its part of the path.
+
+---
+
+## Quick start
+
+The laptop side has the heavier setup. See **[laptop/README.md](laptop/README.md)** for full
+prerequisites (Node 22, Python 3.12, CUDA GPU ≥ 8 GB VRAM, MySQL 8,
+NVIDIA API key) and `npm start` to bring the whole laptop stack up.
+
+The Pi side has its own setup steps documented in
+**[pi/README.md](pi/README.md)** — RetroPie image, controller pairing,
+Samba/CIFS mount, Kodi system entry, Moonlight pairing.
+
+To run the Bastion build pipeline (the most involved of the three
+games), see **[games/BastionTD/setup.md](games/BastionTD/setup.md)**.
+The other two games' build prerequisites are documented in their
+own READMEs.
+
+---
+
+## Submission context
+
+This is a 35%-weighted artefact submission for the BSc CS final-year
+project at the University of Roehampton, academic year 2025–26.
+The repository name `RetroWeb` predates the rename to PiStation and
+is preserved on GitHub for assessment continuity; all in-repo
+documentation refers to the project as PiStation.
+
+The accompanying report (separate document) covers the literature
+review, design decisions, methodology, evaluation, and reflection.
+This repository is the artefact that the report describes.
+
+---
+
+## Status
+
+| Loop | Status |
 |---|---|
-| `npm start` | Bring up the whole stack (XAMPP, FastAPI, Kokoro, Parakeet, Vite, Sunshine) |
-| `npm run dev` | Vite only — useful for UI-only iterations |
-| `npm run build` | `tsc -b && vite build` — typechecks and produces `dist/` |
-| `npm run preview` | Serve the production build locally |
-| `npm run lint` | ESLint over the repo |
-| `npm test` | Run frontend tests (`tests/*.test.mjs`) |
-| `PI_IP=192.168.1.100 npm start` | Additionally stream the desktop to a Pi via UDP |
-
----
-
-## Voice Activation Modes
-
-Configurable in the chat → voice settings overlay. The mode persists per session.
-
-| Mode | Trigger | Best for |
-|---|---|---|
-| `auto_near_field` | Continuous listening with VAD (energy + silence cutoff ≈ 1300 ms) | Desktop mic at 0.5–2 m |
-| `headset` | Same VAD but tighter thresholds (noise: 0.010, silence: 900 ms) | Wearing a headset |
-| `push_to_talk` | Hold `T` key or long-press mic button | Noisy rooms, shared spaces |
-
-**Internal safety:** in all continuous modes, the frontend suppresses VAD activation while TTS audio is actively playing, so the assistant can't transcribe its own voice.
-
----
-
-## Model Picker
-
-Currently exposed LLMs (editable in [`src/routes/chat/constants.ts`](src/routes/chat/constants.ts)):
-
-- Gemma 3 27B
-- Kimi K2 Thinking
-- Mistral Large 3 675B
-- Step 3.5 Flash
-- **DeepSeek V4 Pro** *(default for reasoning-heavy replies)*
-- **MiniMax M2.7**
-- GLM 4.7
-
-All go through NVIDIA's `integrate.api.nvidia.com/v1/chat/completions` with streaming enabled. To add another, append to `NVIDIA_MODELS` and drop an icon at `public/model-icons/{modelname}.png`.
-
----
-
-## Troubleshooting
-
-<details>
-<summary><b>🎙️ Mic shows 0 input devices in browser</b></summary>
-
-Usually one of:
-
-1. **PipeWire user service is down.** Verify: `systemctl --user is-active pipewire pipewire-pulse wireplumber`. Fix: `systemctl --user start pipewire.socket pipewire pipewire-pulse wireplumber`.
-2. **No default source configured.** Check `wpctl status` — the `Sources:` block should have an entry with `*` marker. If not: `wpctl set-default <node-id>`.
-3. **Browser process cached an empty device list.** After fixing 1 or 2, fully quit the browser (not just close the tab) and reopen.
-4. **Brave fingerprinting Shield blocking.** Click the lion icon in URL bar → "Block fingerprinting" → "Allow all fingerprinting", then reload.
-
-</details>
-
-<details>
-<summary><b>🧠 Parakeet OOMs on load (8 GB GPU)</b></summary>
-
-The loader is already fp16 + CPU-first, but if you still OOM:
-
-1. Close Brave before launching the stack — its GPU process reserves ~300–500 MB of VRAM.
-2. Temporarily stop Sunshine if you're not streaming: `pkill -x sunshine`.
-3. Fall back to the 0.6b model: `PARAKEET_MODEL=nvidia/parakeet-tdt-0.6b-v2 npm start`.
-
-</details>
-
-<details>
-<summary><b>🔊 Dashboard is laggy</b></summary>
-
-Common causes in order of likelihood:
-
-1. **Browser running with GL disabled after a driver change.** Check `ps -ef | grep gpu-process` — if you see `--use-gl=disabled` or `--disable-gpu-compositing`, fully quit and restart the browser.
-2. **`packagekitd` doing an update check.** It'll settle in ~60 s. `systemctl stop packagekit` if urgent.
-3. **Parakeet + Kokoro + Sunshine + browser all competing for the GPU.** Check `nvidia-smi`; if VRAM > 95 % used, stop Sunshine.
-
-</details>
-
-<details>
-<summary><b>⚙️ FastAPI won't start with VOICE_PROVIDER_ORDER error</b></summary>
-
-pydantic-settings tries to JSON-decode list-typed env vars by default. The fix is already applied (`NoDecode` annotation in `config.py`). If you still hit this, make sure your `VOICE_PROVIDER_ORDER` is a plain comma-separated string like `legacy` or `legacy,voicechat`, **not** a JSON array.
-
-</details>
-
-<details>
-<summary><b>🌐 Text chat works but voice chat returns "Could not transcribe"</b></summary>
-
-Open `/tmp/pistation.log` and look for `[VOICE] input_audio.stop chunks_sent=N bytes=NNNNN (~X.XXs)`.
-
-- `chunks_sent=0` → frontend isn't streaming audio. Check mic permission + that `/api/pistation` Vite proxy has `ws: true`.
-- `bytes` tiny but chunks > 0 → audio is silent. Check OS mic level in GNOME Settings.
-- Transcription path runs but returns empty text → audio was silent or Parakeet rejected it. Try a longer, louder phrase.
-
-</details>
-
----
-
-## Hardware Requirements
-
-**Minimum** (dashboard-only):
-
-- 4 GB RAM
-- Any x86_64 CPU, last 5 years
-- Any Chromium / Firefox / Brave browser with WebAssembly + SharedArrayBuffer support
-
-**Recommended** (full voice + AI stack):
-
-- NVIDIA GPU ≥ 8 GB VRAM, CUDA 12.x
-- 16 GB system RAM
-- SSD (Kokoro ONNX + Parakeet 1.1B = ~4 GB cached)
-- Wired Ethernet or 5 GHz Wi-Fi (for Sunshine streaming)
-
-**Tested on**: HP OMEN Laptop 15 · RTX 3070 Laptop 8 GB · Zorin OS 18.1 · driver 580.126.09.
-
----
-
-## Roadmap
-
-- [x] Voice cascade (Parakeet → NVIDIA → Kokoro)
-- [x] Text-chat TTS (Kokoro for typed replies)
-- [x] Multi-model LLM picker
-- [x] Web-grounded answers (Tavily/SearXNG)
-- [x] Kiosk mode + Pi dashboard stream
-- [ ] Library page (ROM browser with filters)
-- [ ] Cloud save sync
-- [ ] Per-user profiles
-- [ ] Netplay matchmaking
-- [ ] Mobile controller companion app
-
----
-
-## Tech Stack
-
-<details open>
-<summary><b>Frontend</b></summary>
-
-React 19 · TypeScript (strict) · Vite 7 · Tailwind CSS v4 · shadcn/ui · Zustand · Dexie · react-router v7 · Nostalgist (RetroArch WASM) · lucide-react · sonner · vite-plugin-pwa
-
-</details>
-
-<details>
-<summary><b>Backend</b></summary>
-
-FastAPI · pydantic-settings · PyMySQL · DBUtils · httpx · websockets · Jinja2 · BeautifulSoup4
-
-</details>
-
-<details>
-<summary><b>AI & Voice</b></summary>
-
-NVIDIA NeMo (Parakeet TDT 1.1B, fp16 on CUDA) · kokoro-onnx (v1.0 model + voices-v1.0.bin) · NVIDIA integrate API (chat completions) · Tavily / SearXNG (optional web grounding) · ImageRouter (optional image gen)
-
-</details>
-
-<details>
-<summary><b>Infrastructure</b></summary>
-
-Node 22 · Python 3.12 · MySQL 8 (XAMPP) · Sunshine NVENC · PipeWire / WirePlumber · PWA / Service Worker
-
-</details>
-
----
-
-## Can the README be interactive?
-
-Short answer: **partially.** GitHub's Markdown renderer strips JavaScript, iframes, and forms — so no "click here to run a command." But it does support:
-
-- ✅ **Mermaid diagrams** — the architecture + sequence diagrams above render live on GitHub and auto-theme with light/dark mode. Diagrams with `click` directives can even be navigable.
-- ✅ **Collapsible `<details>`** — used throughout this README to hide verbose sections by default.
-- ✅ **Clickable ToC** — anchor-linked headings.
-- ✅ **Live status badges** — the shields.io badges at the top refresh on every page load.
-- ✅ **Task lists** — checkboxes in the Roadmap section can be toggled directly on GitHub if you have write access.
-- ✅ **Animated SVG** — inline SVG with SMIL animations renders (works for loading spinners, pulse effects).
-- ✅ **Embedded GIFs / videos** — drop a `.gif` or `.mp4` in `docs/` and the README auto-plays them on GitHub.
-
-**What would require more work:**
-
-- A live demo — not viable here, since PiStation needs a GPU + MySQL + local AI services.
-- "Try it in your browser" — possible if we extract the pure-emulation UI into a Stackblitz / Codesandbox project (no voice, no stats).
-- Runtime status indicators (is Parakeet up right now?) — would need a publicly reachable `/health` endpoint + a shields.io endpoint badge.
-
-If you want, I can add any of:
-- a demo `.gif` placeholder so you can drop in a recording later
-- a `mermaid` state diagram of the voice turn-taking FSM
-- a shields.io endpoint badge wired to your backend's `/ai/voice/health`
-
-Say which and I'll extend this.
-
----
-
-<div align="center">
-
-**PiStation** · retro gaming, modern stack, self-hosted.
-
-</div>
+| Loop 1 — RetroPie native gaming with runcommand→FastAPI session capture | Operational |
+| Loop 2 — Kodi with Jellyfin-for-Kodi against laptop-hosted Jellyfin server | Operational |
+| Loop 3 — Sunshine→Moonlight dashboard delivery + voice cascade | Operational |
+| Original GBA homebrew corpus (Red Racer, Mythical, BastionTD) | Built and runnable on Pi |
+
+Known limitations and the full evaluation are in the report.

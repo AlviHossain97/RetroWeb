@@ -54,6 +54,9 @@ _bmad-output/
 *.elf
 *.sav
 *.map
+build_out.txt
+build.log
+dump.txt
 
 # Agent / workflow tooling caches
 .claude/
