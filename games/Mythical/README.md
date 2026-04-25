@@ -118,12 +118,24 @@ python main.py               # play the prototype
 
 ## Asset Attribution
 
-All assets — sprites, audio, code — are project-original. No
-third-party content is used.
+All assets — sprites, code — are project-original. No third-party
+content is used.
 
 The sprite sheets in `src/python_game/assets/compiled/` (animal_deer,
 boss_1, etc.) and the GBA-build tile data in `gba_project/generated/`
 were drawn for this project.
 
-**Code**: Project-original. C++ on the desktop simulator, C entry point
-with C++ tooling on the GBA target, ported from earlier Python prototype.
+### Audio assets
+
+The shipped GBA build is silent. The Python prototype's
+`audio_manager.py` implements procedural audio synthesis (in-memory
+`pygame.mixer.Sound` buffers, no audio files on disk) as documented
+engineering work but is not ported to the C++ or GBA targets.
+
+This aligns with the corpus-wide silent-audio policy across all
+three PiStation original games.
+
+### Code
+
+Project-original. C++ on the desktop simulator, C entry point with
+C++ tooling on the GBA target, ported from earlier Python prototype.

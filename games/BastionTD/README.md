@@ -165,14 +165,23 @@ sheets).
 
 ### Audio assets
 
-Audio under [`assets/audio/`](assets/audio/) (24 WAV files: BGM,
-combat SFX, UI clicks, victory/game-over stings).
+The shipped GBA build is silent. Audio infrastructure (`SfxId` and
+`BgmId` enums, `IAudio` interface, `SDL2Audio` desktop implementation,
+`GbaAudio` Butano implementation, `app.audio->play_sfx()` /
+`play_bgm()` call sites across the state classes) remains in the
+source code as documented engineering work, gated behind a
+compile-time `ENABLE_AUDIO` flag (declared in
+[`src_cpp/core/config.h`](src_cpp/core/config.h)) that is **disabled
+by default**.
 
-**TODO: confirm origin and licence for the audio set before
-submission.** If sourced from a CC0 / CC-BY / itch.io pack, attribute
-here with source URL and licence; if project-original, replace this
-TODO with "Project-original — composed/recorded by the project
-author."
+This decision was made to keep the PiStation homebrew corpus
+consistently silent across all three games (Red Racer, Mythical,
+Bastion TD), eliminating third-party audio licensing complexity at
+the cost of one runtime feature.
+
+A future revision may re-enable audio with properly-attributed
+assets — see [`src_cpp/gba_project/audio/README.md`](src_cpp/gba_project/audio/README.md)
+for re-enable instructions.
 
 ### Code
 

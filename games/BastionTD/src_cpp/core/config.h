@@ -4,6 +4,20 @@
 
 #include <cstdint>
 
+// ----------------------------------------------------------------------------
+// Audio compile-time gate
+// ----------------------------------------------------------------------------
+// The shipped Bastion TD build is silent. Audio infrastructure (IAudio
+// interface, SDL2Audio + GbaAudio implementations, SfxId / BgmId enums,
+// app.audio->play_sfx() / play_bgm() call sites) remains in the source as
+// documented engineering work, but the actual playback bodies are gated
+// behind ENABLE_AUDIO which is undefined by default. To re-enable audio
+// (post-submission, with properly-attributed assets), uncomment the
+// definition below, drop WAV files into gba_project/audio/ and assets/audio/,
+// and rebuild.
+//
+// #define ENABLE_AUDIO
+
 namespace cfg {
 
 constexpr int TILE_SIZE = 8;
