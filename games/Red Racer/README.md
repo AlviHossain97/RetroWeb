@@ -86,31 +86,57 @@ ROM directory the Pi's EmulationStation watches.
 
 ## Asset Attribution
 
-All visual assets in Red Racer are project-original. Earlier development
-used sprites from **Game Dev Market — Pixel Art Top View Super Cars**.
-These were removed prior to academic submission to ensure a 100%
-project-original asset corpus.
+### Visual assets
 
-The current build uses procedurally generated placeholder graphics for
-all 14 car slots (flat-colour 16×24 sprites, distinct palette index
-per car). See [`ASSET_NOTICE.md`](ASSET_NOTICE.md) for the full record
-of what was removed and why.
+The 14 car sprite sets baked into [`gba_project/assets.h`](gba_project/assets.h)
+(`car_<name>_normal/left/right`, 192 × `u16` each, 16×24 at 8bpp) are
+sourced from **TMD Studios** — [Cars](https://tmd-studios.itch.io/cars)
+on itch.io.
 
-**Audio:** The shipped GBA build is silent. The Python prototype's
-audio plumbing (via `pygame.mixer`) remains as documented engineering
-work but its source files were removed during the project's IP
-cleanup pass (see [`ASSET_NOTICE.md`](ASSET_NOTICE.md) for context).
+**Licence**, per the creator's stated terms:
 
-The C GBA build has no audio implementation; this aligns with the
-corpus-wide silent-audio policy across all three PiStation original
-games.
+> "Feel free to use them in any of your projects (with or without
+> modifications). I just ask that you link to my website
+> tmdstudios.wordpress.com"
+> — TMD Studios
 
-**Code:** Project-original. C, GBA-native, ported from an earlier
-Python (pygame) prototype. The two implementations share no source —
-only the gameplay design carries across.
+Credit links:
 
-The Python prototype's source code is committed as a record of the
-prototyping pipeline (gameplay design iteration in `src/python_game/`);
-running it directly against the current repository state will hit
-`FileNotFoundError` because the prototype's reference assets are not
-distributed. The runnable artefact for Red Racer is the GBA ROM.
+- **Asset page**: <https://tmd-studios.itch.io/cars>
+- **Creator website** (linked per licence): <https://tmdstudios.wordpress.com>
+
+The sprites are used as-supplied without modification; the
+build pipeline (`src/gba_game/convert_assets.py` →
+`src/gba_game/dump_c.py`) only re-encodes them into 8bpp paletted
+GBA tile format and bakes them as C arrays into `assets.h`.
+
+### Car names
+
+The display names and identifier symbols for the 14 cars in the C
+source are project-original (Felucia, Suprex, Aurion, Corveda, Lotrix,
+P11, Astor, Merren, Vyrex, Lumbra, Marlon, Zondra, CXR, Vexa).
+They are deliberately not real-world car brands — to avoid any
+trademark question independent of the visual asset licence — see
+[`ASSET_NOTICE.md`](ASSET_NOTICE.md).
+
+### Audio
+
+The shipped GBA build is silent. The Python prototype's audio plumbing
+(via `pygame.mixer`) remains in `src/python_game/main.py` as documented
+engineering work but its source media files were removed during the IP
+cleanup pass — see [`ASSET_NOTICE.md`](ASSET_NOTICE.md). This aligns
+with the corpus-wide silent-audio policy across all three PiStation
+original games.
+
+### Code
+
+Project-original. C, GBA-native, ported from an earlier Python
+(pygame) prototype. The two implementations share no source — only
+the gameplay design carries across.
+
+The Python prototype's source is committed as a record of the
+prototyping pipeline (gameplay design iteration in
+`src/python_game/`); running it directly against the current
+repository state will hit `FileNotFoundError` because the prototype's
+reference media are not distributed. The runnable artefact for Red
+Racer is the GBA ROM.

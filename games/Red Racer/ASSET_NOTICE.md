@@ -1,39 +1,68 @@
 # Red Racer — Asset Notice
 
-All car sprites previously sourced from Game Dev Market have been removed from
-this repository. The current build uses neutral placeholder graphics generated
-programmatically by the project author.
+This file records the visual-asset provenance for Red Racer and the
+deliberate scope decisions made before academic submission.
 
-This decision was made to keep Red Racer's asset corpus 100% project-original
-for academic submission purposes, eliminating any third-party licensing
-considerations.
+## Visual assets — TMD Studios *Cars* pack (itch.io)
 
-Engine sprites, UI elements, fonts, and audio (if any) are project-original.
+The 14 car sprite sets baked into `gba_project/assets.h`
+(`car_<name>_normal/left/right`, 192 × `u16` each, 16×24 at 8bpp)
+are sourced from **TMD Studios — [Cars](https://tmd-studios.itch.io/cars)**
+on itch.io.
 
-## What was removed
+**Licence**, per the creator's stated terms:
 
-- Car sprites from Game Dev Market — *Pixel Art Top View Super Cars*
-- Any associated colour-variant or animation-frame derivatives (left-turn,
-  right-turn variants per car slot — 14 cars × 3 directions = 42 sprite arrays)
-- Same assets from the Python prototype (which preceded the GBA C port),
-  including the prototype's manufacturer-named car PNGs and reference audio
+> "Feel free to use them in any of your projects (with or without
+> modifications). I just ask that you link to my website
+> tmdstudios.wordpress.com"
+> — TMD Studios
 
-## What remains
+Credit links:
 
-- **Procedurally generated placeholder car graphics** for all 14 car slots
-  (16×24 each, distinct flat colour per slot via palette indices 2–15;
-  baked into `gba_project/assets.h` as `car_<name>_<direction>[192]` arrays).
-- **Branded car names renamed** to project-original equivalents (14 cars
-  total) in C source, Python prototype, and documentation. The full
-  rename mapping is in this commit's diff and in the project's git
-  history. None of the new names reference any real-world car
-  manufacturer or model.
-- **All gameplay logic, physics, track rendering, HUD, save system,
-  achievement system, mission system, and game-state code** written by the
-  project author. The C source under `gba_project/` and the Python
-  prototype under `src/python_game/` are project-original.
+- **Asset page**: <https://tmd-studios.itch.io/cars>
+- **Creator website** (linked per licence): <https://tmdstudios.wordpress.com>
+
+The sprites are used as-supplied without modification; the build
+pipeline only re-encodes them into 8bpp paletted GBA tile format
+and bakes them into C arrays in `assets.h`.
+
+## Car names — project-original
+
+The C source's `car_defs[NUM_CARS]` array, the per-sprite array
+identifiers in `assets.h`, and the corresponding Python prototype
+(`src/python_game/cars.py` etc.) all use **project-original
+fictional names** for the 14 cars: Felucia, Suprex, Aurion,
+Corveda, Lotrix, P11, Astor, Merren, Vyrex, Lumbra, Marlon, Zondra,
+CXR, Vexa.
+
+These names were chosen deliberately to avoid any trademark question
+that real-world car brand names would raise, independent of the
+visual asset licence. The TMD Studios sprite pack does not constrain
+the in-game labels; the renaming is a precaution on the project
+author's side.
+
+## Audio — removed
+
+The Python prototype originally referenced two third-party audio
+files (commercial soundtrack tracks ripped from a download site).
+Those files were removed during the IP cleanup pass and are not
+distributed in this repository; the path constants in
+`src/python_game/settings.py` that referenced them have been nulled.
+The shipped GBA build has no audio system implementation
+(`gba_project/README.md` documents this as a deliberate deferral),
+so the GBA artefact is silent regardless.
+
+This aligns with the corpus-wide silent-audio policy across all
+three PiStation original games (Red Racer, Mythical, Bastion TD).
 
 ## Net legal position
 
-Zero third-party visual assets in the live build. Zero attribution required.
-Zero residual licence risk.
+- Visual assets: third-party, properly licensed under TMD Studios's
+  free-with-link terms, with the creator's website link present in
+  this file, in the per-game README, and in the cross-game
+  licensing summary.
+- Names and code: project-original.
+- Audio: not present.
+
+A future revision may swap or extend the visual assets; if it does,
+this file and the per-game README are the audit trail to update.

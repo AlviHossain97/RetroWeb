@@ -33,7 +33,7 @@
 
 Red Racer was originally developed as a full-featured desktop racing game using **Python 3** and the **Pygame** library. The original version (`main.py`, `settings.py`, `sprites.py`, `systems.py`, `ui.py`, `ai_driver.py`) ran at 800×600 resolution on PC and featured:
 
-- **14 selectable supercars** (Felucia, Lumbra, Marlon, Aurion, Merren, Corveda, Vexa, CXR, Suprex Suprex, Astor, Lotrix, P11, Vyrex Vyrex, Zondra), each with unique real-world-inspired specs (BHP, torque, 0-60 time, top speed, engine type, drivetrain).
+- **14 selectable cars** (Felucia, Lumbra, Marlon, Aurion, Merren, Corveda, Vexa, CXR, Suprex, Astor, Lotrix, P11, Vyrex, Zondra) with distinct stat profiles (BHP, torque, 0-60 time, top speed, engine type, drivetrain). Visual sprites for these slots are sourced from [TMD Studios — Cars](https://tmd-studios.itch.io/cars) on itch.io (free with link to <https://tmdstudios.wordpress.com>); names and stats are project-original.
 - **4 distinct road environments** — City Express, Industrial Route, Coastal Run, and Night Circuit — each with different traffic densities, grip levels, lane widths, and risk multipliers.
 - A **full menu system** with Start, Editor (car/road/driver selection), Difficulty toggle (Normal/Hard/Easy), Settings, Instructions, Game Mode selector, and Quit.
 - A sophisticated **risk scoring system** with near-miss detection, combo meters, wrong-lane bonuses, and multiplier chains.
