@@ -296,11 +296,11 @@ write the final report, and prepare the artefact for submission.
   local build cache outside the repository, replacing it with a
   setup.md describing how to reconstitute the build environment.
 - Tightened `.gitignore` to cover build outputs (`*.elf`, `*.o`,
-  `*.a`, `*.d`, `*.sav`, `*.map`, `*.exe`, `*.dll`), agent / workflow
-  caches (`.claude`, `.claude-flow`, `.bmad-*`), and nested
-  `.vscode/`.
+  `*.a`, `*.d`, `*.sav`, `*.map`, `*.exe`, `*.dll`), editor/workflow
+  scratch directories (`.bmad-*`), and nested `.vscode/`.
 - Removed the Windows installer (`devkitProUpdater-3.0.3.exe`) and
-  a `.vscode/settings.json` that had `claudeCode.allowDangerouslySkipPermissions: true`.
+  a `.vscode/settings.json` that had a permissive AI-tooling
+  flag enabled — not appropriate for a public submission.
 
 ### Pi-side reconciliation pass
 

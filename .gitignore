@@ -58,9 +58,7 @@ build_out.txt
 build.log
 dump.txt
 
-# Agent / workflow tooling caches
-.claude/
-.claude-flow/
+# Editor / agent tooling scratch directories
 .bmad-core/
 .bmad-creator-tools/
 
