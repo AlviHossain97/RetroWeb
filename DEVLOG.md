@@ -313,11 +313,6 @@ architecture and the deployed Pi state. The reconciliation:
   `EXIT/INT/TERM/HUP` that kills X / openbox / Kodi, deallocates the
   Kodi VT, switches back to ES on TTY1, and sends `SIGCONT` to ES in
   case it was paused. Old version backed up.
-- **Loop 3 carousel entry.** The dashboard previously launched only
-  from the RetroPie system menu (`retropiemenu/RetroWeb.sh`). Added a
-  `dashboard` ES system entry via an overlay
-  `/opt/retropie/configs/all/emulationstation/es_systems.cfg` so the
-  dashboard is also reachable from the games carousel.
 - **Game corpus deployment.** Mythical and Bastion's `.gba` ROMs were
   built but had not been copied to the Pi. All four (Red Racer,
   Mythical, BastionTD, BastionTD-fixed) are now in
@@ -328,11 +323,10 @@ architecture and the deployed Pi state. The reconciliation:
   rather than scattered prose. Once the laptop side is run, the Pi
   side mounts `/mnt/laptop` and updates the GBA `<path>` in the ES
   overlay.
-- **Captured Pi-side scripts into the repo.** All deployed scripts
+- **Captured Pi-side scripts into the repo.** Deployed scripts
   (`runcommand-onstart.sh`, `runcommand-onend.sh`, `session_logger.py`,
-  `Jellyfin.sh`, `RetroWeb.sh`, the new dashboard launcher, the ES
-  overlay) are now under `pi/scripts/` so the marker can read them
-  alongside the rest of the artefact.
+  `Jellyfin.sh`, `RetroWeb.sh`) are now under `pi/scripts/` so the
+  marker can read them alongside the rest of the artefact.
 
 ### Evaluation
 

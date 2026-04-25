@@ -210,21 +210,17 @@ for retro gaming — Moonlight forwards button events to Sunshine, which
 delivers them to Chromium as gamepad inputs that the React PWA reads
 through the standard Gamepad API.
 
-### Two launch paths
+### Launch path
 
-The dashboard is reachable from two places on the Pi:
-
-1. **Games carousel** — via the new `dashboard` ES system entry
-   ([`es_systems.cfg.overlay`](scripts/es_systems.cfg.overlay)). Selecting
-   "PiStation" in the ES carousel and then the launcher entry runs
-   [`/home/pi/RetroPie/roms/dashboard/PiStation.sh`](scripts/dashboard-PiStation.sh),
-   which is a one-line `exec` wrapper around `RetroWeb.sh`.
-2. **RetroPie system menu** — the original [`RetroWeb.sh`](scripts/RetroWeb.sh.retropiemenu)
-   in `~/RetroPie/retropiemenu/`, accessed by selecting the RetroPie
-   system in ES and then "RetroWeb" from the menu.
-
-Both paths invoke the same underlying script, so updates to
-`RetroWeb.sh` propagate to both entries.
+The dashboard is reached through the **RetroPie system menu** inside
+EmulationStation: select the RetroPie system in the carousel, then
+the `RetroWeb` entry. That runs
+[`~/RetroPie/retropiemenu/RetroWeb.sh`](scripts/RetroWeb.sh.retropiemenu),
+which spawns moonlight-qt in an X session as described above. Keeping
+the launcher in `retropiemenu/` rather than in a games-carousel
+system entry avoids polluting the carousel with a non-game and
+matches how RetroPie's own utilities (audio settings, Wi-Fi config,
+file manager) are surfaced.
 
 ---
 
@@ -303,24 +299,14 @@ sudo apt install moonlight-qt matchbox-window-manager
 # in Sunshine's web UI):
 moonlight pair <laptop-hostname>
 
-# RetroPie-menu launcher (Start menu inside ES):
+# Drop the launcher into the RetroPie system menu:
 cp pi/scripts/RetroWeb.sh.retropiemenu ~/RetroPie/retropiemenu/RetroWeb.sh
 chmod +x ~/RetroPie/retropiemenu/RetroWeb.sh
-
-# Carousel launcher (new in 2026-04-25 — also wraps RetroWeb.sh):
-mkdir -p ~/RetroPie/roms/dashboard
-cp pi/scripts/dashboard-PiStation.sh ~/RetroPie/roms/dashboard/PiStation.sh
-chmod +x ~/RetroPie/roms/dashboard/PiStation.sh
-
-# And copy the ES overlay that registers the new "dashboard" system:
-mkdir -p /opt/retropie/configs/all/emulationstation
-cp pi/scripts/es_systems.cfg.overlay \
-   /opt/retropie/configs/all/emulationstation/es_systems.cfg
 ```
 
 Edit the `HOSTNAME_TARGET` constant at the top of `RetroWeb.sh` to
-match your laptop's hostname before launching. Restart ES to see the
-new "PiStation" system in the carousel.
+match your laptop's hostname before launching. Inside ES, select the
+RetroPie system in the carousel, then `RetroWeb` from the menu.
 
 ---
 
