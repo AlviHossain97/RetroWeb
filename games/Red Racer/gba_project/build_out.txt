@@ -1,0 +1,16 @@
+=== make clean ===
+
+(exit 0)
+
+=== make ===
+arm-none-eabi-gcc -mthumb-interwork -mthumb -O2 -Wall -fno-strict-aliasing -c main.c -o main.o
+arm-none-eabi-gcc -mthumb-interwork -mthumb -specs=gba.specs main.o -o RedRacer_Phys.elf
+arm-none-eabi-objcopy -v -O binary RedRacer_Phys.elf RedRacer_Phys.gba
+copy from `RedRacer_Phys.elf' [elf32-littlearm] to `RedRacer_Phys.gba' [binary]
+ROM fixed!
+main.c: In function 'main':
+main.c:818:11: warning: unused variable 'r_count' [-Wunused-variable]
+  818 |       int r_count = (NUM_CARS + cols - 1) / cols;
+      |           ^~~~~~~
+
+(exit 0)

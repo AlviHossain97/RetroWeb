@@ -1,0 +1,93 @@
+{
+  "source": "assets\\assets\\towers.png",
+  "source_size": [
+    123,
+    128
+  ],
+  "extraction_mode": "auto",
+  "total_sprites": 9,
+  "skipped_empty": 0,
+  "sprites": [
+    {
+      "file": "tower_0_0.png",
+      "x": 2,
+      "y": 10,
+      "w": 22,
+      "h": 22,
+      "row": 0,
+      "col": 0
+    },
+    {
+      "file": "tower_0_1.png",
+      "x": 49,
+      "y": 3,
+      "w": 24,
+      "h": 29,
+      "row": 0,
+      "col": 1
+    },
+    {
+      "file": "tower_0_2.png",
+      "x": 98,
+      "y": 0,
+      "w": 22,
+      "h": 32,
+      "row": 0,
+      "col": 2
+    },
+    {
+      "file": "tower_1_0.png",
+      "x": 0,
+      "y": 56,
+      "w": 26,
+      "h": 24,
+      "row": 1,
+      "col": 0
+    },
+    {
+      "file": "tower_1_1.png",
+      "x": 49,
+      "y": 50,
+      "w": 24,
+      "h": 30,
+      "row": 1,
+      "col": 1
+    },
+    {
+      "file": "tower_1_2.png",
+      "x": 97,
+      "y": 38,
+      "w": 24,
+      "h": 42,
+      "row": 1,
+      "col": 2
+    },
+    {
+      "file": "tower_2_0.png",
+      "x": 4,
+      "y": 103,
+      "w": 19,
+      "h": 25,
+      "row": 2,
+      "col": 0
+    },
+    {
+      "file": "tower_2_1.png",
+      "x": 49,
+      "y": 98,
+      "w": 24,
+      "h": 30,
+      "row": 2,
+      "col": 1
+    },
+    {
+      "file": "tower_2_2.png",
+      "x": 95,
+      "y": 85,
+      "w": 28,
+      "h": 43,
+      "row": 2,
+      "col": 2
+    }
+  ]
+}

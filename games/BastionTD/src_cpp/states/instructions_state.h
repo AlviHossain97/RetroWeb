@@ -1,0 +1,9 @@
+#pragma once
+
+#include "states/state.h"
+
+struct InstructionsState : State {
+    void enter(App& app) override;
+    void update(App& app, float dt) override;
+    void render(App& app, float alpha) override;
+};

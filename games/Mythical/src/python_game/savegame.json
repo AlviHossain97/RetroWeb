@@ -1,0 +1,344 @@
+{
+  "bestiary": {
+    "encountered": [
+      "bone_archer",
+      "mythic_sovereign",
+      "boar",
+      "mythic_sentinel",
+      "ascended_wraith",
+      "golem",
+      "bat",
+      "slime",
+      "corrupted_knight",
+      "deer",
+      "wolf",
+      "void_shade",
+      "skeleton",
+      "wraith",
+      "gravewarden",
+      "revenant",
+      "bear",
+      "dark_golem",
+      "crystal_colossus"
+    ],
+    "kills": {
+      "ascended_wraith": 4,
+      "bat": 6,
+      "bear": 4,
+      "boar": 1,
+      "bone_archer": 3,
+      "corrupted_knight": 3,
+      "crystal_colossus": 3,
+      "dark_golem": 1,
+      "deer": 3,
+      "golem": 1,
+      "gravewarden": 1,
+      "mythic_sentinel": 6,
+      "mythic_sovereign": 1,
+      "revenant": 3,
+      "skeleton": 3,
+      "slime": 6,
+      "void_shade": 12,
+      "wolf": 5,
+      "wraith": 4
+    }
+  },
+  "boss_state": {
+    "active": true,
+    "defeated": true,
+    "hp": 0,
+    "phase": 3,
+    "x": 31.0,
+    "y": 16.0
+  },
+  "campaign": {
+    "boss_kills": {
+      "dark_golem": true,
+      "gravewarden": true,
+      "mythic_sovereign": true
+    },
+    "completed_stages": [
+      1,
+      2,
+      3
+    ],
+    "player_form": "mythic",
+    "stage_flags": {},
+    "world_stage": 3
+  },
+  "coins": 91,
+  "collected_items": [
+    "dungeon_dark_crystal",
+    "sanctum_halls_shard_1",
+    "ruins_depths_crystal",
+    "village_coin_pouch",
+    "ruins_approach_crystal",
+    "ruins_depths_bone_arrow"
+  ],
+  "consequence_state": {},
+  "defeated_boss": true,
+  "defeated_enemies": [
+    "rd_revenant_02",
+    "sh_void_03",
+    "sh_crystal_01",
+    "dungeon_slime_03",
+    "dungeon_skeleton_02",
+    "tr_sentinel_02",
+    "rd_archer_02",
+    "dungeon_slime_01",
+    "tr_void_02",
+    "dungeon_bat_01",
+    "rd_wraith_02",
+    "dungeon_bat_02",
+    "ra_wraith_01",
+    "rd_knight_02",
+    "tr_sentinel_01",
+    "ra_wraith_02",
+    "dungeon_golem_01",
+    "sh_crystal_02",
+    "ra_knight_01",
+    "dungeon_skeleton_01",
+    "dungeon_bat_04",
+    "rd_knight_01",
+    "rd_revenant_01",
+    "sh_awraith_02",
+    "ra_revenant_01",
+    "dungeon_slime_04",
+    "rd_wraith_01",
+    "sh_awraith_01",
+    "sh_sentinel_01",
+    "sh_void_01",
+    "rd_archer_01",
+    "sh_void_02",
+    "sh_sentinel_02",
+    "tr_void_01",
+    "ra_archer_02",
+    "dungeon_bat_03",
+    "dungeon_skeleton_03",
+    "dungeon_slime_02"
+  ],
+  "difficulty": "normal",
+  "dynamic_drops": [
+    {
+      "id": "animal_village_village_forest_wolf_0_d0_raw_meat",
+      "map": "village",
+      "reward": {
+        "item_id": "raw_meat",
+        "kind": "key_item"
+      },
+      "x": 10,
+      "y": 22
+    },
+    {
+      "id": "animal_village_village_forest_wolf_0_d1_raw_meat",
+      "map": "village",
+      "reward": {
+        "item_id": "raw_meat",
+        "kind": "key_item"
+      },
+      "x": 10,
+      "y": 22
+    },
+    {
+      "id": "animal_village_village_forest_wolf_0_d2_animal_hide",
+      "map": "village",
+      "reward": {
+        "item_id": "animal_hide",
+        "kind": "key_item"
+      },
+      "x": 10,
+      "y": 22
+    },
+    {
+      "id": "sh_crystal_01_coins",
+      "map": "sanctum_halls",
+      "reward": {
+        "amount": 8,
+        "kind": "currency",
+        "label": "coins"
+      },
+      "x": 25,
+      "y": 18
+    },
+    {
+      "id": "sh_sentinel_01_coins",
+      "map": "sanctum_halls",
+      "reward": {
+        "amount": 8,
+        "kind": "currency",
+        "label": "coins"
+      },
+      "x": 49,
+      "y": 14
+    },
+    {
+      "id": "sh_sentinel_02_coins",
+      "map": "sanctum_halls",
+      "reward": {
+        "amount": 8,
+        "kind": "currency",
+        "label": "coins"
+      },
+      "x": 47,
+      "y": 19
+    }
+  ],
+  "fast_travel": [
+    "village_square",
+    "village_bridge"
+  ],
+  "inventory": {
+    "craft_bag": [
+      {
+        "id": "animal_hide",
+        "qty": 8
+      },
+      {
+        "id": "runic_crystal",
+        "qty": 2
+      },
+      {
+        "id": "bone_arrow",
+        "qty": 2
+      },
+      {
+        "id": "void_shard",
+        "qty": 1
+      },
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "equipment": {
+      "accessory": null,
+      "armor_1": "shadow_cloak",
+      "armor_2": null
+    },
+    "grid": [
+      {
+        "id": "old_sword",
+        "qty": 1
+      },
+      {
+        "id": "runic_sword",
+        "qty": 1
+      },
+      {
+        "id": "forest_key",
+        "qty": 1
+      },
+      {
+        "id": "mushroom",
+        "qty": 1
+      },
+      {
+        "id": "mythblade",
+        "qty": 1
+      },
+      {
+        "id": "crystal",
+        "qty": 1
+      },
+      {
+        "id": "shadow_mail",
+        "qty": 1
+      },
+      {
+        "id": "revenant_core",
+        "qty": 1
+      },
+      {
+        "id": "ascended_aegis",
+        "qty": 1
+      },
+      {
+        "id": "mythic_core",
+        "qty": 1
+      },
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "killed_animals": [
+    "animal_dungeon_dungeon_path_bear_27",
+    "animal_dungeon_dungeon_path_wolf_28",
+    "animal_dungeon_dungeon_path_bear_25",
+    "animal_village_village_forest_deer_1",
+    "animal_dungeon_dungeon_path_bear_26",
+    "animal_village_village_forest_deer_4",
+    "animal_ruins_approach_ruins_wilds_boar_36",
+    "animal_village_village_forest_wolf_3",
+    "animal_dungeon_dungeon_path_wolf_23",
+    "animal_village_village_forest_deer_6",
+    "animal_dungeon_dungeon_path_wolf_29",
+    "animal_dungeon_dungeon_path_bear_21",
+    "animal_village_village_forest_wolf_0"
+  ],
+  "map": "throne_room",
+  "opened_chests": [
+    "ruins_depths_supply_chest",
+    "village_garden_chest"
+  ],
+  "player_facing": "left",
+  "player_hp": 1,
+  "player_x": 30.641771514553373,
+  "player_y": 15.152957726189216,
+  "progression": {
+    "allocated": {
+      "mage": {},
+      "rogue": {},
+      "warrior": {}
+    },
+    "level": 9,
+    "skill_points": 16,
+    "xp": 1194
+  },
+  "quest_stages": {
+    "main": {
+      "complete": true,
+      "stage": 6
+    },
+    "main_s2": {
+      "complete": true,
+      "stage": 3
+    },
+    "main_s3": {
+      "complete": true,
+      "stage": 3
+    }
+  },
+  "reputation": {
+    "dungeon_seekers": 0,
+    "forest_spirits": -6,
+    "villagers": 0
+  },
+  "version": 5,
+  "weather": {
+    "duration": 159.37400248902486,
+    "state": "clear",
+    "timer": 25.11666666666652
+  }
+}

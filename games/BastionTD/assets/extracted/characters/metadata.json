@@ -1,0 +1,57 @@
+{
+  "source": "assets\\assets\\characters.png",
+  "source_size": [
+    75,
+    16
+  ],
+  "extraction_mode": "auto",
+  "total_sprites": 5,
+  "skipped_empty": 0,
+  "sprites": [
+    {
+      "file": "char_0.png",
+      "x": 0,
+      "y": 3,
+      "w": 9,
+      "h": 13,
+      "row": 0,
+      "col": 0
+    },
+    {
+      "file": "char_1.png",
+      "x": 15,
+      "y": 10,
+      "w": 12,
+      "h": 6,
+      "row": 0,
+      "col": 1
+    },
+    {
+      "file": "char_2.png",
+      "x": 33,
+      "y": 2,
+      "w": 8,
+      "h": 14,
+      "row": 0,
+      "col": 2
+    },
+    {
+      "file": "char_3.png",
+      "x": 46,
+      "y": 0,
+      "w": 14,
+      "h": 16,
+      "row": 0,
+      "col": 3
+    },
+    {
+      "file": "char_4.png",
+      "x": 64,
+      "y": 0,
+      "w": 11,
+      "h": 16,
+      "row": 0,
+      "col": 4
+    }
+  ]
+}

@@ -15,6 +15,7 @@ dist-ssr
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
+**/.vscode/
 .idea
 .DS_Store
 *.suo
@@ -42,4 +43,26 @@ __pycache__/
 # Windows reserved device names
 NUL
 
-_bmad-output/__pycache__/
+# Game build outputs and toolchains (sources tracked, build artefacts not)
+build/
+_bmad-output/
+*.exe
+*.dll
+*.o
+*.a
+*.d
+*.elf
+*.sav
+*.map
+
+# Agent / workflow tooling caches
+.claude/
+.claude-flow/
+.bmad-core/
+.bmad-creator-tools/
+
+# Build cache symlinks (toolchain/third_party live in ~/PiStation-build-cache)
+games/BastionTD/tools/
+games/BastionTD/src_cpp/tools/
+games/BastionTD/src_cpp/third_party/
+games/BastionTD/assets.zip
