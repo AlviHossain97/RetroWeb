@@ -55,9 +55,17 @@ its own folder.
 
 | Game | Visual Assets | Audio Assets | Code |
 |---|---|---|---|
-| Red Racer | Project-original (placeholder graphics) | None — silent gameplay | Project-original |
-| Mythical | Project-original | Project-original | Project-original |
-| Bastion Tower Defence | itch.io: [Tiny Tower Defense Assets](https://ilustramundogames.itch.io/tiny-tower-defense-assets) by **pixel.iwao** (ilustramundogames) — free for personal and commercial use with creator credit, per the creator's confirmed terms | TBD — pending confirmation, see [BastionTD/README.md](BastionTD/README.md#audio-assets) | Project-original |
+| Red Racer | Project-original (placeholder graphics) | Silent (see [README](Red%20Racer/README.md)) | Project-original |
+| Mythical | Project-original | Silent (see [README](Mythical/README.md)) | Project-original |
+| Bastion Tower Defence | itch.io: [Tiny Tower Defense Assets](https://ilustramundogames.itch.io/tiny-tower-defense-assets) by **pixel.iwao** (ilustramundogames) — free for personal and commercial use with creator credit, per the creator's confirmed terms | Silent (see [README](BastionTD/README.md)) | Project-original |
+
+**Audio policy:** All three games ship with silent GBA builds. Audio
+infrastructure code is preserved in the source where it exists (Bastion TD
+and the Python prototypes) as documented engineering work, but no audio
+playback occurs at runtime. This deliberate scope decision keeps the
+homebrew corpus uniformly licence-clean and eliminates third-party audio
+attribution complexity. A future post-submission revision may re-introduce
+audio with properly-attributed assets.
 
 This corpus was deliberately curated to minimise third-party licensing
 complexity. **Two of the three games are 100% project-original.** The

@@ -2,8 +2,11 @@ PROJ    := RedRacer_Phys
 TARGET  := $(PROJ)
 OBJS    := main.o
 
-# Toolchain definitions (devkitARM)
-DEVKITARM := c:/devkitPro/devkitARM
+# Toolchain definitions (devkitARM) — env-var driven so Linux + Windows both
+# work. On Linux: install via `sudo dkp-pacman -S gba-dev`, defaults to
+# /opt/devkitpro. On Windows: export DEVKITPRO=C:/devkitPro before make.
+DEVKITPRO ?= /opt/devkitpro
+DEVKITARM ?= $(DEVKITPRO)/devkitARM
 PREFIX  := $(DEVKITARM)/bin/arm-none-eabi-
 CC   := $(PREFIX)gcc
 LD   := $(PREFIX)gcc
@@ -24,7 +27,7 @@ LDFLAGS := $(ARCH) $(SPECS)
 build: $(TARGET).gba
 
 # Tools
-GBAFIX := c:/devkitPro/tools/bin/gbafix
+GBAFIX := $(DEVKITPRO)/tools/bin/gbafix
 
 $(TARGET).gba : $(TARGET).elf
 	$(OBJCOPY) -v -O binary $< $@

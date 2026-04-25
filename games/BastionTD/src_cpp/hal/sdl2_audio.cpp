@@ -1,4 +1,5 @@
 #include "hal/sdl2_audio.h"
+#include "core/config.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -132,6 +133,7 @@ bool load_clip(const char* path, SDL2Audio::Clip& out,
 } // namespace
 
 bool SDL2Audio::init() {
+#ifdef ENABLE_AUDIO
     if (SDL_InitSubSystem(SDL_INIT_AUDIO) < 0) {
         audio_log("audio subsystem init failed");
         return false;
@@ -177,6 +179,14 @@ bool SDL2Audio::init() {
     initialized = true;
     audio_log("SDL audio ready");
     return true;
+#else
+    // Silent build — leave `initialized` false so play_sfx / play_bgm / stop_bgm
+    // (which all guard on `initialized`) become natural no-ops. Audio assets
+    // are not loaded, SDL audio subsystem is not initialised. See core/config.h.
+    initialized = false;
+    audio_log("SDL audio: ENABLE_AUDIO not defined; running silent");
+    return true;
+#endif
 }
 
 void SDL2Audio::shutdown() {

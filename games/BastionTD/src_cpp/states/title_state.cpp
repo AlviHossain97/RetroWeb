@@ -61,6 +61,11 @@ void TitleState::render(App& app, float /*alpha*/) {
     r->draw_text("SDL2 PORT", 96, 18, cfg::colors::WHITE);
 #endif
 
+    // Visual asset credit — pixel.iwao (ilustramundogames) tower-defence
+    // pack on itch.io, free for personal/commercial use with creator credit.
+    // See games/BastionTD/README.md for the full attribution and licence text.
+    r->draw_text("ART pixel.iwao itch.io", 30, 28, {180, 180, 200, 255});
+
     const int menu_x = 78;
     const int menu_y = 42;
     const int row_h = 10;

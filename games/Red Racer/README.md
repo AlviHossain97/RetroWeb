@@ -96,10 +96,14 @@ all 14 car slots (flat-colour 16×24 sprites, distinct palette index
 per car). See [`ASSET_NOTICE.md`](ASSET_NOTICE.md) for the full record
 of what was removed and why.
 
-**Audio:** No audio assets in the current GBA build. The Python
-prototype originally used third-party reference audio (now removed);
-the GBA C port intentionally skipped audio implementation due to
-DirectSound mixer complexity. Gameplay is silent.
+**Audio:** The shipped GBA build is silent. The Python prototype's
+audio plumbing (via `pygame.mixer`) remains as documented engineering
+work but its source files were removed during the project's IP
+cleanup pass (see [`ASSET_NOTICE.md`](ASSET_NOTICE.md) for context).
+
+The C GBA build has no audio implementation; this aligns with the
+corpus-wide silent-audio policy across all three PiStation original
+games.
 
 **Code:** Project-original. C, GBA-native, ported from an earlier
 Python (pygame) prototype. The two implementations share no source —

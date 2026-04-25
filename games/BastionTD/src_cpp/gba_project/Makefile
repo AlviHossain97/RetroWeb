@@ -5,7 +5,7 @@
 TARGET          := BastionTD
 BUILD           := build
 LIBBUTANO       := ../tools/butano/butano
-PYTHON          := py
+PYTHON          := python3
 SOURCES         := src ../src/core ../src/states
 INCLUDES        := include ../tools/butano/common/include ../src
 DATA            :=
