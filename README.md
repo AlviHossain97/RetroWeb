@@ -48,11 +48,11 @@ flowchart LR
   ES -->|launches| RA
   RA -.runcommand hook POST.-> API
   API --> MY
-  RA -->|reads ROM via CIFS| SMB
-  ES -->|"system entry: Kodi"| KO
-  KO -->|Jellyfin for Kodi| JF
+  RA -.|reads ROM (local SD; CIFS mount in progress)|.-> SMB
+  ES -->|"system entry: Jellyfin"| KO
+  KO -->|Jellyfin for Kodi add-on| JF
   JF -->|HEVC/H.264 transcode| KO
-  ES -->|"system entry: Dashboard"| ML
+  ES -->|"system entry: PiStation Dashboard"| ML
   DASH -->|fullscreen Chromium| SUN
   SUN -->|H.264/HEVC stream| ML
   ML -.controller input.-> SUN
@@ -75,11 +75,13 @@ played on the Pi shows up in the dashboard.
 
 ### Loop 2 — Media (split across both hosts)
 
-Kodi is registered as an EmulationStation system entry, so it appears
-in the carousel alongside SNES and GBA. Inside Kodi, the
-**Jellyfin for Kodi** add-on connects to the Jellyfin server running on
-the laptop. Library scanning and any transcoding happen on the laptop's
-GPU; Kodi only renders playback on the Pi.
+**Jellyfin** is registered as an EmulationStation system entry, so it
+appears in the carousel alongside SNES and GBA. Selecting it runs a
+launcher script that opens an X session on a separate VT and starts
+**Kodi** with the **Jellyfin for Kodi** add-on (or, if Kodi isn't
+installed, falls back to a Chromium kiosk pointing at Jellyfin's web
+UI). Either way, library scanning and any transcoding happen on the
+laptop's GPU; the Pi's only job is HEVC / H.264 playback decode.
 
 ### Loop 3 — Dashboard + AI (laptop, streamed to Pi)
 
@@ -184,14 +186,21 @@ A concrete walkthrough of all three loops touching one piece of state.
 1. User on the sofa picks **Bastion Tower Defence** in EmulationStation
    on the Pi.
 2. ES invokes RetroArch with the lr-mgba core; runcommand-onstart fires
-   and POSTs to `http://laptop.local:8000/api/v1/sessions` with
-   `{rom_path, system="gba", emulator="retroarch", core="mgba",
-   pi_hostname, started_at}`. FastAPI writes a row to `sessions` in MySQL.
-3. RetroArch reads the ROM from `/mnt/laptop/games/BastionTD/...` (the
-   CIFS mount) and runs it natively on the Pi.
+   and shells out to `~/pistation/session_logger.py`, which POSTs to
+   `http://<laptop-host>:8000/session/start` with
+   `{pi_hostname, rom_path, system_name="gba", emulator="retroarch",
+   core="mgba", started_at}`. FastAPI writes a row to `sessions` in
+   MySQL and returns the new `session_id`; the logger stashes it in
+   `/tmp/pistation_session.json`.
+3. RetroArch reads the ROM (currently from the Pi's local SD at
+   `/home/pi/RetroPie/roms/gba/BastionTD.gba`; the CIFS-mounted
+   `/mnt/laptop/games/gba/...` setup is documented in
+   [pi/scripts/setup-cifs-mount-pi.sh](pi/scripts/setup-cifs-mount-pi.sh))
+   and runs it natively on the Pi.
 4. User plays for 12 minutes; presses select+start to exit.
-5. runcommand-onend fires and PATCHes the session row with
-   `{ended_at, duration_seconds=720}`.
+5. runcommand-onend fires; `session_logger.py` reads the state file
+   and POSTs `http://<laptop-host>:8000/session/end` with
+   `{session_id, ended_at, duration_seconds=720}`.
 6. User opens the **Dashboard** entry in EmulationStation. ES launches
    Moonlight, which connects to Sunshine on the laptop. The laptop's
    fullscreen Chromium window (already serving the React dashboard from
