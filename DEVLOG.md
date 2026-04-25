@@ -147,12 +147,18 @@ network-aware system.
 - Installed Jellyfin server on the laptop (separate process, not part
   of `start.mjs`); pointed it at the media share.
 - Installed Kodi on the Pi (`apt install kodi`).
-- Registered Kodi as an EmulationStation system entry so it appears
-  in the same carousel as GBA, SNES, etc., consistent with the
-  one-place-to-launch-everything UX goal.
+- Registered **Jellyfin** as an EmulationStation system entry so it
+  appears in the carousel alongside GBA, SNES, etc., consistent with
+  the one-place-to-launch-everything UX goal. The launcher script
+  (`Jellyfin.sh` under `~/RetroPie/roms/jellyfin/`) opens an X session
+  on a separate VT and runs Kodi-standalone (with the Jellyfin-for-Kodi
+  add-on configured) — or, if Kodi isn't available, falls back to a
+  Chromium kiosk pointing at Jellyfin's web UI. The launcher's
+  exit-handling was fragile in this iteration and was reworked in
+  April; see that entry.
 - Inside Kodi, installed the **Jellyfin for Kodi** add-on and signed
   in to the laptop's Jellyfin instance. Confirmed library sync,
-  thumbnails, and playback (1080p HEVC decoded by the Pi's hardware).
+  thumbnails, and 1080p HEVC playback.
 
 **Learned.**
 
@@ -189,6 +195,9 @@ to populate it with real session data.
   in `backend/app/services/voice_gateway.py` orchestrates the
   Mic → STT → LLM → TTS → Speaker chain with VAD, three activation
   modes, graceful provider fallback, and turn cancellation.
+- Session ingest API (`backend/app/routes/session_routes.py`): two
+  endpoints, `POST /session/start` and `POST /session/end`. The Pi-side
+  `session_logger.py` POSTs to these via the laptop's hostname.
 - Multi-model picker (DeepSeek V4 Pro, Kimi K2 Thinking, Step 3.5
   Flash, Mistral Large 3, Gemma 3 27B, GLM 4.7, MiniMax M2.7).
 - Web grounding via Tavily / SearXNG.
@@ -198,13 +207,19 @@ to populate it with real session data.
 
 ### Pi component
 
-- Wired the runcommand hooks against the now-live FastAPI sessions
-  endpoint. Verified that a game launched on the Pi appears as a row
-  in the laptop's MySQL `sessions` table, then as a tile on the
-  dashboard.
-- Paired Moonlight Embedded against Sunshine; added a Dashboard
-  launcher under EmulationStation so the streamed dashboard is
-  reachable from the same carousel as the games.
+- Wired the runcommand hooks against the now-live FastAPI session
+  endpoints. The hooks shell out to `~/pistation/session_logger.py`,
+  which POSTs to `/session/start` (records `pi_hostname`, `rom_path`,
+  `system_name`, `emulator`, `core`, `started_at`) and on game exit
+  POSTs to `/session/end` (records `ended_at`, `duration_seconds`),
+  with state persisted between hooks in `/tmp/pistation_session.json`.
+  Verified end-to-end that a game launched on the Pi appears as a row
+  in the laptop's MySQL `sessions` table and as a tile on the dashboard.
+- Paired `moonlight-qt` against the laptop's Sunshine; created a
+  `RetroWeb.sh` launcher in `~/RetroPie/retropiemenu/` that opens
+  `xinit` + `matchbox-window-manager` + `moonlight-qt` at 720p30 /
+  8 Mbps / H.264 / software-decoded. Reachable from the RetroPie
+  system menu inside ES.
 
 ### Games
 
@@ -286,6 +301,38 @@ write the final report, and prepare the artefact for submission.
   `.vscode/`.
 - Removed the Windows installer (`devkitProUpdater-3.0.3.exe`) and
   a `.vscode/settings.json` that had `claudeCode.allowDangerouslySkipPermissions: true`.
+
+### Pi-side reconciliation pass
+
+A pre-submission audit revealed multiple drift between the documented
+architecture and the deployed Pi state. The reconciliation:
+
+- **Loop 2 launcher.** The `Jellyfin.sh` cleanup logic was unreliable
+  (Kodi exit occasionally left the Pi stuck and required a power
+  cycle). Rewrote with a comprehensive `cleanup` trap on
+  `EXIT/INT/TERM/HUP` that kills X / openbox / Kodi, deallocates the
+  Kodi VT, switches back to ES on TTY1, and sends `SIGCONT` to ES in
+  case it was paused. Old version backed up.
+- **Loop 3 carousel entry.** The dashboard previously launched only
+  from the RetroPie system menu (`retropiemenu/RetroWeb.sh`). Added a
+  `dashboard` ES system entry via an overlay
+  `/opt/retropie/configs/all/emulationstation/es_systems.cfg` so the
+  dashboard is also reachable from the games carousel.
+- **Game corpus deployment.** Mythical and Bastion's `.gba` ROMs were
+  built but had not been copied to the Pi. All four (Red Racer,
+  Mythical, BastionTD, BastionTD-fixed) are now in
+  `/home/pi/RetroPie/roms/gba/` on the Pi.
+- **CIFS mount.** Documented the setup as a pair of idempotent scripts
+  ([`pi/scripts/setup-samba-laptop.sh`](pi/scripts/setup-samba-laptop.sh)
+  and [`pi/scripts/setup-cifs-mount-pi.sh`](pi/scripts/setup-cifs-mount-pi.sh))
+  rather than scattered prose. Once the laptop side is run, the Pi
+  side mounts `/mnt/laptop` and updates the GBA `<path>` in the ES
+  overlay.
+- **Captured Pi-side scripts into the repo.** All deployed scripts
+  (`runcommand-onstart.sh`, `runcommand-onend.sh`, `session_logger.py`,
+  `Jellyfin.sh`, `RetroWeb.sh`, the new dashboard launcher, the ES
+  overlay) are now under `pi/scripts/` so the marker can read them
+  alongside the rest of the artefact.
 
 ### Evaluation
 

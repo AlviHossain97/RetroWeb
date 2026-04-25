@@ -14,24 +14,22 @@ source.
 | [`runcommand-onend.sh`](runcommand-onend.sh) | `/opt/retropie/configs/all/runcommand-onend.sh` | Same shape, with `PISTATION_MODE=end`. |
 | [`session_logger.py`](session_logger.py) | `/home/pi/pistation/session_logger.py` | The actual session POST logic. POSTs to `http://alvi-OMEN-Laptop-15-en1xxx.local:8000/session/start` and `/session/end`. State persisted in `/tmp/pistation_session.json`. Includes auto-close logic for stale orphaned sessions. |
 | [`pistation_api.py`](pistation_api.py) | `/home/pi/pistation/pistation_api.py` | A separate FastAPI service — appears to be an earlier Pi-local iteration of the session-ingest API (with its own MySQL on the Pi). Superseded in production by the laptop-side `backend/app/routes/session_routes.py`. **Database password redacted** from the captured copy (see line 11). Kept in this snapshot as a record of the earlier architecture. |
-| [`RetroWeb.sh.retropiemenu`](RetroWeb.sh.retropiemenu) | `/home/pi/RetroPie/retropiemenu/RetroWeb.sh` | The dashboard launcher. Resolves the laptop's hostname, then `xinit` + `matchbox-window-manager` + `moonlight-qt` at 720p30 / 8 Mbps / H.264 / software-decoded. Sunshine app name on the laptop is `"PiStation"`. **Note:** lives in `retropiemenu/`, not under an EmulationStation `roms/` system entry. |
-| [`fstab.full`](fstab.full) | `/etc/fstab` | The Pi's full fstab. **Contains no CIFS/SMB mount line** — see "Findings" below. |
-| [`es_systems.cfg.system`](es_systems.cfg.system) | `/etc/emulationstation/es_systems.cfg` | The EmulationStation system definitions. The Pi has **no `/opt/retropie/configs/all/emulationstation/es_systems.cfg` overlay**, so this file is the source of truth for which systems appear in the carousel. |
-| [`rom-launch-scripts.txt`](rom-launch-scripts.txt) | `~/RetroPie/roms/*/+Start *.sh` and `~/RetroPie/roms/jellyfin/Jellyfin.sh` | All ES launcher shell scripts found on the Pi. Most are RetroPie's standard "ports" launchers (Amiga, ZX Spectrum, DOSBox, ScummVM, Reicast). The notable custom one is `Jellyfin.sh`. |
+| [`Jellyfin.sh`](Jellyfin.sh) | `/home/pi/RetroPie/roms/jellyfin/Jellyfin.sh` | Loop 2 launcher. Splash → `xinit + openbox` on VT8 → Kodi-standalone (or Chromium-kiosk fallback). **Replaced 2026-04-25** with a clean-exit version; cleanup trap on `EXIT/INT/TERM/HUP` kills X / openbox / Kodi, deallocates VT8, switches back to ES on VT1, and sends `SIGCONT` to ES in case it was paused. The previous version sometimes left the Pi stuck and required a power-cycle. |
+| [`dashboard-PiStation.sh`](dashboard-PiStation.sh) | `/home/pi/RetroPie/roms/dashboard/PiStation.sh` | New launcher (added 2026-04-25). One-line wrapper that `exec`s `RetroWeb.sh`, registered as the `dashboard` ES system entry so the dashboard is reachable from the games carousel as well as the RetroPie system menu. |
+| [`RetroWeb.sh.retropiemenu`](RetroWeb.sh.retropiemenu) | `/home/pi/RetroPie/retropiemenu/RetroWeb.sh` | The original dashboard launcher in the RetroPie system menu. Resolves the laptop's hostname, then `xinit` + `matchbox-window-manager` + `moonlight-qt` at 720p30 / 8 Mbps / H.264 / software-decoded. Sunshine app name on the laptop is `"PiStation"`. |
+| [`fstab.full`](fstab.full) | `/etc/fstab` | The Pi's full fstab as captured. Contains no CIFS/SMB mount yet — see `setup-cifs-mount-pi.sh` below. |
+| [`es_systems.cfg.system`](es_systems.cfg.system) | `/etc/emulationstation/es_systems.cfg` | The pristine system-level EmulationStation system definitions (root-owned, RetroPie default + Jellyfin entry). Snapshot for reference. |
+| [`es_systems.cfg.overlay`](es_systems.cfg.overlay) | `/opt/retropie/configs/all/emulationstation/es_systems.cfg` | The user-level overlay (added 2026-04-25). Loaded by ES in preference to the system file. Identical to the system file plus a new `<system name="dashboard">` entry. |
+| [`rom-launch-scripts.txt`](rom-launch-scripts.txt) | `~/RetroPie/roms/*/+Start *.sh` and `~/RetroPie/roms/jellyfin/Jellyfin.sh` (pre-replacement) | Concatenation of all launcher shell scripts found on the Pi at capture time. Mostly RetroPie's standard "ports" launchers. |
+| [`setup-samba-laptop.sh`](setup-samba-laptop.sh) | n/a — runs on the **laptop** | Idempotent setup script. Installs Samba, creates `~/PiStation-share/games/gba/`, copies the four GBA ROMs into it, appends a `[pistation]` share definition to `/etc/samba/smb.conf`, restarts smbd. Run with `sudo bash pi/scripts/setup-samba-laptop.sh`. |
+| [`setup-cifs-mount-pi.sh`](setup-cifs-mount-pi.sh) | n/a — runs on the **Pi** | Companion to the above. Installs cifs-utils (already present on this Pi), prepares `/mnt/laptop`, adds an fstab line, mounts the share, and updates EmulationStation's GBA `<path>` to point at the new mount. The assistant deploys and runs this via SSH after the laptop side is up. |
 
-## Findings — Pi reality vs. project documentation
+## Deployment status — as of 2026-04-25
 
-These were uncovered while capturing and are **not yet reflected in the
-parent `pi/README.md` or the top-level `README.md`**:
-
-1. **No CIFS / Samba mount.** `/etc/fstab` contains only the standard Pi defaults (`/`, `/boot`, `proc`); `mount` shows no CIFS/SMB filesystems active; no systemd `.mount` units, autofs, rc.local, or shell-rc fragments mount one. The shipped GBA homebrew lives on the Pi's local SD card at `/home/pi/RetroPie/roms/gba/RedRacer_Phys.gba`. The "centralised storage on the laptop's Samba share" architecture described in the docs is not currently deployed.
-2. **Only Red Racer is on the Pi.** `find` for "Mythical" and "Bastion" returned nothing under `~/RetroPie/roms/`. The other two GBA homebrew titles in the corpus are built but not yet copied across.
-3. **Loop 2 is Jellyfin-as-ES-system, not Kodi-as-ES-system.** EmulationStation's system entry is `<name>jellyfin</name>` with `path=/home/pi/RetroPie/roms/jellyfin`. The launcher (`Jellyfin.sh`) switches to TTY8, runs `xinit` + `openbox`, and **then** runs Kodi-standalone (which has the Jellyfin-for-Kodi add-on configured) or falls back to a Chromium kiosk pointing at `http://192.168.1.190:8096`. Kodi is the *renderer*, not the ES system entry.
-4. **Loop 3 is launched from the RetroPie system menu, not the games carousel.** The dashboard launcher (`RetroWeb.sh`) lives in `~/RetroPie/retropiemenu/`, accessed via the RetroPie menu inside ES. There is no `roms/dashboard/` ES system entry.
-5. **The Moonlight binary in use is `moonlight-qt`, not `moonlight-embedded`.** Different package, different command-line interface.
-6. **Endpoint paths.** The runcommand session ingest is `POST /session/start` and `POST /session/end` (both POSTs), not `POST /api/v1/sessions` and `PATCH /api/v1/sessions/{id}` as documented in the parent `pi/README.md`. The state file is JSON in `/tmp/pistation_session.json`, not the plaintext `/tmp/pistation_session_id` described.
-
-These divergences need to be reconciled before submission — either by
-deploying the missing pieces on the Pi or by correcting the
-documentation. See the project root for the active docs that need
-revising.
+| Component | Status |
+|---|---|
+| Runcommand hooks (Loop 1) | Operational — POSTing to laptop's `/session/start` and `/session/end`. |
+| Three GBA homebrew ROMs (Red Racer, Mythical, BastionTD, BastionTD-fixed) | All four `.gba` files now in `/home/pi/RetroPie/roms/gba/` (they were on the Pi's local SD card at capture time; not yet moved to a Samba mount). |
+| Loop 2 launcher (Jellyfin → Kodi/Chromium) | New version with clean-exit cleanup deployed. **Needs user testing** to confirm the power-cycle issue is resolved. |
+| Loop 3 launcher (Dashboard / Moonlight) | Now reachable both via RetroPie system menu (existing `RetroWeb.sh`) and via the games carousel (new `dashboard` ES system entry). EmulationStation must be restarted to see the new system. |
+| CIFS mount (centralised ROM storage on laptop) | **Pending** — `setup-samba-laptop.sh` needs to be run on the laptop, then `setup-cifs-mount-pi.sh` on the Pi. |
