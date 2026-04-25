@@ -116,13 +116,14 @@ python main.py               # play the prototype
 
 ---
 
-## Asset attribution
+## Asset Attribution
 
-**All assets in Mythical are project-author original.** The sprite
-sheets in `src/python_game/assets/compiled/` (animal_deer, boss_1,
-etc.) and the GBA-build tile data in `gba_project/generated/` were
-drawn for this project; no third-party imagery was used.
+All assets — sprites, audio, code — are project-original. No
+third-party content is used.
 
-This is the strongest position legally of the three games in the
-corpus and is why Mythical is the easiest of the three to defend if
-the marker raises asset provenance.
+The sprite sheets in `src/python_game/assets/compiled/` (animal_deer,
+boss_1, etc.) and the GBA-build tile data in `gba_project/generated/`
+were drawn for this project.
+
+**Code**: Project-original. C++ on the desktop simulator, C entry point
+with C++ tooling on the GBA target, ported from earlier Python prototype.

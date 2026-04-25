@@ -84,44 +84,29 @@ ROM directory the Pi's EmulationStation watches.
 
 ---
 
-## Asset attribution
+## Asset Attribution
 
-This is where Red Racer's situation is most delicate and is treated
-honestly here rather than waved away.
+All visual assets in Red Racer are project-original. Earlier development
+used sprites from **Game Dev Market — Pixel Art Top View Super Cars**.
+These were removed prior to academic submission to ensure a 100%
+project-original asset corpus.
 
-### GBA-build assets (`assets/gba_game/`)
+The current build uses procedurally generated placeholder graphics for
+all 14 car slots (flat-colour 16×24 sprites, distinct palette index
+per car). See [`ASSET_NOTICE.md`](ASSET_NOTICE.md) for the full record
+of what was removed and why.
 
-Sprite sheets and palettes baked into `assets.h` are embedded directly
-in the ROM via the build pipeline. **TODO: enumerate the source of each
-sprite sheet and audio sample, with a per-asset licence line.** The
-project author should fill in the table below before submission:
+**Audio:** No audio assets in the current GBA build. The Python
+prototype originally used third-party reference audio (now removed);
+the GBA C port intentionally skipped audio implementation due to
+DirectSound mixer complexity. Gameplay is silent.
 
-| Asset | File(s) | Source | Licence |
-|---|---|---|---|
-| Player car | *e.g.* `assets/gba_game/player.bmp` | *e.g.* original pixel art by project author | *e.g.* original work — all rights retained |
-| Traffic cars | …  | … | … |
-| Road / background | … | … | … |
-| Pickups (fuel, nitro, repair) | … | … | … |
-| Audio (engine, crash, pickup, BGM) | … | … | … |
+**Code:** Project-original. C, GBA-native, ported from an earlier
+Python (pygame) prototype. The two implementations share no source —
+only the gameplay design carries across.
 
-If any sprite sheet or audio sample was sourced from
-**Kenney.nl** (CC0), **OpenGameArt** (CC0 / CC-BY / GPL — varies),
-**itch.io** (per-author), or another source, the relevant licence
-text or attribution line must be added to this table.
-
-### Python-prototype assets (`assets/python_game/`)
-
-The original Python prototype used third-party reference imagery and
-audio (branded car PNGs, manufacturer-named sprites, ripped soundtrack
-audio). **Those assets are not part of the project's IP and have been
-removed from the repository.** A placeholder
-[`assets/python_game/README.md`](assets/python_game/README.md) explains
-the situation in-place; the original files are kept only on the
-development machine in the build cache and are not redistributed.
-
-The prototype's Python source code references the original asset
-filenames; running the Python prototype against the current repository
-state will hit `FileNotFoundError`. The Python sources are committed
-as a record of the prototyping pipeline (the pygame architecture, AI
-driver logic, mission system) — they are not a runnable artefact in
-this snapshot. The runnable artefact for Red Racer is the GBA ROM.
+The Python prototype's source code is committed as a record of the
+prototyping pipeline (gameplay design iteration in `src/python_game/`);
+running it directly against the current repository state will hit
+`FileNotFoundError` because the prototype's reference assets are not
+distributed. The runnable artefact for Red Racer is the GBA ROM.

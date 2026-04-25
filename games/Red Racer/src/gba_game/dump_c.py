@@ -5,10 +5,10 @@ from roads import ROAD_ROSTER, ROAD_ORDER
 from modes import MODE_ROSTER, MODE_ORDER
 
 old_spr = {
-    "Ferrari": (0, 2), "Supra": (8, 2), "Corvette": (5, 2), "Audi": (3, 8),
-    "Lotus": (10, 5), "Mercedes": (4, 8), "Aston": (9, 3), "911": (11, 8),
-    "Viper": (12, 4), "McLaren": (2, 6), "Lambo": (1, 5), "Zonda": (13, 8),
-    "CCX": (7, 8), "Veyron": (6, 4)
+    "Felucia": (0, 2), "Suprex": (8, 2), "Corveda": (5, 2), "Aurion": (3, 8),
+    "Lotrix": (10, 5), "Merren": (4, 8), "Astor": (9, 3), "P11": (11, 8),
+    "Vyrex": (12, 4), "Marlon": (2, 6), "Lumbra": (1, 5), "Zondra": (13, 8),
+    "CXR": (7, 8), "Vexa": (6, 4)
 }
 
 with open("dump.txt", "w") as f:
