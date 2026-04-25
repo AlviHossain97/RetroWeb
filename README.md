@@ -52,7 +52,7 @@ flowchart LR
   ES -->|"system entry: Jellyfin"| KO
   KO -->|Jellyfin for Kodi add-on| JF
   JF -->|HEVC/H.264 transcode| KO
-  ES -->|"system entry: PiStation Dashboard"| ML
+  ES -->|"RetroPie menu → RetroWeb"| ML
   DASH -->|fullscreen Chromium| SUN
   SUN -->|H.264/HEVC stream| ML
   ML -.controller input.-> SUN
