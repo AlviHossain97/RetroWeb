@@ -18,7 +18,7 @@ BASE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.
 OUT_FILE = "assets.h"
 
 # Asset Lists
-ENEMIES = ["Audi.png", "Viper.png", "Lambo.png", "Supra.png", "CCX.png"]
+ENEMIES = ["Aurion.png", "Vyrex.png", "Lumbra.png", "Suprex.png", "CXR.png"]
 ITEMS = ["Coin.png", "Fuel.png", "Repair.png"]
 
 def main():

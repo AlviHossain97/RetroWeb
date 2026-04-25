@@ -35,7 +35,7 @@ class RunRecord:
         self.score = kwargs.get("score", 0)
         self.risk_score = kwargs.get("risk_score", 0)
         self.base_score = kwargs.get("base_score", 0)
-        self.car_key = kwargs.get("car_key", "Ferrari")
+        self.car_key = kwargs.get("car_key", "Felucia")
         self.road_key = kwargs.get("road_key", "Road.png")
         self.game_mode = kwargs.get("game_mode", "CLASSIC_ENDLESS")
         self.difficulty = kwargs.get("difficulty", "NORMAL")
@@ -142,7 +142,7 @@ class ProfileData:
         self.per_road_best = {}   # road_key -> best score
 
         # Unlocks
-        self.cars_unlocked = ["Ferrari", "Supra"]  # Starters
+        self.cars_unlocked = ["Felucia", "Suprex"]  # Starters
 
         # Car mastery
         self.car_mastery = {}  # car_key -> CarMastery
@@ -155,7 +155,7 @@ class ProfileData:
         self.settings = {
             "difficulty": "NORMAL",
             "game_mode": "CLASSIC_ENDLESS",
-            "selected_car": "Ferrari",
+            "selected_car": "Felucia",
             "selected_road": "Road.png",
             "boost_system": True,
             "debug_overlay": False,
@@ -227,7 +227,7 @@ class ProfileData:
         self.high_score = data.get("high_score", 0)
         self.per_mode_best = data.get("per_mode_best", {})
         self.per_road_best = data.get("per_road_best", {})
-        self.cars_unlocked = data.get("cars_unlocked", ["Ferrari", "Supra"])
+        self.cars_unlocked = data.get("cars_unlocked", ["Felucia", "Suprex"])
         self.achievements_unlocked = data.get("achievements_unlocked", [])
         self.achievement_progress = data.get("achievement_progress", {})
 
@@ -406,7 +406,7 @@ class ProfileData:
         for k, m in self.car_mastery.items():
             if m.runs > best_runs:
                 best_key, best_runs = k, m.runs
-        return best_key or "Ferrari"
+        return best_key or "Felucia"
 
     def get_favorite_road(self):
         """Road with most recorded runs."""

@@ -7,9 +7,9 @@ the artefact rather than third-party content used to demonstrate it.
 
 | Game | GBA build language | Origin | Asset sourcing | Folder |
 |---|---|---|---|---|
-| **Red Racer** | C | Python prototype → C port | Mixed; prototype reference assets withheld; GBA build assets attributed | [Red Racer/](Red%20Racer/) |
-| **Mythical** | C++ | Python prototype → C++ port | All project-author original | [Mythical/](Mythical/) |
-| **Bastion Tower Defence** | C++ (Butano engine) | Python+SDL2 prototype → Butano port | Mix of project-original and licensed open-source | [BastionTD/](BastionTD/) |
+| **Red Racer** | C | Python prototype → C port | 100% project-original (placeholder graphics) | [Red Racer/](Red%20Racer/) |
+| **Mythical** | C++ | Python prototype → C++ port | 100% project-original | [Mythical/](Mythical/) |
+| **Bastion Tower Defence** | C++ (Butano engine) | Python+SDL2 prototype → Butano port | itch.io sprites by **pixel.iwao** (credit-only licence); audio TBD; code original | [BastionTD/](BastionTD/) |
 
 All three run **natively on the Raspberry Pi 3 via RetroArch's `lr-mgba`
 core** — they are not browser-emulated. The compiled `.gba` ROMs ship
@@ -51,17 +51,26 @@ its own folder.
 
 ---
 
-## Asset attribution policy
+## Asset Licensing Summary
 
-Each game carries its own asset-sourcing situation. The policy across
-the three is:
+| Game | Visual Assets | Audio Assets | Code |
+|---|---|---|---|
+| Red Racer | Project-original (placeholder graphics) | None — silent gameplay | Project-original |
+| Mythical | Project-original | Project-original | Project-original |
+| Bastion Tower Defence | itch.io: [Tiny Tower Defense Assets](https://ilustramundogames.itch.io/tiny-tower-defense-assets) by **pixel.iwao** (ilustramundogames) — free for personal and commercial use with creator credit, per the creator's confirmed terms | TBD — pending confirmation, see [BastionTD/README.md](BastionTD/README.md#audio-assets) | Project-original |
+
+This corpus was deliberately curated to minimise third-party licensing
+complexity. **Two of the three games are 100% project-original.** The
+third (Bastion Tower Defence) uses a sprite pack from itch.io under
+the creator's stated credit-only licence; full attribution is provided
+in [`BastionTD/README.md`](BastionTD/README.md) and in the cross-game
+overview above.
+
+### Policy
 
 - **Anything not original to this project must be attributed in the per-game README** with the licence name, source URL, and (where applicable) author credit.
-- **Anything that cannot be redistributed under a clear licence is not committed to this repository.** It may have been used during prototyping on the laptop; in that case the prototype's asset folder is replaced with a README explaining the situation. See `Red Racer/assets/python_game/README.md` for the worked example.
-- **The shipped `.gba` ROMs are the artefact.** The marker should not need to run any non-redistributable code or assets to assess the work; everything in the runnable artefact is either project-original or licensed.
-
-The current attribution status is summarised per game above and
-detailed in each per-game README.
+- **Anything that cannot be redistributed under a clear licence is not committed to this repository.** It may have been used during prototyping on the laptop; in that case the prototype's asset folder is replaced with a README explaining the situation. See `Red Racer/assets/python_game/README.md` and [`Red Racer/ASSET_NOTICE.md`](Red%20Racer/ASSET_NOTICE.md) for the worked example.
+- **The shipped `.gba` ROMs are the artefact.** The marker should not need to run any non-redistributable code or assets to assess the work; everything in the runnable artefact is either project-original or covered by a clear creator-credit licence.
 
 ---
 

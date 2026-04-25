@@ -299,7 +299,7 @@ class ProgressionSystem:
         self.save_path = save_path
         self.level = 1
         self.xp = 0
-        self.cars_unlocked = ["Ferrari"]
+        self.cars_unlocked = ["Felucia"]
         self.upgrades = {"speed": 0, "handling": 0, "boost_efficiency": 0}
         self.cosmetics = []
         self._load()
@@ -312,7 +312,7 @@ class ProgressionSystem:
                 data = json.load(f)
             self.level = int(data.get("level", 1))
             self.xp = int(data.get("xp", 0))
-            self.cars_unlocked = list(data.get("cars_unlocked", ["Ferrari"]))
+            self.cars_unlocked = list(data.get("cars_unlocked", ["Felucia"]))
             self.upgrades = dict(data.get("upgrades", self.upgrades))
             self.cosmetics = list(data.get("cosmetics", []))
         except Exception:
@@ -337,10 +337,10 @@ class ProgressionSystem:
         while self.xp >= self.level * 200:
             self.xp -= self.level * 200
             self.level += 1
-            if self.level == 2 and "Audi" not in self.cars_unlocked:
-                self.cars_unlocked.append("Audi")
-            elif self.level == 4 and "Lambo" not in self.cars_unlocked:
-                self.cars_unlocked.append("Lambo")
+            if self.level == 2 and "Aurion" not in self.cars_unlocked:
+                self.cars_unlocked.append("Aurion")
+            elif self.level == 4 and "Lumbra" not in self.cars_unlocked:
+                self.cars_unlocked.append("Lumbra")
 
 
 def deterministic_seed_for_mode(mode_name, cfg):

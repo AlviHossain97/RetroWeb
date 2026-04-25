@@ -45,14 +45,15 @@ ROAD_CONFIGS = {
 # Paths
 ASSETS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "assets", "python_game")
 BACKGROUND_IMG = os.path.join(ASSETS_DIR, "Road.png")
-PLAYER_IMG_DEFAULT = os.path.join(ASSETS_DIR, "Ferrari.png") 
+PLAYER_IMG_DEFAULT = os.path.join(ASSETS_DIR, "Felucia.png") 
 
-# Audio Paths
-MENU_MUSIC_PATH = os.path.join(ASSETS_DIR, "SpotiDownloader.com - F1 - Hans Zimmer.mp3")
-GAME_SOUND_PATH = os.path.join(ASSETS_DIR, "SpotiDownloader.com - Vintage F1 Sounds, Pt. 4 - Urban Sounds.mp3")
+# Audio Paths — prototype reference audio removed from the repository;
+# leave as None so the audio-availability check in main.py falls through.
+MENU_MUSIC_PATH = None
+GAME_SOUND_PATH = None
 
 # Enemy Images List
-POSSIBLE_ENEMIES = ["Audi.png", "Viper.png", "Lambo.png", "Supra.png", "CCX.png"]
+POSSIBLE_ENEMIES = ["Aurion.png", "Vyrex.png", "Lumbra.png", "Suprex.png", "CXR.png"]
 
 # Shield pickup
 SHIELD_DURATION = 3.0  # seconds

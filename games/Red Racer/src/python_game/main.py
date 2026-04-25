@@ -70,10 +70,10 @@ class Game:
         # Car specs now come from cars.py CAR_ROSTER
         self.car_specs = {k: v.get("specs", {}) for k, v in CAR_ROSTER.items()}
         self.car_select_index = 0
-        self.active_car_key = "Ferrari"
+        self.active_car_key = "Felucia"
         self.player_img = None
         for name, img, _ in self.available_cars:
-            if "Ferrari" in name:
+            if "Felucia" in name:
                 self.player_img = img
                 break
         if self.player_img is None and self.available_cars:
@@ -495,7 +495,7 @@ class Game:
         for name, img, _ in self.available_cars:
             if img == self.player_img:
                 return name.split('.')[0]
-        return self.available_cars[0][0].split('.')[0] if self.available_cars else "Ferrari"
+        return self.available_cars[0][0].split('.')[0] if self.available_cars else "Felucia"
 
     def apply_car_and_road_effects(self):
         car_key = self.get_selected_car_key()
