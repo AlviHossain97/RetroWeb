@@ -64,6 +64,6 @@ dump.txt
 
 # Build cache symlinks (toolchain/third_party live in ~/PiStation-build-cache)
 games/BastionTD/tools/
-games/BastionTD/src_cpp/tools/
+games/BastionTD/src_cpp/tools
 games/BastionTD/src_cpp/third_party/
 games/BastionTD/assets.zip
