@@ -1,0 +1,93 @@
+{
+    "frame_size": [
+        25,
+        25
+    ],
+    "animations": {
+        "down_walk": {
+            "length": 4,
+            "speed": 0.15,
+            "frames": [
+                "down_walk_0.png",
+                "down_walk_1.png",
+                "down_walk_2.png",
+                "down_walk_3.png"
+            ]
+        },
+        "down_idle": {
+            "length": 1,
+            "speed": 0.15,
+            "frames": [
+                "down_idle_0.png"
+            ]
+        },
+        "up_walk": {
+            "length": 4,
+            "speed": 0.15,
+            "frames": [
+                "up_walk_0.png",
+                "up_walk_1.png",
+                "up_walk_2.png",
+                "up_walk_3.png"
+            ]
+        },
+        "up_idle": {
+            "length": 1,
+            "speed": 0.15,
+            "frames": [
+                "up_idle_0.png"
+            ]
+        },
+        "left_walk": {
+            "length": 4,
+            "speed": 0.15,
+            "frames": [
+                "left_walk_0.png",
+                "left_walk_1.png",
+                "left_walk_2.png",
+                "left_walk_3.png"
+            ]
+        },
+        "left_idle": {
+            "length": 1,
+            "speed": 0.15,
+            "frames": [
+                "left_idle_0.png"
+            ]
+        },
+        "right_walk": {
+            "length": 4,
+            "speed": 0.15,
+            "frames": [
+                "right_walk_0.png",
+                "right_walk_1.png",
+                "right_walk_2.png",
+                "right_walk_3.png"
+            ]
+        },
+        "right_idle": {
+            "length": 1,
+            "speed": 0.15,
+            "frames": [
+                "right_idle_0.png"
+            ]
+        },
+        "hurt": {
+            "length": 1,
+            "speed": 0.15,
+            "frames": [
+                "hurt_0.png"
+            ]
+        },
+        "death": {
+            "length": 4,
+            "speed": 0.15,
+            "frames": [
+                "death_0.png",
+                "death_1.png",
+                "death_2.png",
+                "death_3.png"
+            ]
+        }
+    }
+}

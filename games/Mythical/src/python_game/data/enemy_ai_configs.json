@@ -1,0 +1,724 @@
+{
+  "slime": {
+    "base": {
+      "name": "Slime",
+      "max_hp": 2,
+      "damage": 1,
+      "speed": 1.5,
+      "chase_range": 5.0,
+      "attack_range": 0.8,
+      "attack_cd": 1.2,
+      "color": [60, 180, 80],
+      "size": 0.7,
+      "xp": 1,
+      "drops": [
+        {"kind": "key_item", "item_id": "healing_orb", "chance": 0.18},
+        {"kind": "currency", "amount": 1, "label": "coins", "chance": 0.65}
+      ],
+      "ai": {
+        "active_radius": 9.0,
+        "preferred_range": 0.9,
+        "search_radius": 4,
+        "direct_move_range": 4.5,
+        "path_refresh": 0.8,
+        "reposition_cooldown": 1.2,
+        "stuck_timeout": 0.7,
+        "aggro_confidence": 0.7,
+        "tactical_enabled": false,
+        "retreat_enabled": false,
+        "retreat_hp_ratio": 0.0,
+        "flank_bias": 0.0,
+        "pressure_bias": 0.9,
+        "range_weight": 1.0,
+        "line_of_sight_bias": 0.15
+      }
+    },
+    "difficulty": {
+      "easy": {
+        "ai": {
+          "aggro_confidence": 0.55
+        }
+      },
+      "hard": {
+        "speed": 2.0,
+        "attack_cd": 0.85,
+        "ai": {
+          "aggro_confidence": 0.95,
+          "direct_move_range": 5.5,
+          "tactical_enabled": true,
+          "pressure_bias": 1.3,
+          "path_refresh": 0.55,
+          "reposition_cooldown": 0.7
+        }
+      }
+    }
+  },
+  "bat": {
+    "base": {
+      "name": "Bat",
+      "max_hp": 1,
+      "damage": 1,
+      "speed": 3.0,
+      "chase_range": 7.0,
+      "attack_range": 0.65,
+      "attack_cd": 0.8,
+      "color": [120, 80, 160],
+      "size": 0.6,
+      "xp": 1,
+      "drops": [
+        {"kind": "key_item", "item_id": "healing_orb", "chance": 0.12},
+        {"kind": "currency", "amount": 2, "label": "coins", "chance": 0.55}
+      ],
+      "ai": {
+        "active_radius": 11.0,
+        "preferred_range": 2.2,
+        "search_radius": 6,
+        "direct_move_range": 2.8,
+        "path_refresh": 0.65,
+        "reposition_cooldown": 0.75,
+        "stuck_timeout": 0.55,
+        "aggro_confidence": 0.9,
+        "tactical_enabled": true,
+        "retreat_enabled": true,
+        "retreat_hp_ratio": 0.4,
+        "flank_bias": 0.7,
+        "pressure_bias": 0.65,
+        "range_weight": 1.2,
+        "line_of_sight_bias": 0.45
+      }
+    },
+    "difficulty": {
+      "easy": {
+        "ai": {
+          "search_radius": 5,
+          "reposition_cooldown": 0.95,
+          "flank_bias": 0.35,
+          "retreat_hp_ratio": 0.5
+        }
+      },
+      "hard": {
+        "speed": 3.8,
+        "attack_cd": 0.5,
+        "chase_range": 9.0,
+        "ai": {
+          "search_radius": 8,
+          "reposition_cooldown": 0.38,
+          "flank_bias": 1.4,
+          "retreat_hp_ratio": 0.15,
+          "pressure_bias": 1.2,
+          "preferred_range": 1.6,
+          "path_refresh": 0.4,
+          "aggro_confidence": 1.1,
+          "line_of_sight_bias": 0.7
+        }
+      }
+    }
+  },
+  "skeleton": {
+    "base": {
+      "name": "Skeleton",
+      "max_hp": 3,
+      "damage": 1,
+      "speed": 1.2,
+      "chase_range": 6.0,
+      "attack_range": 1.0,
+      "attack_cd": 1.5,
+      "color": [200, 200, 180],
+      "size": 0.8,
+      "xp": 2,
+      "drops": [
+        {"kind": "currency", "amount": 3, "label": "coins", "chance": 0.6},
+        {"kind": "key_item", "item_id": "healing_orb", "chance": 0.1}
+      ],
+      "ai": {
+        "active_radius": 12.0,
+        "preferred_range": 2.6,
+        "search_radius": 7,
+        "direct_move_range": 2.2,
+        "path_refresh": 0.55,
+        "reposition_cooldown": 0.7,
+        "stuck_timeout": 0.5,
+        "aggro_confidence": 1.0,
+        "tactical_enabled": true,
+        "retreat_enabled": true,
+        "retreat_hp_ratio": 0.3,
+        "flank_bias": 0.9,
+        "pressure_bias": 1.0,
+        "range_weight": 1.35,
+        "line_of_sight_bias": 0.7
+      }
+    },
+    "difficulty": {
+      "easy": {
+        "ai": {
+          "search_radius": 6,
+          "reposition_cooldown": 0.95,
+          "flank_bias": 0.45,
+          "retreat_hp_ratio": 0.4
+        }
+      },
+      "hard": {
+        "speed": 1.6,
+        "attack_cd": 0.95,
+        "chase_range": 8.0,
+        "ai": {
+          "search_radius": 9,
+          "reposition_cooldown": 0.35,
+          "flank_bias": 1.5,
+          "retreat_hp_ratio": 0.12,
+          "pressure_bias": 1.5,
+          "preferred_range": 1.8,
+          "aggro_confidence": 1.3,
+          "path_refresh": 0.35,
+          "line_of_sight_bias": 0.9
+        }
+      }
+    }
+  },
+  "golem": {
+    "base": {
+      "name": "Golem",
+      "max_hp": 5,
+      "damage": 2,
+      "speed": 0.8,
+      "chase_range": 5.0,
+      "attack_range": 1.2,
+      "attack_cd": 2.0,
+      "color": [140, 130, 110],
+      "size": 0.9,
+      "xp": 3,
+      "drops": [
+        {"kind": "currency", "amount": 5, "label": "coins", "chance": 0.7},
+        {"kind": "key_item", "item_id": "healing_orb", "chance": 0.08}
+      ],
+      "ai": {
+        "active_radius": 11.0,
+        "preferred_range": 1.6,
+        "search_radius": 6,
+        "direct_move_range": 2.0,
+        "path_refresh": 0.5,
+        "reposition_cooldown": 0.85,
+        "stuck_timeout": 0.55,
+        "aggro_confidence": 1.1,
+        "tactical_enabled": true,
+        "retreat_enabled": false,
+        "retreat_hp_ratio": 0.0,
+        "flank_bias": 0.2,
+        "pressure_bias": 1.4,
+        "range_weight": 0.8,
+        "line_of_sight_bias": 0.3
+      }
+    },
+    "difficulty": {
+      "easy": {
+        "ai": {
+          "pressure_bias": 1.05,
+          "reposition_cooldown": 1.0,
+          "search_radius": 5
+        }
+      },
+      "hard": {
+        "speed": 1.1,
+        "attack_cd": 1.2,
+        "chase_range": 7.0,
+        "ai": {
+          "pressure_bias": 2.0,
+          "reposition_cooldown": 0.4,
+          "search_radius": 8,
+          "aggro_confidence": 1.4,
+          "preferred_range": 1.2,
+          "path_refresh": 0.35,
+          "flank_bias": 0.6
+        }
+      }
+    }
+  },
+  "wraith": {
+    "base": {
+      "name": "Wraith",
+      "max_hp": 4,
+      "damage": 2,
+      "speed": 2.8,
+      "chase_range": 8.0,
+      "attack_range": 0.9,
+      "attack_cd": 1.0,
+      "color": [160, 100, 220],
+      "size": 0.75,
+      "xp": 4,
+      "drops": [
+        {"kind": "currency", "amount": 4, "label": "coins", "chance": 0.65},
+        {"kind": "key_item", "item_id": "healing_orb", "chance": 0.12}
+      ],
+      "ai": {
+        "active_radius": 13.0,
+        "preferred_range": 1.8,
+        "search_radius": 7,
+        "direct_move_range": 3.2,
+        "path_refresh": 0.55,
+        "reposition_cooldown": 0.6,
+        "stuck_timeout": 0.5,
+        "aggro_confidence": 1.0,
+        "tactical_enabled": true,
+        "retreat_enabled": true,
+        "retreat_hp_ratio": 0.35,
+        "flank_bias": 0.8,
+        "pressure_bias": 0.9,
+        "range_weight": 1.1,
+        "line_of_sight_bias": 0.55
+      }
+    },
+    "difficulty": {
+      "easy": {
+        "ai": {
+          "flank_bias": 0.45,
+          "retreat_hp_ratio": 0.45,
+          "reposition_cooldown": 0.85,
+          "search_radius": 6
+        }
+      },
+      "hard": {
+        "speed": 3.5,
+        "attack_cd": 0.7,
+        "chase_range": 10.0,
+        "ai": {
+          "flank_bias": 1.3,
+          "retreat_hp_ratio": 0.15,
+          "reposition_cooldown": 0.3,
+          "search_radius": 9,
+          "aggro_confidence": 1.25,
+          "pressure_bias": 1.4,
+          "path_refresh": 0.35,
+          "line_of_sight_bias": 0.75
+        }
+      }
+    }
+  },
+  "bone_archer": {
+    "base": {
+      "name": "Bone Archer",
+      "max_hp": 3,
+      "damage": 1,
+      "speed": 1.8,
+      "chase_range": 9.0,
+      "attack_range": 3.0,
+      "attack_cd": 2.2,
+      "color": [190, 170, 130],
+      "size": 0.8,
+      "xp": 4,
+      "drops": [
+        {"kind": "currency", "amount": 4, "label": "coins", "chance": 0.7},
+        {"kind": "key_item", "item_id": "healing_orb", "chance": 0.2}
+      ],
+      "ai": {
+        "active_radius": 14.0,
+        "preferred_range": 3.5,
+        "search_radius": 8,
+        "direct_move_range": 1.5,
+        "path_refresh": 0.5,
+        "reposition_cooldown": 0.65,
+        "stuck_timeout": 0.55,
+        "aggro_confidence": 0.95,
+        "tactical_enabled": true,
+        "retreat_enabled": true,
+        "retreat_hp_ratio": 0.45,
+        "flank_bias": 0.55,
+        "pressure_bias": 0.5,
+        "range_weight": 1.8,
+        "line_of_sight_bias": 0.85
+      }
+    },
+    "difficulty": {
+      "easy": {
+        "ai": {
+          "preferred_range": 2.8,
+          "retreat_hp_ratio": 0.55,
+          "reposition_cooldown": 0.9,
+          "flank_bias": 0.25,
+          "line_of_sight_bias": 0.6
+        }
+      },
+      "hard": {
+        "speed": 2.3,
+        "attack_cd": 1.6,
+        "chase_range": 11.0,
+        "ai": {
+          "preferred_range": 3.5,
+          "retreat_hp_ratio": 0.2,
+          "reposition_cooldown": 0.35,
+          "flank_bias": 1.1,
+          "search_radius": 10,
+          "aggro_confidence": 1.2,
+          "path_refresh": 0.3,
+          "line_of_sight_bias": 1.1,
+          "range_weight": 2.2
+        }
+      }
+    }
+  },
+  "corrupted_knight": {
+    "base": {
+      "name": "Corrupted Knight",
+      "max_hp": 8,
+      "damage": 3,
+      "speed": 1.0,
+      "chase_range": 6.0,
+      "attack_range": 1.3,
+      "attack_cd": 1.8,
+      "color": [80, 60, 100],
+      "size": 0.95,
+      "xp": 5,
+      "drops": [
+        {"kind": "currency", "amount": 6, "label": "coins", "chance": 0.75},
+        {"kind": "key_item", "item_id": "healing_orb", "chance": 0.1}
+      ],
+      "ai": {
+        "active_radius": 11.0,
+        "preferred_range": 1.4,
+        "search_radius": 6,
+        "direct_move_range": 2.2,
+        "path_refresh": 0.5,
+        "reposition_cooldown": 0.9,
+        "stuck_timeout": 0.6,
+        "aggro_confidence": 1.2,
+        "tactical_enabled": true,
+        "retreat_enabled": false,
+        "retreat_hp_ratio": 0.0,
+        "flank_bias": 0.3,
+        "pressure_bias": 1.6,
+        "range_weight": 0.75,
+        "line_of_sight_bias": 0.35
+      }
+    },
+    "difficulty": {
+      "easy": {
+        "ai": {
+          "pressure_bias": 1.1,
+          "reposition_cooldown": 1.2,
+          "search_radius": 5,
+          "aggro_confidence": 0.95
+        }
+      },
+      "hard": {
+        "speed": 1.45,
+        "attack_cd": 1.1,
+        "chase_range": 8.0,
+        "ai": {
+          "pressure_bias": 2.2,
+          "reposition_cooldown": 0.45,
+          "search_radius": 8,
+          "aggro_confidence": 1.5,
+          "preferred_range": 1.1,
+          "path_refresh": 0.32,
+          "flank_bias": 0.7,
+          "line_of_sight_bias": 0.55
+        }
+      }
+    }
+  },
+  "revenant": {
+    "base": {
+      "name": "Revenant",
+      "max_hp": 5,
+      "damage": 2,
+      "speed": 1.6,
+      "chase_range": 7.0,
+      "attack_range": 1.1,
+      "attack_cd": 1.3,
+      "color": [120, 80, 160],
+      "size": 0.85,
+      "xp": 4,
+      "drops": [
+        {"kind": "currency", "amount": 5, "label": "coins", "chance": 0.7},
+        {"kind": "key_item", "item_id": "healing_orb", "chance": 0.08}
+      ],
+      "ai": {
+        "active_radius": 12.0,
+        "preferred_range": 2.0,
+        "search_radius": 7,
+        "direct_move_range": 2.5,
+        "path_refresh": 0.5,
+        "reposition_cooldown": 0.7,
+        "stuck_timeout": 0.55,
+        "aggro_confidence": 1.05,
+        "tactical_enabled": true,
+        "retreat_enabled": true,
+        "retreat_hp_ratio": 0.25,
+        "flank_bias": 0.65,
+        "pressure_bias": 1.1,
+        "range_weight": 1.05,
+        "line_of_sight_bias": 0.5
+      }
+    },
+    "difficulty": {
+      "easy": {
+        "ai": {
+          "flank_bias": 0.35,
+          "retreat_hp_ratio": 0.38,
+          "reposition_cooldown": 0.95,
+          "search_radius": 6
+        }
+      },
+      "hard": {
+        "speed": 2.1,
+        "attack_cd": 0.85,
+        "chase_range": 9.0,
+        "ai": {
+          "flank_bias": 1.2,
+          "retreat_hp_ratio": 0.1,
+          "reposition_cooldown": 0.38,
+          "search_radius": 9,
+          "aggro_confidence": 1.3,
+          "pressure_bias": 1.7,
+          "path_refresh": 0.33,
+          "line_of_sight_bias": 0.75
+        }
+      }
+    }
+  },
+  "void_shade": {
+    "base": {
+      "name": "Void Shade",
+      "max_hp": 5,
+      "damage": 3,
+      "speed": 3.2,
+      "chase_range": 10.0,
+      "attack_range": 0.85,
+      "attack_cd": 0.9,
+      "color": [80, 40, 140],
+      "size": 0.7,
+      "xp": 6,
+      "drops": [
+        {"kind": "currency", "amount": 6, "label": "coins", "chance": 0.7},
+        {"kind": "key_item", "item_id": "healing_orb", "chance": 0.12}
+      ],
+      "ai": {
+        "active_radius": 15.0,
+        "preferred_range": 1.6,
+        "search_radius": 8,
+        "direct_move_range": 3.5,
+        "path_refresh": 0.45,
+        "reposition_cooldown": 0.45,
+        "stuck_timeout": 0.4,
+        "aggro_confidence": 1.15,
+        "tactical_enabled": true,
+        "retreat_enabled": true,
+        "retreat_hp_ratio": 0.3,
+        "flank_bias": 1.2,
+        "pressure_bias": 1.0,
+        "range_weight": 1.15,
+        "line_of_sight_bias": 0.65
+      }
+    },
+    "difficulty": {
+      "easy": {
+        "ai": {
+          "flank_bias": 0.6,
+          "retreat_hp_ratio": 0.45,
+          "reposition_cooldown": 0.7,
+          "search_radius": 7,
+          "aggro_confidence": 0.9
+        }
+      },
+      "hard": {
+        "speed": 4.0,
+        "attack_cd": 0.6,
+        "chase_range": 12.0,
+        "ai": {
+          "flank_bias": 1.8,
+          "retreat_hp_ratio": 0.12,
+          "reposition_cooldown": 0.22,
+          "search_radius": 10,
+          "aggro_confidence": 1.45,
+          "pressure_bias": 1.6,
+          "path_refresh": 0.28,
+          "line_of_sight_bias": 0.9,
+          "direct_move_range": 4.5
+        }
+      }
+    }
+  },
+  "crystal_colossus": {
+    "base": {
+      "name": "Crystal Colossus",
+      "max_hp": 12,
+      "damage": 4,
+      "speed": 0.9,
+      "chase_range": 5.0,
+      "attack_range": 1.5,
+      "attack_cd": 2.2,
+      "color": [100, 200, 240],
+      "size": 1.0,
+      "xp": 7,
+      "drops": [
+        {"kind": "currency", "amount": 8, "label": "coins", "chance": 0.75},
+        {"kind": "key_item", "item_id": "healing_orb", "chance": 0.07}
+      ],
+      "ai": {
+        "active_radius": 10.0,
+        "preferred_range": 1.4,
+        "search_radius": 6,
+        "direct_move_range": 1.8,
+        "path_refresh": 0.5,
+        "reposition_cooldown": 1.0,
+        "stuck_timeout": 0.65,
+        "aggro_confidence": 1.25,
+        "tactical_enabled": true,
+        "retreat_enabled": false,
+        "retreat_hp_ratio": 0.0,
+        "flank_bias": 0.1,
+        "pressure_bias": 1.8,
+        "range_weight": 0.65,
+        "line_of_sight_bias": 0.2
+      }
+    },
+    "difficulty": {
+      "easy": {
+        "ai": {
+          "pressure_bias": 1.3,
+          "reposition_cooldown": 1.35,
+          "search_radius": 5,
+          "aggro_confidence": 1.0
+        }
+      },
+      "hard": {
+        "speed": 1.3,
+        "attack_cd": 1.4,
+        "chase_range": 7.0,
+        "ai": {
+          "pressure_bias": 2.5,
+          "reposition_cooldown": 0.55,
+          "search_radius": 8,
+          "aggro_confidence": 1.55,
+          "preferred_range": 1.2,
+          "path_refresh": 0.32,
+          "flank_bias": 0.4,
+          "line_of_sight_bias": 0.4
+        }
+      }
+    }
+  },
+  "mythic_sentinel": {
+    "base": {
+      "name": "Mythic Sentinel",
+      "max_hp": 9,
+      "damage": 3,
+      "speed": 1.9,
+      "chase_range": 8.0,
+      "attack_range": 1.2,
+      "attack_cd": 1.2,
+      "color": [220, 180, 60],
+      "size": 0.9,
+      "xp": 7,
+      "drops": [
+        {"kind": "currency", "amount": 8, "label": "coins", "chance": 0.7},
+        {"kind": "key_item", "item_id": "healing_orb", "chance": 0.06}
+      ],
+      "ai": {
+        "active_radius": 13.0,
+        "preferred_range": 1.8,
+        "search_radius": 7,
+        "direct_move_range": 2.8,
+        "path_refresh": 0.45,
+        "reposition_cooldown": 0.6,
+        "stuck_timeout": 0.5,
+        "aggro_confidence": 1.2,
+        "tactical_enabled": true,
+        "retreat_enabled": true,
+        "retreat_hp_ratio": 0.2,
+        "flank_bias": 0.7,
+        "pressure_bias": 1.3,
+        "range_weight": 1.0,
+        "line_of_sight_bias": 0.6
+      }
+    },
+    "difficulty": {
+      "easy": {
+        "ai": {
+          "flank_bias": 0.35,
+          "retreat_hp_ratio": 0.35,
+          "reposition_cooldown": 0.85,
+          "search_radius": 6,
+          "aggro_confidence": 0.95
+        }
+      },
+      "hard": {
+        "speed": 2.5,
+        "attack_cd": 0.75,
+        "chase_range": 10.0,
+        "ai": {
+          "flank_bias": 1.3,
+          "retreat_hp_ratio": 0.08,
+          "reposition_cooldown": 0.3,
+          "search_radius": 9,
+          "aggro_confidence": 1.5,
+          "pressure_bias": 1.9,
+          "path_refresh": 0.28,
+          "line_of_sight_bias": 0.85,
+          "direct_move_range": 3.8
+        }
+      }
+    }
+  },
+  "ascended_wraith": {
+    "base": {
+      "name": "Ascended Wraith",
+      "max_hp": 7,
+      "damage": 4,
+      "speed": 3.6,
+      "chase_range": 11.0,
+      "attack_range": 0.8,
+      "attack_cd": 0.85,
+      "color": [200, 120, 255],
+      "size": 0.75,
+      "xp": 8,
+      "drops": [
+        {"kind": "currency", "amount": 9, "label": "coins", "chance": 0.7},
+        {"kind": "key_item", "item_id": "healing_orb", "chance": 0.1}
+      ],
+      "ai": {
+        "active_radius": 16.0,
+        "preferred_range": 1.7,
+        "search_radius": 9,
+        "direct_move_range": 4.0,
+        "path_refresh": 0.4,
+        "reposition_cooldown": 0.38,
+        "stuck_timeout": 0.38,
+        "aggro_confidence": 1.3,
+        "tactical_enabled": true,
+        "retreat_enabled": true,
+        "retreat_hp_ratio": 0.28,
+        "flank_bias": 1.4,
+        "pressure_bias": 1.1,
+        "range_weight": 1.2,
+        "line_of_sight_bias": 0.8
+      }
+    },
+    "difficulty": {
+      "easy": {
+        "ai": {
+          "flank_bias": 0.7,
+          "retreat_hp_ratio": 0.42,
+          "reposition_cooldown": 0.6,
+          "search_radius": 7,
+          "aggro_confidence": 1.0
+        }
+      },
+      "hard": {
+        "speed": 4.4,
+        "attack_cd": 0.55,
+        "chase_range": 13.0,
+        "ai": {
+          "flank_bias": 2.0,
+          "retreat_hp_ratio": 0.1,
+          "reposition_cooldown": 0.18,
+          "search_radius": 11,
+          "aggro_confidence": 1.6,
+          "pressure_bias": 1.8,
+          "path_refresh": 0.25,
+          "line_of_sight_bias": 1.1,
+          "direct_move_range": 5.2
+        }
+      }
+    }
+  }
+}

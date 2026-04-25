@@ -1,0 +1,116 @@
+{
+  "default": "normal",
+  "modes": {
+    "easy": {
+      "label": "Easy",
+      "description": "Forgiving encounters, lighter pressure, more healing, safer checkpoints.",
+      "player_damage_taken_mult": 0.78,
+      "player_attack_damage_mult": 1.2,
+      "map_transition_heal": 2,
+      "respawn_hp_ratio": 1.0,
+      "checkpoint_heal_bonus": 2,
+      "drop_heal_chance_bonus": 0.22,
+      "drop_item_chance_bonus": 0.08,
+      "enemy_stat_mults": {
+        "hp": 0.82,
+        "damage": 0.76,
+        "speed": 0.90,
+        "attack_cd": 1.15,
+        "chase_range": 0.88,
+        "aggro_confidence": 0.82
+      },
+      "boss_stat_mults": {
+        "hp": 0.82,
+        "damage": 0.78,
+        "speed": 0.88,
+        "cooldown": 1.2,
+        "phase2_threshold": 0.45,
+        "pressure": 0.7
+      },
+      "ai": {
+        "tactical_quality": 0.5,
+        "pressure_scale": 0.65,
+        "retreat_bias": 1.35,
+        "flank_bias": 0.6,
+        "path_refresh_scale": 1.3,
+        "search_radius_scale": 0.85,
+        "reposition_cooldown_scale": 1.25,
+        "aggressiveness": 0.78
+      }
+    },
+    "normal": {
+      "label": "Normal",
+      "description": "Default tuning target: readable, fair, and complete.",
+      "player_damage_taken_mult": 1.0,
+      "player_attack_damage_mult": 1.0,
+      "map_transition_heal": 0,
+      "respawn_hp_ratio": 0.85,
+      "checkpoint_heal_bonus": 1,
+      "drop_heal_chance_bonus": 0.0,
+      "drop_item_chance_bonus": 0.0,
+      "enemy_stat_mults": {
+        "hp": 1.0,
+        "damage": 1.0,
+        "speed": 1.0,
+        "attack_cd": 1.0,
+        "chase_range": 1.0,
+        "aggro_confidence": 1.0
+      },
+      "boss_stat_mults": {
+        "hp": 1.0,
+        "damage": 1.0,
+        "speed": 1.0,
+        "cooldown": 1.0,
+        "phase2_threshold": 0.5,
+        "pressure": 1.0
+      },
+      "ai": {
+        "tactical_quality": 1.0,
+        "pressure_scale": 1.0,
+        "retreat_bias": 1.0,
+        "flank_bias": 1.0,
+        "path_refresh_scale": 1.0,
+        "search_radius_scale": 1.0,
+        "reposition_cooldown_scale": 1.0,
+        "aggressiveness": 1.0
+      }
+    },
+    "hard": {
+      "label": "Hard",
+      "description": "Sharper positioning, tighter cooldowns, lower forgiveness, stronger pressure.",
+      "player_damage_taken_mult": 1.3,
+      "player_attack_damage_mult": 0.85,
+      "map_transition_heal": 0,
+      "respawn_hp_ratio": 0.5,
+      "checkpoint_heal_bonus": 0,
+      "drop_heal_chance_bonus": -0.08,
+      "drop_item_chance_bonus": -0.04,
+      "enemy_stat_mults": {
+        "hp": 1.35,
+        "damage": 1.5,
+        "speed": 1.18,
+        "attack_cd": 0.72,
+        "chase_range": 1.25,
+        "aggro_confidence": 1.3
+      },
+      "boss_stat_mults": {
+        "hp": 1.4,
+        "damage": 1.55,
+        "speed": 1.22,
+        "cooldown": 0.65,
+        "phase2_threshold": 0.7,
+        "pressure": 1.6
+      },
+      "ai": {
+        "tactical_quality": 1.5,
+        "pressure_scale": 1.55,
+        "retreat_bias": 0.6,
+        "flank_bias": 1.5,
+        "path_refresh_scale": 0.65,
+        "search_radius_scale": 1.35,
+        "reposition_cooldown_scale": 0.55,
+        "aggressiveness": 1.45
+      }
+    }
+  }
+}

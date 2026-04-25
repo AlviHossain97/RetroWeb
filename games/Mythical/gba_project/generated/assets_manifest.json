@@ -1,0 +1,13 @@
+{
+  "palette_size": 256,
+  "bg_tile_count": 129,
+  "ui_tile_count": 231,
+  "obj_tile_count": 239,
+  "font_face": "lucon.ttf/consola fallback",
+  "font_cell": 8,
+  "player_frames": 16,
+  "npc_sprites": 8,
+  "enemy_sprites": 12,
+  "boss_sprites": 3,
+  "animal_sprites": 6
+}

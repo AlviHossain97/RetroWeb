@@ -1,0 +1,159 @@
+{
+  "_comment": "Stage difficulty scaling matrix. Tuned for full-campaign playtesting with softer enemy pressure and later bosses matched closer to Stage 1 kill time.",
+
+  "stage_difficulty_matrix": {
+    "1": {
+      "easy": {
+        "enemy_hp_mult":     0.525,
+        "enemy_damage_mult": 0.525,
+        "enemy_speed_mult":  0.85,
+        "boss_hp_mult":      0.525,
+        "boss_damage_mult":  0.525,
+        "ai_quality":        0.60,
+        "drop_rate_bonus":   0.10,
+        "heal_economy":      1.20,
+        "xp_mult":           1.00,
+        "phase2_threshold":  0.40
+      },
+      "normal": {
+        "enemy_hp_mult":     0.75,
+        "enemy_damage_mult": 0.75,
+        "enemy_speed_mult":  1.00,
+        "boss_hp_mult":      0.75,
+        "boss_damage_mult":  0.75,
+        "ai_quality":        1.00,
+        "drop_rate_bonus":   0.00,
+        "heal_economy":      1.00,
+        "xp_mult":           1.00,
+        "phase2_threshold":  0.50
+      },
+      "hard": {
+        "enemy_hp_mult":     1.05,
+        "enemy_damage_mult": 0.975,
+        "enemy_speed_mult":  1.10,
+        "boss_hp_mult":      1.05,
+        "boss_damage_mult":  0.975,
+        "ai_quality":        1.30,
+        "drop_rate_bonus":  -0.05,
+        "heal_economy":      0.80,
+        "xp_mult":           1.20,
+        "phase2_threshold":  0.55
+      }
+    },
+    "2": {
+      "easy": {
+        "enemy_hp_mult":     1.05,
+        "enemy_damage_mult": 0.975,
+        "enemy_speed_mult":  1.00,
+        "boss_hp_mult":      0.35,
+        "boss_damage_mult":  0.975,
+        "ai_quality":        1.10,
+        "drop_rate_bonus":   0.10,
+        "heal_economy":      1.10,
+        "xp_mult":           1.40,
+        "phase2_threshold":  0.45
+      },
+      "normal": {
+        "enemy_hp_mult":     1.35,
+        "enemy_damage_mult": 1.20,
+        "enemy_speed_mult":  1.10,
+        "boss_hp_mult":      0.50,
+        "boss_damage_mult":  1.20,
+        "ai_quality":        1.30,
+        "drop_rate_bonus":   0.00,
+        "heal_economy":      1.00,
+        "xp_mult":           1.60,
+        "phase2_threshold":  0.50
+      },
+      "hard": {
+        "enemy_hp_mult":     1.65,
+        "enemy_damage_mult": 1.425,
+        "enemy_speed_mult":  1.20,
+        "boss_hp_mult":      0.70,
+        "boss_damage_mult":  1.425,
+        "ai_quality":        1.60,
+        "drop_rate_bonus":  -0.10,
+        "heal_economy":      0.80,
+        "xp_mult":           2.00,
+        "phase2_threshold":  0.55
+      }
+    },
+    "3": {
+      "easy": {
+        "enemy_hp_mult":     1.80,
+        "enemy_damage_mult": 1.50,
+        "enemy_speed_mult":  1.10,
+        "boss_hp_mult":      0.21,
+        "boss_damage_mult":  1.575,
+        "ai_quality":        1.40,
+        "drop_rate_bonus":   0.10,
+        "heal_economy":      1.00,
+        "xp_mult":           2.20,
+        "phase2_threshold":  0.60,
+        "phase3_threshold":  0.30
+      },
+      "normal": {
+        "enemy_hp_mult":     2.25,
+        "enemy_damage_mult": 1.875,
+        "enemy_speed_mult":  1.20,
+        "boss_hp_mult":      0.30,
+        "boss_damage_mult":  1.95,
+        "ai_quality":        1.60,
+        "drop_rate_bonus":   0.00,
+        "heal_economy":      0.90,
+        "xp_mult":           2.80,
+        "phase2_threshold":  0.65,
+        "phase3_threshold":  0.30
+      },
+      "hard": {
+        "enemy_hp_mult":     2.85,
+        "enemy_damage_mult": 2.325,
+        "enemy_speed_mult":  1.30,
+        "boss_hp_mult":      0.42,
+        "boss_damage_mult":  2.40,
+        "ai_quality":        2.00,
+        "drop_rate_bonus":  -0.10,
+        "heal_economy":      0.70,
+        "xp_mult":           3.50,
+        "phase2_threshold":  0.70,
+        "phase3_threshold":  0.35
+      }
+    }
+  },
+
+  "stage_enemy_rosters": {
+    "1": ["slime", "bat", "skeleton", "golem"],
+    "2": ["wraith", "bone_archer", "corrupted_knight", "revenant"],
+    "3": ["void_shade", "crystal_colossus", "mythic_sentinel", "ascended_wraith"]
+  },
+
+  "boss_loot": {
+    "dark_golem": [
+      {"item_id": "shadow_blade",  "chance": 0.80},
+      {"item_id": "shadow_cloak",  "chance": 0.50}
+    ],
+    "gravewarden": [
+      {"item_id": "runic_sword",     "chance": 1.00},
+      {"item_id": "shadow_mail",     "chance": 1.00},
+      {"item_id": "revenant_core",   "chance": 0.60}
+    ],
+    "mythic_sovereign": [
+      {"item_id": "mythblade",       "chance": 1.00},
+      {"item_id": "ascended_aegis",  "chance": 1.00},
+      {"item_id": "mythic_core",     "chance": 1.00},
+      {"item_id": "sovereign_crown", "chance": 0.80}
+    ]
+  },
+
+  "stage_xp_rewards": {
+    "1": {"slime": 8,  "bat": 10, "skeleton": 14, "golem": 18, "dark_golem": 100},
+    "2": {"wraith": 22, "bone_archer": 26, "corrupted_knight": 32, "revenant": 38, "gravewarden": 220},
+    "3": {"void_shade": 48, "crystal_colossus": 60, "mythic_sentinel": 55, "ascended_wraith": 52, "mythic_sovereign": 500}
+  },
+
+  "stage_player_hp_bonus": {
+    "1": 0,
+    "2": 2,
+    "3": 4
+  }
+}
