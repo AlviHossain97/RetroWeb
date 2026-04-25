@@ -7,7 +7,7 @@ the artefact rather than third-party content used to demonstrate it.
 
 | Game | GBA build language | Origin | Asset sourcing | Folder |
 |---|---|---|---|---|
-| **Red Racer** | C | Python prototype → C port | 100% project-original (placeholder graphics) | [Red Racer/](Red%20Racer/) |
+| **Red Racer** | C | Python prototype → C port | itch.io car sprites by **TMD Studios** (free with creator-link); names + code project-original | [Red Racer/](Red%20Racer/) |
 | **Mythical** | C++ | Python prototype → C++ port | 100% project-original | [Mythical/](Mythical/) |
 | **Bastion Tower Defence** | C++ (Butano engine) | Python+SDL2 prototype → Butano port | itch.io sprites by **pixel.iwao** (credit-only licence); audio TBD; code original | [BastionTD/](BastionTD/) |
 
@@ -55,7 +55,7 @@ its own folder.
 
 | Game | Visual Assets | Audio Assets | Code |
 |---|---|---|---|
-| Red Racer | Project-original (placeholder graphics) | Silent (see [README](Red%20Racer/README.md)) | Project-original |
+| Red Racer | itch.io: [Cars](https://tmd-studios.itch.io/cars) by **TMD Studios** — free use with link to [tmdstudios.wordpress.com](https://tmdstudios.wordpress.com), per the creator's stated terms | Silent (see [README](Red%20Racer/README.md)) | Project-original |
 | Mythical | Project-original | Silent (see [README](Mythical/README.md)) | Project-original |
 | Bastion Tower Defence | itch.io: [Tiny Tower Defense Assets](https://ilustramundogames.itch.io/tiny-tower-defense-assets) by **pixel.iwao** (ilustramundogames) — free for personal and commercial use with creator credit, per the creator's confirmed terms | Silent (see [README](BastionTD/README.md)) | Project-original |
 
@@ -67,12 +67,19 @@ homebrew corpus uniformly licence-clean and eliminates third-party audio
 attribution complexity. A future post-submission revision may re-introduce
 audio with properly-attributed assets.
 
-This corpus was deliberately curated to minimise third-party licensing
-complexity. **Two of the three games are 100% project-original.** The
-third (Bastion Tower Defence) uses a sprite pack from itch.io under
-the creator's stated credit-only licence; full attribution is provided
-in [`BastionTD/README.md`](BastionTD/README.md) and in the cross-game
-overview above.
+This corpus was deliberately curated to minimise third-party
+licensing complexity. **Mythical is 100% project-original.** Red
+Racer and Bastion TD each use one third-party sprite pack from
+itch.io, both under explicit creator-link / creator-credit licences:
+
+- Red Racer: TMD Studios — [Cars](https://tmd-studios.itch.io/cars),
+  free with link to <https://tmdstudios.wordpress.com>
+- Bastion TD: pixel.iwao (ilustramundogames) —
+  [Tiny Tower Defense Assets](https://ilustramundogames.itch.io/tiny-tower-defense-assets),
+  free with creator credit
+
+Full attribution is provided in each game's per-game README and (for
+Bastion TD) at runtime on the title screen.
 
 ### Policy
 
