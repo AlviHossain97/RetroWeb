@@ -60,8 +60,7 @@ class InstructionsState(State):
             ("Prev tower type", "Q", "L"),
             ("Next tower type", "E", "R"),
             ("Pause", "ESC / Backspace", "Start"),
-            ("Speed toggle", "TAB", "Select"),
-            ("Fast-forward hold", "Shift", "R"),
+            ("Speed toggle", "Shift", "Select"),
         ]
 
         for row in controls:
@@ -111,7 +110,7 @@ class InstructionsState(State):
 
         # Return hint
         hint_surf = self._font_body.render(
-            "Press Z/Enter or X/Backspace to return", True, (120, 120, 120)
+            "Press Z/Enter, X, or Esc/Backspace", True, (120, 120, 120)
         )
         hint_rect = hint_surf.get_rect(center=(SCREEN_W // 2, SCREEN_H - 20))
         screen.blit(hint_surf, hint_rect)

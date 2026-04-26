@@ -5,6 +5,8 @@ import type { ControllerButton, MappingOverrides } from "../gamepad/types";
 import { loadMappingOverrides, saveMappingOverrides } from "../gamepad/overrides";
 import {
   getDefaultKeyboardMap,
+  getKeyboardBindings,
+  keyCodesToLabel,
   keyCodeToLabel,
   loadKeyboardOverrides,
   saveKeyboardOverrides,
@@ -32,6 +34,7 @@ export default function ControllerTest() {
   const [kbWaitingFor, setKbWaitingFor] = useState<ControllerButton | null>(null);
   const [kbMessage, setKbMessage] = useState<string>("");
   const effectiveKb = useMemo(() => ({ ...getDefaultKeyboardMap(), ...kbOverrides }), [kbOverrides]);
+  const effectiveKbBindings = useMemo(() => getKeyboardBindings(effectiveKb, kbOverrides), [effectiveKb, kbOverrides]);
 
   const {
     supported,
@@ -243,7 +246,7 @@ export default function ControllerTest() {
                 <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{prettyButtonName(btn)}</span>
                 <span>
                   <span className="px-2 py-0.5 rounded text-[11px] font-mono" style={{ background: 'var(--surface-3)', color: 'var(--text-primary)' }}>
-                    {keyCodeToLabel(effectiveKb[btn] ?? '')}
+                    {keyCodesToLabel(effectiveKbBindings[btn] ?? (effectiveKb[btn] ? [effectiveKb[btn]] : []))}
                   </span>
                   {kbWaitingFor === btn && <span className="ml-2 text-[10px]" style={{ color: '#ff6666' }}>Press a key…</span>}
                 </span>
