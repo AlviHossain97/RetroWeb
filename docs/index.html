@@ -3,134 +3,145 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PiStation | Comprehensive Documentation</title>
+    <title>PiStation | The Ultimate Two-Host Retro Platform</title>
     <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="retro-page-shell">
+    <div class="shell">
         <header class="header">
-            <h1 class="retro-heading retro-title-gradient">PiStation</h1>
-            <p class="retro-subtitle">A two-host retro gaming and media platform powered by Raspberry Pi 3 and a local AI-driven laptop backend.<br><br><em>BSc Computer Science final-year artefact, University of Roehampton 2025–26.</em></p>
+            <h1>PiStation</h1>
+            <p>A distributed two-host retro gaming and media platform powered by a Raspberry Pi 3 client and a local AI-driven laptop backend.</p>
+            <br><em>BSc Computer Science Artefact, University of Roehampton 2025–26. Built by Alvi Hossain.</em>
         </header>
 
-        <section class="retro-panel retro-panel--hero">
-            <h2 class="card-title">System Architecture</h2>
-            <p>PiStation is built around a two-host split architecture, dividing workloads across a local network to maximize performance where it counts. The Pi 3 is strong at low-latency native emulation but weak at GPU-bound work (modern web stacks, AI inference, video transcoding). The laptop is strong at GPU work but weak at being attached to a TV.</p>
+        <nav class="toc">
+            <ul>
+                <li><a href="#architecture">Architecture & Hardware</a></li>
+                <li><a href="#loops">The 3 Interaction Loops</a></li>
+                <li><a href="#frontend">Frontend & Emulation</a></li>
+                <li><a href="#ai">Local AI Voice Assistant</a></li>
+                <li><a href="#games">Original Homebrew Games</a></li>
+                <li><a href="#backend">Backend Services & DB</a></li>
+            </ul>
+        </nav>
+
+        <section id="architecture" class="panel panel--hero">
+            <h2 class="title">System Architecture: The Hardware Split</h2>
+            <p>PiStation is fundamentally a two-host architecture. It divides workloads across a local network to maximize performance, playing to the strengths of both devices.</p>
             
-            <div class="grid" style="margin-top: 1.5rem;">
-                <div class="retro-stat-card">
-                    <h3>📺 Raspberry Pi 3 (at the TV)</h3>
-                    <p><strong>Hardware:</strong> Quad-core ARM, 1 GB RAM, no discrete GPU.</p>
-                    <p><strong>Role:</strong> TV-attached client. Handles native retro emulation (RetroArch / lr-mgba), Kodi media playback, and runs the Moonlight thin-client to receive the streamed dashboard.</p>
+            <div class="grid">
+                <div class="card">
+                    <h3>📺 Raspberry Pi 3 (The Client)</h3>
+                    <p><strong>Specs:</strong> Quad-core ARM Cortex-A53 @ 1.2 GHz, 1 GB LPDDR2, VideoCore IV GPU.</p>
+                    <p><strong>Role:</strong> Attached directly to the TV. Handles low-latency native retro emulation via RetroArch (`lr-mgba`, `lr-snes9x`), H.264/HEVC hardware decoding for Kodi media playback, and runs Moonlight as a thin client to receive the streamed AI dashboard.</p>
                 </div>
-                <div class="retro-stat-card">
-                    <h3>💻 Laptop (The Backend)</h3>
-                    <p><strong>Hardware:</strong> x86_64, RTX 3070 8 GB VRAM, 16 GB RAM.</p>
-                    <p><strong>Role:</strong> Powerhouse server. Runs the Analytics FastAPI backend, MySQL database, Jellyfin media server, Parakeet STT, Kokoro TTS, local LLMs, and the React 19 PWA dashboard streamed via Sunshine NVENC.</p>
+                <div class="card">
+                    <h3>💻 Laptop (The Powerhouse Server)</h3>
+                    <p><strong>Specs:</strong> x86_64, RTX 3070 8 GB VRAM, 16 GB RAM.</p>
+                    <p><strong>Role:</strong> Hosts everything GPU-bound or demanding. Runs the FastAPI analytics backend, MySQL database, Jellyfin media server, Parakeet STT (CUDA fp16), Kokoro TTS (ONNX), and the React 19 PWA. Uses Sunshine NVENC to stream the dashboard to the Pi.</p>
                 </div>
             </div>
         </section>
 
-        <section class="retro-panel">
-            <h2 class="card-title">The Three Interaction Loops</h2>
-            <p>PiStation unifies three separate interaction loops into a seamless TV experience:</p>
-            <div class="grid" style="margin-top: 1.5rem;">
-                <div class="retro-stat-card">
+        <section id="loops" class="panel">
+            <h2 class="title">The Three Interaction Loops</h2>
+            <p>PiStation unifies three separate experiences into a seamless TV interface, all launched from the EmulationStation carousel.</p>
+
+            <div class="grid">
+                <div class="card">
                     <h3>1. Native Gaming</h3>
-                    <p>EmulationStation launches RetroArch natively on the Pi. Game ROMs are read from the laptop via a CIFS mount. <code>runcommand</code> hooks fire before and after play to log session metadata (timestamps, core, duration) to the laptop's FastAPI backend.</p>
+                    <p>EmulationStation launches RetroArch natively. Game ROMs do not live on the Pi; they are streamed from the laptop via a <strong>Samba/CIFS mount</strong> (`/mnt/laptop`). `runcommand` hooks (`onstart` and `onend`) execute `session_logger.py` to record gameplay sessions (timestamps, duration, core) to the laptop's MySQL database.</p>
                 </div>
-                <div class="retro-stat-card">
-                    <h3>2. Media Streaming</h3>
-                    <p>Jellyfin acts as a system entry in EmulationStation. Selecting it launches Kodi with the Jellyfin add-on. Video transcoding runs on the laptop's RTX 3070, while the Pi handles H.264/HEVC playback.</p>
+                <div class="card">
+                    <h3>2. Media Playback</h3>
+                    <p>Jellyfin acts as a dedicated system entry in EmulationStation. Running `Jellyfin.sh` spawns a new X server on VT8 and launches Kodi with the Jellyfin-for-Kodi add-on. Video transcoding happens on the laptop's RTX 3070, while the Pi handles H.264/HEVC decode.</p>
                 </div>
-                <div class="retro-stat-card">
+                <div class="card">
                     <h3>3. AI Dashboard</h3>
-                    <p>The React 19 PWA runs locally on the laptop inside a headless Chromium window. Sunshine NVENC captures the window and streams it to the Pi via Moonlight. The Pi forwards controller/keyboard inputs back to the laptop.</p>
+                    <p>The React 19 PWA runs on the laptop inside a headless Chromium window. <strong>Sunshine NVENC</strong> encodes the window at 720p30 (8 Mbps) and streams it to the Pi via <strong>Moonlight</strong>. Controller inputs from the Pi's 8BitDo SN30 Pro are forwarded back to the laptop.</p>
                 </div>
             </div>
         </section>
 
-        <section class="retro-panel">
-            <h2 class="card-title">Frontend & Emulation Engine</h2>
-            <p>The React dashboard serves as a fully client-side PWA. Emulation within the browser is powered by <strong>Nostalgist</strong>, wrapping RetroArch compiled to WebAssembly.</p>
+        <section id="frontend" class="panel">
+            <h2 class="title">Dashboard Frontend & Emulation Fallback</h2>
+            <p>The central hub is a React 19 + Vite 7 + Tailwind CSS v4 PWA. It provides live analytics, achievement tracking, and voice assistant access.</p>
             
-            <h3 class="card-subtitle">Key Features</h3>
-            <ul class="feature-list">
-                <li><strong>State Management:</strong> Zustand for global state, Dexie (IndexedDB) for all persistent storage (SRAM saves, BIOS files, user preferences).</li>
-                <li><strong>ROM Normalization:</strong> Advanced ZIP extraction using <code>@zip.js</code> and automatic system detection based on file extensions.</li>
-                <li><strong>Saves & BIOS:</strong> Auto-saving every 60 seconds. Drag-and-drop BIOS file validation with MD5 hashing.</li>
-                <li><strong>Netplay:</strong> Serverless WebRTC P2P multiplayer via SDP offer/answer exchanges over data channels.</li>
-                <li><strong>Cross-Origin Isolation:</strong> Relies on <code>SharedArrayBuffer</code> for multi-threaded WASM cores, requiring strict COOP/COEP headers.</li>
-            </ul>
-
-            <h3 class="card-subtitle">Supported Systems</h3>
-            <table>
-                <tr><th>System</th><th>Core</th><th>Extensions</th></tr>
-                <tr><td>NES</td><td>fceumm</td><td>.nes, .zip</td></tr>
-                <tr><td>SNES</td><td>snes9x</td><td>.smc, .sfc, .zip</td></tr>
-                <tr><td>Game Boy (Advance)</td><td>mgba</td><td>.gb, .gbc, .gba, .zip</td></tr>
-                <tr><td>Sega Genesis</td><td>genesis_plus_gx</td><td>.md, .smd, .gen, .bin, .zip</td></tr>
-                <tr><td>PlayStation 1</td><td>pcsx_rearmed</td><td>.chd (requires scph5501.bin)</td></tr>
-            </table>
-        </section>
-
-        <section class="retro-panel">
-            <h2 class="card-title">Privacy-First AI Voice Assistant</h2>
-            <p>A fully local, privacy-first conversational AI feature integrated into the PWA. No data leaves the user's machine.</p>
-
-            <h3 class="card-subtitle">The Voice Pipeline</h3>
-            <div class="code-block">Microphone (Browser) -> Silence Detection -> Whisper STT (:8786) -> Ollama LLM (:11434) -> Kokoro TTS (:8787) -> Audio Playback</div>
-            
-            <ul class="feature-list">
-                <li><strong>Silence Detection:</strong> An AudioContext AnalyserNode monitors frequency to detect when the user stops speaking, automatically sending the audio chunk.</li>
-                <li><strong>Clause-Level Streaming TTS:</strong> As the LLM generates tokens, text is buffered and flushed to the Kokoro TTS engine at sentence and clause boundaries to minimize perceived latency.</li>
-                <li><strong>Vision Capabilities:</strong> Hitting the "Ask AI" button takes a base64 PNG screenshot of the emulator canvas and sends it to a multimodal model (like LLaVA).</li>
-                <li><strong>Walkthrough Mode:</strong> The assistant can automatically capture and analyze a screenshot every 30 seconds to provide real-time game coaching.</li>
-                <li><strong>Personas:</strong> You can select personalities like "Speedrunner", "Historian", or "90s Store Clerk" to alter the system prompt.</li>
+            <h3 class="sub">Key Frontend Features</h3>
+            <ul class="fl">
+                <li><strong>State Management & Storage:</strong> Zustand for global app state. Dexie.js (IndexedDB) for browser-local persistent storage.</li>
+                <li><strong>Browser Emulation Route:</strong> While production gaming runs on the Pi, the dashboard includes an offline-capable browser emulator powered by <strong>Nostalgist</strong> (RetroArch WASM).</li>
+                <li><strong>ROM Normalization:</strong> Advanced ZIP extraction using `@zip.js` for dropping ROMs directly into the browser.</li>
+                <li><strong>Cross-Origin Isolation:</strong> Strict COOP/COEP headers are enforced via Vite to enable `SharedArrayBuffer` for multi-threaded WASM libretro cores.</li>
             </ul>
         </section>
 
-        <section class="retro-panel">
-            <h2 class="card-title">Original Homebrew Games</h2>
-            <p>To ensure a clean, copyright-free test corpus for the university submission, three original Game Boy Advance homebrew games were developed alongside the platform. They follow a Python prototyping to GBA-native C/C++ build pipeline.</p>
+        <section id="ai" class="panel panel--hero">
+            <h2 class="title">Privacy-First AI Voice Assistant</h2>
+            <p>The PiStation dashboard features a fully local, privacy-first conversational AI. Audio never leaves your local network unless explicitly configured to use external LLMs.</p>
+
+            <div class="codeblock">Browser Mic (AudioWorklet) ──> Silence VAD ──> Parakeet STT (:8786) ──> NVIDIA API (LLM) ──> Kokoro TTS (:8787) ──> Browser AudioContext</div>
             
-            <div class="grid" style="margin-top: 1.5rem;">
-                <div class="retro-stat-card">
+            <h3 class="sub">The Technical Pipeline</h3>
+            <ul class="fl">
+                <li><strong>Voice Capture:</strong> An AudioWorklet processes browser audio into PCM16 @ 16 kHz mono. It features built-in Voice Activity Detection (VAD) to auto-submit chunks when the user stops speaking.</li>
+                <li><strong>Local STT & TTS:</strong> Speech-to-text is handled by NVIDIA's <strong>Parakeet TDT 1.1B</strong> (fp16 on CUDA). Text-to-speech uses <strong>Kokoro ONNX</strong>. Audio returns to the browser as PCM16 @ 22.05 kHz mono.</li>
+                <li><strong>VAD Suppression:</strong> The frontend actively suppresses VAD activation while TTS audio is playing to prevent the assistant from transcribing its own voice.</li>
+                <li><strong>Activation Modes:</strong> <code>auto_near_field</code> (continuous listening with VAD), <code>headset</code> (tighter thresholds), and <code>push_to_talk</code> (hold 'T').</li>
+                <li><strong>Web Grounding & Vision:</strong> Can search the web via Tavily/SearXNG and process images (emulator screenshots) using multi-modal LLMs (like LLaVA or Qwen).</li>
+            </ul>
+        </section>
+
+        <section id="games" class="panel">
+            <h2 class="title">Original IP-Safe Homebrew Corpus</h2>
+            <p>To ensure a completely copyright-clean submission, three original Game Boy Advance homebrew games were developed from scratch. They follow a strict <strong>Python-to-GBA-native</strong> pipeline: rapid gameplay iteration in Python/Pygame, followed by a from-scratch C/C++ rewrite targeting GBA constraints.</p>
+            
+            <div class="grid">
+                <div class="card">
                     <h3>🏎️ Red Racer</h3>
-                    <p>Written in <strong>C</strong>. Ported from an initial Python prototype.</p>
+                    <p><strong>Language:</strong> C</p>
+                    <p>A high-speed traffic dodging game. Written in C using devkitARM. Features fixed-point 16.16 math, object pooling, and strict OAM sprite management. Sourced assets from TMD Studios (itch.io).</p>
                 </div>
-                <div class="retro-stat-card">
+                <div class="card">
                     <h3>⚔️ Mythical</h3>
-                    <p>Written in <strong>C++</strong>. Ported from a Python prototype. Uses all project-author original assets.</p>
+                    <p><strong>Language:</strong> C++</p>
+                    <p>A top-down adventure exploration game. 100% project-author original assets. Used a C++ desktop simulator intermediate stage before final GBA compilation.</p>
                 </div>
-                <div class="retro-stat-card">
+                <div class="card">
                     <h3>🏰 Bastion Tower Defence</h3>
-                    <p>Written in <strong>Butano (C++)</strong>. Prototyped using Python + SDL2.</p>
+                    <p><strong>Language:</strong> C++ (Butano Engine)</p>
+                    <p>A grid-based tower defence game. Utilizes the modern Butano C++23 GBA engine. Python prototype port required building a hardware-abstraction layer. Sourced assets from pixel.iwao (itch.io).</p>
                 </div>
             </div>
-            
-            <p style="margin-top: 1.5rem; color: var(--text-muted);">The Python-to-GBA pipeline required solving for fixed-point math, 240x160 framebuffer constraints, memory management without dynamic allocation, and custom ROM mapping.</p>
         </section>
         
-        <section class="retro-panel">
-            <h2 class="card-title">Technology Stack</h2>
+        <section id="backend" class="panel">
+            <h2 class="title">Backend Services & Data Layer</h2>
+            
+            <h3 class="sub">FastAPI Backend</h3>
+            <p>Orchestrated by <code>start.mjs</code>, the backend comprises 12 route modules covering sessions, telemetry, AI orchestration, image generation, and WebSocket-based voice chunk streaming.</p>
+
+            <h3 class="sub">MySQL 8 Database</h3>
+            <p>Hosted locally via XAMPP. The schema manages <code>sessions</code>, <code>games</code>, <code>devices</code>, <code>achievements</code>, <code>controller_profiles</code>, and <code>ai_conversations</code>.</p>
+            
             <table>
-                <tr><th>Domain</th><th>Technologies Used</th></tr>
-                <tr><td><strong>Frontend</strong></td><td>React 19, TypeScript, Vite 7, Tailwind CSS v4, Zustand, Dexie.js, React Router v7</td></tr>
-                <tr><td><strong>Emulation Engine</strong></td><td>Nostalgist (RetroArch WASM), libretro cores</td></tr>
-                <tr><td><strong>Backend Services</strong></td><td>FastAPI (Python 3.12), MySQL 8</td></tr>
-                <tr><td><strong>AI Models (Local)</strong></td><td>Ollama (LLaVA/Qwen), faster-whisper (STT), Kokoro ONNX (TTS)</td></tr>
-                <tr><td><strong>Host Integration</strong></td><td>RetroPie, EmulationStation, Kodi, Jellyfin, Sunshine (NVENC), Moonlight</td></tr>
+                <tr><th>Component</th><th>Technology Used</th></tr>
+                <tr><td>Dashboard UI</td><td>React 19, Vite 7, Tailwind v4, Zustand</td></tr>
+                <tr><td>API & WebSockets</td><td>FastAPI, Python 3.12, Uvicorn</td></tr>
+                <tr><td>Database</td><td>MySQL 8.0, PyMySQL, DBUtils Pool</td></tr>
+                <tr><td>Local AI Stack</td><td>Parakeet (STT), Kokoro ONNX (TTS)</td></tr>
+                <tr><td>Streaming bridge</td><td>Sunshine (Laptop), Moonlight-qt (Pi)</td></tr>
             </table>
         </section>
 
-        <div style="text-align: center; margin-top: 2rem;">
-            <a href="https://github.com/AlviHossain97/RetroWeb" class="retro-button">View Code on GitHub</a>
+        <div style="text-align: center; margin-top: 3rem;">
+            <a href="https://github.com/AlviHossain97/RetroWeb" class="btn" target="_blank" rel="noopener">View Source Code on GitHub</a>
         </div>
 
-        <footer style="text-align: center; margin-top: 4rem; color: var(--text-muted); font-size: 0.9rem;">
-            &copy; 2025-26 PiStation (RetroWeb). BSc Computer Science Artefact. Built by Alvi Hossain.
+        <footer>
+            &copy; 2025-26 PiStation. Designed and Engineered by Alvi Hossain.<br>
+            BSc Computer Science Artefact, University of Roehampton.
         </footer>
     </div>
 </body>
