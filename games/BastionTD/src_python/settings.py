@@ -56,11 +56,12 @@ INPUT_MAP = {
     "left":    [pygame.K_LEFT, pygame.K_a],
     "right":   [pygame.K_RIGHT, pygame.K_d],
     "a":       [pygame.K_z, pygame.K_RETURN],      # place tower / confirm / start wave
-    "b":       [pygame.K_x, pygame.K_BACKSPACE],    # cancel / sell / upgrade menu
+    "b":       [pygame.K_x],                         # cancel / sell / upgrade menu
     "l":       [pygame.K_q],                         # cycle tower selection left
     "r":       [pygame.K_e],                         # cycle tower selection right
-    "start":   [pygame.K_ESCAPE],                    # pause
-    "select":  [pygame.K_TAB],                       # fast-forward toggle
+    "start":   [pygame.K_ESCAPE, pygame.K_BACKSPACE], # pause
+    "select":  [pygame.K_TAB],                       # speed toggle
+    "fast_forward": [pygame.K_LSHIFT, pygame.K_RSHIFT], # fast-forward hold
     "tower_1": [pygame.K_1, pygame.K_KP1],           # select Arrow Tower
     "tower_2": [pygame.K_2, pygame.K_KP2],           # select Cannon Tower
     "tower_3": [pygame.K_3, pygame.K_KP3],           # select Ice Tower

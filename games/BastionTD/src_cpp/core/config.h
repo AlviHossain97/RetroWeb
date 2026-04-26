@@ -110,10 +110,10 @@ struct EnemyDef {
 constexpr EnemyDef ENEMY_DEFS[static_cast<int>(EnemyType::COUNT)] = {
     {"Goblin", 3.0f, 2.0f, 0, 5, {60, 160, 60, 255}, 0.5f, 1, 0.0f, 0.0f, SpriteId::Char0, 1.0f},
     {"Wolf", 2.0f, 3.5f, 0, 8, {140, 120, 100, 255}, 0.5f, 1, 0.0f, 0.0f, SpriteId::Char1, 1.0f},
-    {"Knight", 8.0f, 1.2f, 2, 15, {180, 180, 200, 255}, 0.7f, 1, 0.0f, 0.0f, SpriteId::Char0, 1.2f},
-    {"Healer", 4.0f, 2.0f, 0, 12, {60, 200, 60, 255}, 0.5f, 1, 1.0f, 2.0f, SpriteId::Char1, 1.1f},
+    {"Knight", 8.0f, 1.2f, 2, 15, {180, 180, 200, 255}, 0.7f, 1, 0.0f, 0.0f, SpriteId::Char2, 1.0f},
+    {"Healer", 4.0f, 2.0f, 0, 12, {60, 200, 60, 255}, 0.5f, 1, 1.0f, 2.0f, SpriteId::Char3, 1.0f},
     {"Swarm", 1.0f, 3.0f, 0, 2, {180, 180, 50, 255}, 0.35f, 1, 0.0f, 0.0f, SpriteId::Char1, 0.7f},
-    {"Titan", 50.0f, 0.8f, 3, 100, {160, 80, 80, 255}, 1.0f, 5, 0.0f, 0.0f, SpriteId::Char0, 2.5f},
+    {"Titan", 50.0f, 0.8f, 3, 100, {160, 80, 80, 255}, 1.0f, 5, 0.0f, 0.0f, SpriteId::Char4, 2.0f},
 };
 
 struct WaveEntry {

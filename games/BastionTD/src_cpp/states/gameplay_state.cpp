@@ -94,22 +94,8 @@ void GameplayState::update(App& app, float dt) {
     auto& sim = app.sim;
     auto* input = app.input;
 
-    // Start button: during build phase it kicks off the next wave so the
-    // player doesn't have to navigate the cursor onto a non-buildable tile
-    // and press A. During a wave (or cleanup) it opens the pause menu.
     if (input->pressed(InputButton::Start)) {
-        if (sim.wave_mgr.phase == GamePhase::Build) {
-            sim.start_next_wave();
-            if (sim.wave_mgr.phase == GamePhase::Wave) {
-                app.audio->play_sfx(SfxId::WaveStart);
-                show_notification(cfg::is_boss_wave(sim.wave_mgr.current_wave + 1)
-                                      ? "BOSS WAVE" : "WAVE START");
-                app.audio->play_bgm(cfg::is_boss_wave(sim.wave_mgr.current_wave + 1)
-                                        ? BgmId::Boss : BgmId::Wave);
-            }
-        } else {
-            app.change_state(StateId::Pause);
-        }
+        app.change_state(StateId::Pause);
         return;
     }
 
@@ -393,13 +379,14 @@ void GameplayState::render_enemies(App& app, float alpha) {
         const Vec2 rp = lerp(e.prev_pos, e.pos, alpha);
         const int cx = sim_to_int(rp.x * cfg::TILE_SIZE + cfg::TILE_SIZE / 2.0f);
         const int cy = cfg::GRID_OFFSET_Y + sim_to_int(rp.y * cfg::TILE_SIZE + cfg::TILE_SIZE / 2.0f);
-        // 50% character shrink — halve the draw scale on top of per-enemy
-        // sprite_scale.
-        const float base_scale = e.dying ? sim_clamp(sim_div(e.death_timer, 0.3f), 0.3f, 1.0f) * e.sprite_scale : e.sprite_scale;
-        const float scale = base_scale * 0.5f;
-        const int half = sim_to_int(4.0f * scale);
+        const float scale = e.dying ? sim_clamp(sim_div(e.death_timer, 0.3f), 0.3f, 1.0f) * e.sprite_scale : e.sprite_scale;
+        int sprite_size = sim_to_int(8.0f * scale);
+        if (sprite_size < 1) {
+            sprite_size = 1;
+        }
+        const int half = sprite_size / 2;
 
-        r->draw_sprite(e.sprite, cx - half, cy - half, scale);
+        r->draw_sprite_rect(e.sprite, cx - half, cy - half, sprite_size, sprite_size);
 
         if (e.slow_timer > 0.0f) {
             r->draw_rect(cx - 3, cy - 3, 6, 6, {80, 140, 220, 90});
