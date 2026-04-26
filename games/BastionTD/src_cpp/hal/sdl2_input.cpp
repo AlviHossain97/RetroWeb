@@ -16,13 +16,12 @@ int scancode_to_button(SDL_Scancode sc) {
         case SDL_SCANCODE_D:        return static_cast<int>(InputButton::Right);
         case SDL_SCANCODE_Z:
         case SDL_SCANCODE_RETURN:   return static_cast<int>(InputButton::A);
-        case SDL_SCANCODE_X:
-        case SDL_SCANCODE_BACKSPACE:return static_cast<int>(InputButton::B);
+        case SDL_SCANCODE_X:        return static_cast<int>(InputButton::B);
         case SDL_SCANCODE_Q:        return static_cast<int>(InputButton::L);
         case SDL_SCANCODE_E:        return static_cast<int>(InputButton::R);
-        case SDL_SCANCODE_ESCAPE:   return static_cast<int>(InputButton::Start);
+        case SDL_SCANCODE_ESCAPE:
+        case SDL_SCANCODE_BACKSPACE:return static_cast<int>(InputButton::Start);
         case SDL_SCANCODE_TAB:      return static_cast<int>(InputButton::Select);
-        case SDL_SCANCODE_SPACE:
         case SDL_SCANCODE_LSHIFT:
         case SDL_SCANCODE_RSHIFT:   return static_cast<int>(InputButton::FastForward);
         case SDL_SCANCODE_F:        return static_cast<int>(InputButton::FleetUpgrade);
@@ -123,12 +122,12 @@ void SDL2Input::advance_frame() {
     cur[static_cast<int>(InputButton::Left)]         = is_down(SDL_SCANCODE_LEFT,  SDL_SCANCODE_A);
     cur[static_cast<int>(InputButton::Right)]        = is_down(SDL_SCANCODE_RIGHT, SDL_SCANCODE_D);
     cur[static_cast<int>(InputButton::A)]            = is_down(SDL_SCANCODE_Z,     SDL_SCANCODE_RETURN);
-    cur[static_cast<int>(InputButton::B)]            = is_down(SDL_SCANCODE_X,     SDL_SCANCODE_BACKSPACE);
+    cur[static_cast<int>(InputButton::B)]            = is_down(SDL_SCANCODE_X);
     cur[static_cast<int>(InputButton::L)]            = is_down(SDL_SCANCODE_Q);
     cur[static_cast<int>(InputButton::R)]            = is_down(SDL_SCANCODE_E);
-    cur[static_cast<int>(InputButton::Start)]        = is_down(SDL_SCANCODE_ESCAPE);
+    cur[static_cast<int>(InputButton::Start)]        = is_down(SDL_SCANCODE_ESCAPE, SDL_SCANCODE_BACKSPACE);
     cur[static_cast<int>(InputButton::Select)]       = is_down(SDL_SCANCODE_TAB);
-    cur[static_cast<int>(InputButton::FastForward)]  = is_down(SDL_SCANCODE_SPACE, SDL_SCANCODE_LSHIFT) ||
+    cur[static_cast<int>(InputButton::FastForward)]  = keys[SDL_SCANCODE_LSHIFT] ||
                                                        keys[SDL_SCANCODE_RSHIFT];
     cur[static_cast<int>(InputButton::FleetUpgrade)] = is_down(SDL_SCANCODE_F);
 

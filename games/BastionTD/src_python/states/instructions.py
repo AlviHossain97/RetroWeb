@@ -56,11 +56,12 @@ class InstructionsState(State):
             ("--------", "--------", "--------"),
             ("Move cursor", "WASD / Arrows", "D-pad"),
             ("Place tower / Confirm", "Z / Enter", "A"),
-            ("Upgrade / Sell tower", "X / Backspace", "B"),
+            ("Upgrade / Sell tower", "X", "B"),
             ("Prev tower type", "Q", "L"),
             ("Next tower type", "E", "R"),
-            ("Pause", "ESC", "Start"),
-            ("Fast-forward (3x)", "TAB", "Select"),
+            ("Pause", "ESC / Backspace", "Start"),
+            ("Speed toggle", "TAB", "Select"),
+            ("Fast-forward hold", "Shift", "R"),
         ]
 
         for row in controls:
