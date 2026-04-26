@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PiStation | RetroWeb</title>
+    <title>PiStation | Comprehensive Documentation</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500;700&display=swap" rel="stylesheet">
 </head>
@@ -11,50 +11,126 @@
     <div class="retro-page-shell">
         <header class="header">
             <h1 class="retro-heading retro-title-gradient">PiStation</h1>
-            <p class="retro-subtitle">A two-host retro gaming and media platform powered by Raspberry Pi 3 and a local AI-driven laptop backend.</p>
+            <p class="retro-subtitle">A two-host retro gaming and media platform powered by Raspberry Pi 3 and a local AI-driven laptop backend.<br><br><em>BSc Computer Science final-year artefact, University of Roehampton 2025–26.</em></p>
         </header>
 
         <section class="retro-panel retro-panel--hero">
             <h2 class="card-title">System Architecture</h2>
-            <p>PiStation runs as <strong>two physical hosts cooperating over the LAN</strong> so each can do what its hardware is suited for:</p>
+            <p>PiStation is built around a two-host split architecture, dividing workloads across a local network to maximize performance where it counts. The Pi 3 is strong at low-latency native emulation but weak at GPU-bound work (modern web stacks, AI inference, video transcoding). The laptop is strong at GPU work but weak at being attached to a TV.</p>
+            
             <div class="grid" style="margin-top: 1.5rem;">
                 <div class="retro-stat-card">
                     <h3>📺 Raspberry Pi 3 (at the TV)</h3>
-                    <p>Quad-core ARM, 1 GB RAM. Acts as the TV-attached client handling native retro emulation, Kodi media playback, and Moonlight thin-client for the dashboard.</p>
+                    <p><strong>Hardware:</strong> Quad-core ARM, 1 GB RAM, no discrete GPU.</p>
+                    <p><strong>Role:</strong> TV-attached client. Handles native retro emulation (RetroArch / lr-mgba), Kodi media playback, and runs the Moonlight thin-client to receive the streamed dashboard.</p>
                 </div>
                 <div class="retro-stat-card">
-                    <h3>💻 Laptop (RTX 3070)</h3>
-                    <p>Handles the analytics backend, MySQL, Jellyfin server, local STT/TTS models, and streams the React dashboard back to the Pi via Sunshine NVENC.</p>
+                    <h3>💻 Laptop (The Backend)</h3>
+                    <p><strong>Hardware:</strong> x86_64, RTX 3070 8 GB VRAM, 16 GB RAM.</p>
+                    <p><strong>Role:</strong> Powerhouse server. Runs the Analytics FastAPI backend, MySQL database, Jellyfin media server, Parakeet STT, Kokoro TTS, local LLMs, and the React 19 PWA dashboard streamed via Sunshine NVENC.</p>
                 </div>
             </div>
         </section>
 
-        <div class="grid">
-            <section class="retro-panel">
-                <h2 class="card-title">Interaction Loops</h2>
-                <ul class="feature-list">
-                    <li><strong>Loop 1 — Native gaming:</strong> EmulationStation launches RetroArch locally on the Pi for low-latency native emulation. Runcommand hooks sync sessions to the laptop's backend.</li>
-                    <li><strong>Loop 2 — Media:</strong> Kodi on the Pi streams transcoded media from the laptop's Jellyfin server.</li>
-                    <li><strong>Loop 3 — Dashboard & AI:</strong> The React 19 PWA is streamed to the Pi over Sunshine. It features a fully local conversational voice assistant powered by Kokoro, Whisper, and Ollama.</li>
-                </ul>
-            </section>
-            
-            <section class="retro-panel">
-                <h2 class="card-title">Homebrew Corpus</h2>
-                <p>To avoid commercial-ROM copyright issues, three GBA homebrew titles were written specifically for this project:</p>
-                <ul class="feature-list">
-                    <li><strong>Red Racer</strong> - Rapid Python prototype to C port.</li>
-                    <li><strong>Mythical</strong> - Python prototype to C++ port.</li>
-                    <li><strong>Bastion Tower Defence</strong> - Python+SDL2 prototype to Butano C++ port.</li>
-                </ul>
-                <div style="text-align: center; margin-top: 2rem;">
-                    <a href="https://github.com/alvi/PiStation" class="retro-button">View on GitHub</a>
+        <section class="retro-panel">
+            <h2 class="card-title">The Three Interaction Loops</h2>
+            <p>PiStation unifies three separate interaction loops into a seamless TV experience:</p>
+            <div class="grid" style="margin-top: 1.5rem;">
+                <div class="retro-stat-card">
+                    <h3>1. Native Gaming</h3>
+                    <p>EmulationStation launches RetroArch natively on the Pi. Game ROMs are read from the laptop via a CIFS mount. <code>runcommand</code> hooks fire before and after play to log session metadata (timestamps, core, duration) to the laptop's FastAPI backend.</p>
                 </div>
-            </section>
+                <div class="retro-stat-card">
+                    <h3>2. Media Streaming</h3>
+                    <p>Jellyfin acts as a system entry in EmulationStation. Selecting it launches Kodi with the Jellyfin add-on. Video transcoding runs on the laptop's RTX 3070, while the Pi handles H.264/HEVC playback.</p>
+                </div>
+                <div class="retro-stat-card">
+                    <h3>3. AI Dashboard</h3>
+                    <p>The React 19 PWA runs locally on the laptop inside a headless Chromium window. Sunshine NVENC captures the window and streams it to the Pi via Moonlight. The Pi forwards controller/keyboard inputs back to the laptop.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="retro-panel">
+            <h2 class="card-title">Frontend & Emulation Engine</h2>
+            <p>The React dashboard serves as a fully client-side PWA. Emulation within the browser is powered by <strong>Nostalgist</strong>, wrapping RetroArch compiled to WebAssembly.</p>
+            
+            <h3 class="card-subtitle">Key Features</h3>
+            <ul class="feature-list">
+                <li><strong>State Management:</strong> Zustand for global state, Dexie (IndexedDB) for all persistent storage (SRAM saves, BIOS files, user preferences).</li>
+                <li><strong>ROM Normalization:</strong> Advanced ZIP extraction using <code>@zip.js</code> and automatic system detection based on file extensions.</li>
+                <li><strong>Saves & BIOS:</strong> Auto-saving every 60 seconds. Drag-and-drop BIOS file validation with MD5 hashing.</li>
+                <li><strong>Netplay:</strong> Serverless WebRTC P2P multiplayer via SDP offer/answer exchanges over data channels.</li>
+                <li><strong>Cross-Origin Isolation:</strong> Relies on <code>SharedArrayBuffer</code> for multi-threaded WASM cores, requiring strict COOP/COEP headers.</li>
+            </ul>
+
+            <h3 class="card-subtitle">Supported Systems</h3>
+            <table>
+                <tr><th>System</th><th>Core</th><th>Extensions</th></tr>
+                <tr><td>NES</td><td>fceumm</td><td>.nes, .zip</td></tr>
+                <tr><td>SNES</td><td>snes9x</td><td>.smc, .sfc, .zip</td></tr>
+                <tr><td>Game Boy (Advance)</td><td>mgba</td><td>.gb, .gbc, .gba, .zip</td></tr>
+                <tr><td>Sega Genesis</td><td>genesis_plus_gx</td><td>.md, .smd, .gen, .bin, .zip</td></tr>
+                <tr><td>PlayStation 1</td><td>pcsx_rearmed</td><td>.chd (requires scph5501.bin)</td></tr>
+            </table>
+        </section>
+
+        <section class="retro-panel">
+            <h2 class="card-title">Privacy-First AI Voice Assistant</h2>
+            <p>A fully local, privacy-first conversational AI feature integrated into the PWA. No data leaves the user's machine.</p>
+
+            <h3 class="card-subtitle">The Voice Pipeline</h3>
+            <div class="code-block">Microphone (Browser) -> Silence Detection -> Whisper STT (:8786) -> Ollama LLM (:11434) -> Kokoro TTS (:8787) -> Audio Playback</div>
+            
+            <ul class="feature-list">
+                <li><strong>Silence Detection:</strong> An AudioContext AnalyserNode monitors frequency to detect when the user stops speaking, automatically sending the audio chunk.</li>
+                <li><strong>Clause-Level Streaming TTS:</strong> As the LLM generates tokens, text is buffered and flushed to the Kokoro TTS engine at sentence and clause boundaries to minimize perceived latency.</li>
+                <li><strong>Vision Capabilities:</strong> Hitting the "Ask AI" button takes a base64 PNG screenshot of the emulator canvas and sends it to a multimodal model (like LLaVA).</li>
+                <li><strong>Walkthrough Mode:</strong> The assistant can automatically capture and analyze a screenshot every 30 seconds to provide real-time game coaching.</li>
+                <li><strong>Personas:</strong> You can select personalities like "Speedrunner", "Historian", or "90s Store Clerk" to alter the system prompt.</li>
+            </ul>
+        </section>
+
+        <section class="retro-panel">
+            <h2 class="card-title">Original Homebrew Games</h2>
+            <p>To ensure a clean, copyright-free test corpus for the university submission, three original Game Boy Advance homebrew games were developed alongside the platform. They follow a Python prototyping to GBA-native C/C++ build pipeline.</p>
+            
+            <div class="grid" style="margin-top: 1.5rem;">
+                <div class="retro-stat-card">
+                    <h3>🏎️ Red Racer</h3>
+                    <p>Written in <strong>C</strong>. Ported from an initial Python prototype.</p>
+                </div>
+                <div class="retro-stat-card">
+                    <h3>⚔️ Mythical</h3>
+                    <p>Written in <strong>C++</strong>. Ported from a Python prototype. Uses all project-author original assets.</p>
+                </div>
+                <div class="retro-stat-card">
+                    <h3>🏰 Bastion Tower Defence</h3>
+                    <p>Written in <strong>Butano (C++)</strong>. Prototyped using Python + SDL2.</p>
+                </div>
+            </div>
+            
+            <p style="margin-top: 1.5rem; color: var(--text-muted);">The Python-to-GBA pipeline required solving for fixed-point math, 240x160 framebuffer constraints, memory management without dynamic allocation, and custom ROM mapping.</p>
+        </section>
+        
+        <section class="retro-panel">
+            <h2 class="card-title">Technology Stack</h2>
+            <table>
+                <tr><th>Domain</th><th>Technologies Used</th></tr>
+                <tr><td><strong>Frontend</strong></td><td>React 19, TypeScript, Vite 7, Tailwind CSS v4, Zustand, Dexie.js, React Router v7</td></tr>
+                <tr><td><strong>Emulation Engine</strong></td><td>Nostalgist (RetroArch WASM), libretro cores</td></tr>
+                <tr><td><strong>Backend Services</strong></td><td>FastAPI (Python 3.12), MySQL 8</td></tr>
+                <tr><td><strong>AI Models (Local)</strong></td><td>Ollama (LLaVA/Qwen), faster-whisper (STT), Kokoro ONNX (TTS)</td></tr>
+                <tr><td><strong>Host Integration</strong></td><td>RetroPie, EmulationStation, Kodi, Jellyfin, Sunshine (NVENC), Moonlight</td></tr>
+            </table>
+        </section>
+
+        <div style="text-align: center; margin-top: 2rem;">
+            <a href="https://github.com/AlviHossain97/RetroWeb" class="retro-button">View Code on GitHub</a>
         </div>
 
         <footer style="text-align: center; margin-top: 4rem; color: var(--text-muted); font-size: 0.9rem;">
-            &copy; 2025-26 PiStation (RetroWeb). BSc Computer Science Artefact.
+            &copy; 2025-26 PiStation (RetroWeb). BSc Computer Science Artefact. Built by Alvi Hossain.
         </footer>
     </div>
 </body>
