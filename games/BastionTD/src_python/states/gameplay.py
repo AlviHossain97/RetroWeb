@@ -46,7 +46,6 @@ class GameplayState(State):
 
         # Controls
         self.fast_forward: bool = False
-        self.fast_forward_held: bool = False
 
         # Sell/upgrade interaction
         self.sell_hold_timer: float = 0.0
@@ -90,7 +89,6 @@ class GameplayState(State):
         self.cursor_y = GRID_H // 2
         self.selected_tower_idx = 0
         self.fast_forward = False
-        self.fast_forward_held = False
         self.sell_hold_timer = 0.0
         self.show_upgrade = False
         self.notification_text = ""
@@ -142,8 +140,7 @@ class GameplayState(State):
         if inp.pressed("select"):
             self.fast_forward = not self.fast_forward
 
-        self.fast_forward_held = inp.held("fast_forward")
-        if self.fast_forward or self.fast_forward_held:
+        if self.fast_forward:
             dt *= 3
 
         # --- Update effects ---
@@ -476,7 +473,7 @@ class GameplayState(State):
                                          self.notification_timer)
 
         # --- Fast forward indicator ---
-        if self.fast_forward or self.fast_forward_held:
+        if self.fast_forward:
             ff_surf = self._font_info.render(">>> 3x SPEED >>>", True, COLOR_GOLD)
             screen.blit(ff_surf, (SCREEN_W - ff_surf.get_width() - 10, 44))
 

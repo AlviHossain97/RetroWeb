@@ -60,8 +60,7 @@ INPUT_MAP = {
     "l":       [pygame.K_q],                         # cycle tower selection left
     "r":       [pygame.K_e],                         # cycle tower selection right
     "start":   [pygame.K_ESCAPE, pygame.K_BACKSPACE], # pause
-    "select":  [pygame.K_TAB],                       # speed toggle
-    "fast_forward": [pygame.K_LSHIFT, pygame.K_RSHIFT], # fast-forward hold
+    "select":  [pygame.K_LSHIFT, pygame.K_RSHIFT],  # speed toggle
     "tower_1": [pygame.K_1, pygame.K_KP1],           # select Arrow Tower
     "tower_2": [pygame.K_2, pygame.K_KP2],           # select Cannon Tower
     "tower_3": [pygame.K_3, pygame.K_KP3],           # select Ice Tower

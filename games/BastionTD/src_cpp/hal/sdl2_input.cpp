@@ -21,9 +21,8 @@ int scancode_to_button(SDL_Scancode sc) {
         case SDL_SCANCODE_E:        return static_cast<int>(InputButton::R);
         case SDL_SCANCODE_ESCAPE:
         case SDL_SCANCODE_BACKSPACE:return static_cast<int>(InputButton::Start);
-        case SDL_SCANCODE_TAB:      return static_cast<int>(InputButton::Select);
         case SDL_SCANCODE_LSHIFT:
-        case SDL_SCANCODE_RSHIFT:   return static_cast<int>(InputButton::FastForward);
+        case SDL_SCANCODE_RSHIFT:   return static_cast<int>(InputButton::Select);
         case SDL_SCANCODE_F:        return static_cast<int>(InputButton::FleetUpgrade);
         default:                    return -1;
     }
@@ -126,9 +125,8 @@ void SDL2Input::advance_frame() {
     cur[static_cast<int>(InputButton::L)]            = is_down(SDL_SCANCODE_Q);
     cur[static_cast<int>(InputButton::R)]            = is_down(SDL_SCANCODE_E);
     cur[static_cast<int>(InputButton::Start)]        = is_down(SDL_SCANCODE_ESCAPE, SDL_SCANCODE_BACKSPACE);
-    cur[static_cast<int>(InputButton::Select)]       = is_down(SDL_SCANCODE_TAB);
-    cur[static_cast<int>(InputButton::FastForward)]  = keys[SDL_SCANCODE_LSHIFT] ||
-                                                       keys[SDL_SCANCODE_RSHIFT];
+    cur[static_cast<int>(InputButton::Select)]       = is_down(SDL_SCANCODE_LSHIFT, SDL_SCANCODE_RSHIFT);
+    cur[static_cast<int>(InputButton::FastForward)]  = false;
     cur[static_cast<int>(InputButton::FleetUpgrade)] = is_down(SDL_SCANCODE_F);
 
     // Gamepad held-state: polls directly so analog stick / triggers also count

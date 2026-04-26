@@ -31,7 +31,7 @@ void InstructionsState::render(App& app, float /*alpha*/) {
     r->draw_text("PREV TOWER  Q         L",    left, y, cfg::colors::WHITE);  y += 8;
     r->draw_text("NEXT TOWER  E         R",    left, y, cfg::colors::WHITE);  y += 8;
     r->draw_text("PAUSE       ESC/BKSP  START",left, y, cfg::colors::WHITE); y += 8;
-    r->draw_text("SPEED/FF    TAB/SHIFT SEL/R",left,y, cfg::colors::WHITE); y += 8;
+    r->draw_text("SPEED       SHIFT     SELECT",left,y, cfg::colors::WHITE); y += 8;
     r->draw_text("FLEET UP    F         L+R",   left, y, cfg::colors::WHITE); y += 11;
 
     r->draw_text("DEFEND THE BASE FROM WAVES",  left, y, cfg::colors::ACCENT); y += 8;
