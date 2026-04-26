@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PiStation | RetroWeb</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="retro-page-shell">
+        <header class="header">
+            <h1 class="retro-heading retro-title-gradient">PiStation</h1>
+            <p class="retro-subtitle">A two-host retro gaming and media platform powered by Raspberry Pi 3 and a local AI-driven laptop backend.</p>
+        </header>
+
+        <section class="retro-panel retro-panel--hero">
+            <h2 class="card-title">System Architecture</h2>
+            <p>PiStation runs as <strong>two physical hosts cooperating over the LAN</strong> so each can do what its hardware is suited for:</p>
+            <div class="grid" style="margin-top: 1.5rem;">
+                <div class="retro-stat-card">
+                    <h3>📺 Raspberry Pi 3 (at the TV)</h3>
+                    <p>Quad-core ARM, 1 GB RAM. Acts as the TV-attached client handling native retro emulation, Kodi media playback, and Moonlight thin-client for the dashboard.</p>
+                </div>
+                <div class="retro-stat-card">
+                    <h3>💻 Laptop (RTX 3070)</h3>
+                    <p>Handles the analytics backend, MySQL, Jellyfin server, local STT/TTS models, and streams the React dashboard back to the Pi via Sunshine NVENC.</p>
+                </div>
+            </div>
+        </section>
+
+        <div class="grid">
+            <section class="retro-panel">
+                <h2 class="card-title">Interaction Loops</h2>
+                <ul class="feature-list">
+                    <li><strong>Loop 1 — Native gaming:</strong> EmulationStation launches RetroArch locally on the Pi for low-latency native emulation. Runcommand hooks sync sessions to the laptop's backend.</li>
+                    <li><strong>Loop 2 — Media:</strong> Kodi on the Pi streams transcoded media from the laptop's Jellyfin server.</li>
+                    <li><strong>Loop 3 — Dashboard & AI:</strong> The React 19 PWA is streamed to the Pi over Sunshine. It features a fully local conversational voice assistant powered by Kokoro, Whisper, and Ollama.</li>
+                </ul>
+            </section>
+            
+            <section class="retro-panel">
+                <h2 class="card-title">Homebrew Corpus</h2>
+                <p>To avoid commercial-ROM copyright issues, three GBA homebrew titles were written specifically for this project:</p>
+                <ul class="feature-list">
+                    <li><strong>Red Racer</strong> - Rapid Python prototype to C port.</li>
+                    <li><strong>Mythical</strong> - Python prototype to C++ port.</li>
+                    <li><strong>Bastion Tower Defence</strong> - Python+SDL2 prototype to Butano C++ port.</li>
+                </ul>
+                <div style="text-align: center; margin-top: 2rem;">
+                    <a href="https://github.com/alvi/PiStation" class="retro-button">View on GitHub</a>
+                </div>
+            </section>
+        </div>
+
+        <footer style="text-align: center; margin-top: 4rem; color: var(--text-muted); font-size: 0.9rem;">
+            &copy; 2025-26 PiStation (RetroWeb). BSc Computer Science Artefact.
+        </footer>
+    </div>
+</body>
+</html>

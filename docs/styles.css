@@ -1,0 +1,178 @@
+:root {
+  --background: #0d0d10;
+  --foreground: #f0f0f5;
+  --primary: #cc0000;
+  --accent-primary: #cc0000;
+  --accent-secondary: #ff4444;
+  --text-primary: #f0f0f5;
+  --text-muted: #b8b8cc;
+  --panel-highlight: linear-gradient(180deg, rgba(36, 36, 51, 0.96) 0%, rgba(13, 13, 16, 0.98) 100%);
+  --panel-hero: linear-gradient(135deg, rgba(36, 36, 51, 0.98) 0%, rgba(26, 26, 36, 0.98) 58%, rgba(13, 13, 16, 0.98) 100%);
+  --border-soft: rgba(255,255,255,0.06);
+  --shadow-md: 0 4px 0 #300606, 0 16px 30px rgba(0, 0, 0, 0.45), 0 0 24px rgba(204, 0, 0, 0.14);
+  --shadow-lg: 0 6px 0 #300606, 0 22px 48px rgba(0, 0, 0, 0.55), 0 0 32px rgba(204, 0, 0, 0.18);
+  --radius: 1rem;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "Ubuntu", sans-serif;
+  margin: 0;
+  line-height: 1.6;
+  background-image: 
+    radial-gradient(circle at top, rgba(204, 0, 0, 0.22) 0%, transparent 38%),
+    linear-gradient(180deg, #16161b 0%, #0d0d10 45%, #060608 100%);
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -2;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 28%),
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0 3px,
+      rgba(255, 255, 255, 0.04) 3px 4px,
+      transparent 4px 7px
+    );
+  opacity: 0.6;
+}
+
+.retro-page-shell {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 3rem 2rem;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 4rem;
+}
+
+.retro-heading {
+  font-size: clamp(2.5rem, 5vw, 5rem);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  text-shadow: 0 0 18px rgba(204, 0, 0, 0.32), 3px 3px 0 #2d0606;
+  margin: 0 0 1rem 0;
+  font-weight: 800;
+}
+
+.retro-title-gradient {
+  background: linear-gradient(90deg, #ff6666 0%, #f0f0f5 28%, rgb(1, 235, 252) 52%, #cc0000 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.retro-subtitle {
+  color: var(--text-muted);
+  max-width: 700px;
+  margin: 0 auto;
+  font-size: 1.2rem;
+}
+
+.retro-panel {
+  background: var(--panel-highlight);
+  border: 3px solid var(--border-soft);
+  box-shadow: var(--shadow-md);
+  border-radius: var(--radius);
+  padding: 2.5rem;
+  margin-bottom: 2rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.retro-panel--hero {
+  background: var(--panel-hero);
+  border-color: rgba(204, 0, 0, 0.34);
+  box-shadow: var(--shadow-lg), 0 0 28px rgba(204, 0, 0, 0.2);
+}
+
+.retro-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.12), transparent 24%),
+    repeating-linear-gradient(to bottom, transparent 0 5px, rgba(255, 255, 255, 0.04) 5px 6px);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 2rem;
+}
+
+.card-title {
+  color: var(--accent-secondary);
+  font-size: 1.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  padding-bottom: 0.5rem;
+}
+
+.retro-stat-card {
+  padding: 1.5rem;
+  border-radius: var(--radius);
+  background: rgba(0,0,0,0.2);
+  border: 1px solid var(--border-soft);
+}
+
+.retro-stat-card h3 {
+  margin-top: 0;
+  color: #fff;
+  font-size: 1.1rem;
+}
+
+.feature-list {
+  padding-left: 1.5rem;
+}
+
+.feature-list li {
+  margin-bottom: 1rem;
+}
+
+.feature-list strong {
+  color: #fff;
+}
+
+.retro-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem 2rem;
+  background: linear-gradient(180deg, #2c2c3a 0%, #15151d 100%);
+  border: 3px solid var(--accent-primary);
+  color: white;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.9rem;
+  font-weight: 700;
+  border-radius: var(--radius);
+  box-shadow: 0 8px 0 #420808, 0 0 24px rgba(204, 0, 0, 0.24);
+  transition: all 0.2s;
+}
+
+.retro-button:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent-secondary);
+  box-shadow: 0 10px 0 #420808, 0 0 32px rgba(255, 68, 68, 0.2), 0 0 54px rgba(204, 0, 0, 0.22);
+}
+
+.retro-button:active {
+  transform: translateY(2px);
+  box-shadow: 0 4px 0 #420808, 0 0 20px rgba(204, 0, 0, 0.2);
+}
