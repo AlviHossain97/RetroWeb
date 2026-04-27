@@ -32,3 +32,12 @@ code{background:rgba(0,0,0,.45);padding:.15em .35em;border-radius:4px;color:#ff6
 .btn:active{transform:translateY(2px);box-shadow:0 4px 0 #420808}
 footer{text-align:center;margin-top:3rem;padding:2rem 0;color:var(--dim);font-size:.85rem;border-top:1px solid var(--border)}
 @media(max-width:600px){.shell{padding:1.5rem 1rem}.panel{padding:1.5rem 1.2rem}h2.title{font-size:1.15rem}.grid{grid-template-columns:1fr}}
+
+/* ===== Static synthwave R34 backdrop (pure CSS, no JS) ===== */
+.synthwave-bg{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;background:linear-gradient(180deg,#0d0021 0%,#2c0639 22%,#5a0c5e 42%,#a4226a 54%,#c63968 56%,#1a052e 57%,#0a0118 100%)}
+.synthwave-bg::after{content:"";position:absolute;inset:0;background:rgba(0,0,12,.55)}
+.synth-sun{position:absolute;top:32%;left:50%;width:280px;height:280px;border-radius:50%;transform:translate(-50%,-50%);background:radial-gradient(circle,#ffe066 0%,#ff8844 55%,#cc1166 100%);box-shadow:0 0 90px rgba(255,180,80,.45),0 0 160px rgba(255,80,160,.35);overflow:hidden}
+.synth-sun::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(180deg,transparent 0 28px,rgba(0,0,30,.85) 28px 34px);border-radius:50%}
+.synth-grid{position:absolute;left:-50%;right:-50%;bottom:-10%;height:60%;background-image:repeating-linear-gradient(0deg,transparent 0 22px,rgba(255,80,180,.55) 22px 23px),repeating-linear-gradient(90deg,transparent 0 30px,rgba(255,80,180,.45) 30px 31px);transform:perspective(160px) rotateX(54deg);transform-origin:bottom;opacity:.7;mask-image:linear-gradient(180deg,transparent 0%,#000 25%,#000 100%)}
+.synth-car{position:absolute;bottom:14%;left:50%;width:min(420px,46vw);height:auto;transform:translateX(-50%);filter:drop-shadow(0 10px 22px rgba(255,100,150,.55)) drop-shadow(0 0 18px rgba(40,104,232,.35));z-index:2}
+.shell{position:relative;z-index:1}
