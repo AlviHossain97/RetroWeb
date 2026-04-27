@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PiStation is a two-host retro gaming, media, analytics, and local AI platform built around a Raspberry Pi 3 and an RTX 3070 laptop.">
+  <title>PiStation | Two-Host Retro Gaming and AI Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=dashboard-r34-20260427">
+</head>
+<body>
+  <div class="synthwave-bg" aria-hidden="true">
+    <div class="synth-sun"></div>
+    <div class="synth-mountain synth-mountain--left"></div>
+    <div class="synth-mountain synth-mountain--center"></div>
+    <div class="synth-mountain synth-mountain--right"></div>
+    <div class="synth-palm synth-palm--left"></div>
+    <div class="synth-palm synth-palm--right"></div>
+    <div class="synth-grid"></div>
+    <div class="synth-road"></div>
+    <svg class="synth-car" viewBox="0 0 440 240" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <defs>
+        <linearGradient id="carBody" x1="0" x2="0" y1="36" y2="238" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stop-color="#356fed"/>
+          <stop offset="0.48" stop-color="#2868e8"/>
+          <stop offset="0.74" stop-color="#33317a"/>
+          <stop offset="1" stop-color="#120817"/>
+        </linearGradient>
+        <linearGradient id="glass" x1="108" x2="332" y1="38" y2="70" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stop-color="#101420"/>
+          <stop offset="0.5" stop-color="#050711"/>
+          <stop offset="1" stop-color="#121827"/>
+        </linearGradient>
+        <radialGradient id="redTail" cx="35%" cy="30%" r="80%">
+          <stop offset="0" stop-color="#ffb2a5"/>
+          <stop offset="0.28" stop-color="#ff4a3e"/>
+          <stop offset="0.68" stop-color="#bd1818"/>
+          <stop offset="1" stop-color="#570505"/>
+        </radialGradient>
+        <radialGradient id="amberTail" cx="35%" cy="30%" r="80%">
+          <stop offset="0" stop-color="#ffe8a4"/>
+          <stop offset="0.35" stop-color="#f4b33f"/>
+          <stop offset="1" stop-color="#7a4a09"/>
+        </radialGradient>
+      </defs>
+      <path d="M38 2H402L406 12H34Z" fill="#303044" stroke="#0b0b16" stroke-width="3"/>
+      <path d="M34 2H406" stroke="#5e5e70" stroke-width="2" opacity="0.45"/>
+      <path d="M31 0H44V40H31Z M396 0H409V40H396Z" fill="#171727" stroke="#080813" stroke-width="3"/>
+      <path d="M107 13H119L118 48H109Z M321 13H333L331 48H322Z" fill="#2f3042" stroke="#0d0d18" stroke-width="3"/>
+      <path d="M34 200L28 162V124L34 90L48 70L68 56L92 46L102 36H338L348 46L372 56L392 70L406 90L412 124V162L406 200L400 238H40Z" fill="url(#carBody)" stroke="#10101c" stroke-width="4"/>
+      <path d="M108 48L120 38H320L332 48L324 70H116Z" fill="url(#glass)" stroke="#10101c" stroke-width="4"/>
+      <path d="M108 50H332" stroke="#34384a" stroke-width="3" opacity="0.6"/>
+      <path d="M60 84H380" stroke="#111320" stroke-width="2.6"/>
+      <circle cx="220" cy="111" r="10" fill="#9c9ca8" stroke="#10101c" stroke-width="3"/>
+      <path d="M210 111H230" stroke="#10101c" stroke-width="3"/>
+      <circle cx="70" cy="111" r="24" fill="#090914"/>
+      <circle cx="70" cy="111" r="18" fill="url(#redTail)" stroke="#11111d" stroke-width="3"/>
+      <ellipse cx="64" cy="104" rx="8" ry="5" fill="#fff" opacity="0.24"/>
+      <circle cx="115" cy="111" r="19" fill="#090914"/>
+      <circle cx="115" cy="111" r="14" fill="url(#amberTail)" stroke="#11111d" stroke-width="3"/>
+      <ellipse cx="110" cy="106" rx="6" ry="4" fill="#fff" opacity="0.28"/>
+      <circle cx="325" cy="111" r="19" fill="#090914"/>
+      <circle cx="325" cy="111" r="14" fill="url(#amberTail)" stroke="#11111d" stroke-width="3"/>
+      <ellipse cx="320" cy="106" rx="6" ry="4" fill="#fff" opacity="0.28"/>
+      <circle cx="370" cy="111" r="24" fill="#090914"/>
+      <circle cx="370" cy="111" r="18" fill="url(#redTail)" stroke="#11111d" stroke-width="3"/>
+      <ellipse cx="363" cy="104" rx="8" ry="5" fill="#fff" opacity="0.24"/>
+      <text x="220" y="146" text-anchor="middle" fill="#c4c4d7" font-family="RoSpritendo, Ubuntu, Arial, sans-serif" font-size="15" font-weight="700">SKYLINE</text>
+      <text x="375" y="96" text-anchor="end" fill="#ee2d21" font-family="RoSpritendo, Ubuntu, Arial, sans-serif" font-size="12" font-weight="700">GT-R</text>
+      <text x="374" y="143" text-anchor="end" fill="#c7bad2" font-family="RoSpritendo, Ubuntu, Arial, sans-serif" font-size="10">V-spec</text>
+      <path d="M36 190L52 176H388L404 190L400 238H40Z" fill="#1b1025" opacity="0.68"/>
+      <path d="M56 182H384" stroke="#3b3046" stroke-width="2"/>
+      <rect x="178" y="192" width="84" height="24" rx="4" fill="#c6b7ce" stroke="#5c4b66" stroke-width="3"/>
+      <rect x="188" y="199" width="64" height="11" fill="#e5ddea" opacity="0.55"/>
+      <rect x="278" y="202" width="58" height="8" rx="2" fill="#c5293c"/>
+      <circle cx="153" cy="226" r="21" fill="#7b7188" opacity="0.95"/>
+      <circle cx="153" cy="226" r="16" fill="#16101d" stroke="#44394b" stroke-width="2"/>
+      <ellipse cx="150" cy="219" rx="5" ry="3" fill="#fff" opacity="0.1"/>
+      <path d="M36 238H404L412 252H28Z" fill="#080812" opacity="0.6"/>
+    </svg>
+    <div class="arcade-ghost" aria-hidden="true">
+      <span></span><span></span>
+    </div>
+  </div>
+
+  <div class="site-frame">
+    <header class="topbar" aria-label="Site navigation">
+      <a class="brand" href="#top" aria-label="PiStation home">
+        <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
+        <span>PISTATION</span>
+      </a>
+      <nav class="nav" aria-label="Page sections">
+        <a href="#architecture">Architecture</a>
+        <a href="#loops">Loops</a>
+        <a href="#dashboard">Dashboard</a>
+        <a href="#ai">AI</a>
+        <a href="#games">Games</a>
+        <a href="#setup">Setup</a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-grid">
+          <div class="hero-copy">
+            <span class="kicker">
+              <span class="pixel-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
+              BSc Computer Science artefact, 2025-26
+            </span>
+            <h1 id="hero-title"><span class="title-gradient">PiStation</span></h1>
+            <p class="hero-lede">
+              A two-host retro gaming and media platform where a Raspberry Pi 3 drives the TV experience while an RTX 3070 laptop runs analytics, Jellyfin, voice services, and the React dashboard streamed back through Sunshine and Moonlight.
+            </p>
+            <div class="hero-actions">
+              <a class="button" href="https://github.com/AlviHossain97/RetroWeb" target="_blank" rel="noopener">View repository</a>
+              <a class="button button--secondary" href="#architecture">Read the system design</a>
+            </div>
+          </div>
+
+          <aside class="status-panel" aria-label="Project status summary">
+            <div class="status-header">
+              <h2 class="status-title">System status</h2>
+              <span class="chip"><span class="status-light" aria-hidden="true"></span> Operational</span>
+            </div>
+            <div class="metric-grid">
+              <div class="metric-card">
+                <p class="metric-label">Physical hosts</p>
+                <p class="metric-value">2</p>
+                <p class="metric-note">Pi 3 client + laptop server</p>
+              </div>
+              <div class="metric-card">
+                <p class="metric-label">Interaction loops</p>
+                <p class="metric-value">3</p>
+                <p class="metric-note">Gaming, media, AI dashboard</p>
+              </div>
+              <div class="metric-card">
+                <p class="metric-label">Homebrew ROMs</p>
+                <p class="metric-value">3</p>
+                <p class="metric-note">Original GBA artefacts</p>
+              </div>
+              <div class="metric-card">
+                <p class="metric-label">Laptop memory</p>
+                <p class="metric-value">64 GB</p>
+                <p class="metric-note">DDR4-3200, CL22</p>
+              </div>
+            </div>
+          </aside>
+        </div>
+
+        <div class="hero-strip" aria-label="Core technology highlights">
+          <div class="stat-card">
+            <p class="stat-label">Streaming bridge</p>
+            <p class="stat-value">Sunshine -> Moonlight</p>
+          </div>
+          <div class="stat-card">
+            <p class="stat-label">Dashboard</p>
+            <p class="stat-value">React 19 PWA</p>
+          </div>
+          <div class="stat-card">
+            <p class="stat-label">Backend</p>
+            <p class="stat-value">FastAPI + MySQL</p>
+          </div>
+          <div class="stat-card">
+            <p class="stat-label">Voice cascade</p>
+            <p class="stat-value">Parakeet + Kokoro</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="architecture" class="panel panel--hero" aria-labelledby="architecture-title">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Architecture</p>
+            <h2 id="architecture-title">The artefact is a LAN-cooperating Pi-and-laptop system.</h2>
+          </div>
+          <p>
+            PiStation separates the parts of the experience by hardware suitability. The Pi stays at the TV and handles low-latency console-style interaction. The laptop handles anything GPU-bound, storage-heavy, or AI-heavy, then streams the finished interface to the Pi.
+          </p>
+        </div>
+
+        <div class="host-grid">
+          <article class="card">
+            <h3>Raspberry Pi 3 client</h3>
+            <p><strong>Hardware:</strong> quad-core ARM Cortex-A53 at 1.2 GHz, 1 GB LPDDR2, VideoCore IV GPU, HDMI to TV, 8BitDo SN30 Pro controller.</p>
+            <p><strong>Role:</strong> EmulationStation launcher, RetroArch native emulation, Kodi/Jellyfin playback, and Moonlight thin client.</p>
+            <ul class="tag-list">
+              <li>RetroPie</li>
+              <li>RetroArch</li>
+              <li>Kodi</li>
+              <li>Moonlight</li>
+              <li>CIFS mount</li>
+            </ul>
+          </article>
+          <article class="card">
+            <h3>HP OMEN laptop server</h3>
+            <p><strong>Hardware:</strong> x86_64, RTX 3070 Laptop GPU with 8 GB GDDR6 VRAM, 64 GB DDR4-3200 RAM at 3200 MT/s, CL22, upgraded from 16 GB DDR4.</p>
+            <p><strong>Role:</strong> analytics backend, MySQL, Jellyfin, local STT/TTS, NVIDIA LLM calls, React dashboard, Sunshine NVENC capture.</p>
+            <ul class="tag-list">
+              <li>FastAPI</li>
+              <li>MySQL 8</li>
+              <li>Jellyfin</li>
+              <li>Parakeet</li>
+              <li>Kokoro</li>
+              <li>Sunshine</li>
+            </ul>
+          </article>
+        </div>
+
+        <pre class="codeblock" aria-label="High-level data flow">Pi EmulationStation
+  -> RetroArch native game launch
+  -> runcommand hooks POST session metadata
+  -> FastAPI on laptop
+  -> MySQL session row
+  -> React dashboard reads analytics
+  -> Sunshine NVENC captures dashboard
+  -> Moonlight displays it back on the Pi-connected TV</pre>
+      </section>
+
+      <section id="loops" class="panel" aria-labelledby="loops-title">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Interaction model</p>
+            <h2 id="loops-title">Three independent loops, one TV-facing experience.</h2>
+          </div>
+          <p>
+            The project is not only a web app. It is a physical system with three routes through the same user-facing launcher: native games, media playback, and the streamed dashboard.
+          </p>
+        </div>
+
+        <div class="flow">
+          <article class="flow-step">
+            <span>1</span>
+            <div>
+              <h3>Native gaming loop</h3>
+              <p>EmulationStation launches RetroArch directly on the Pi. The original GBA games run through <code>lr-mgba</code>. ROM storage is centralised on the laptop using Samba/CIFS, while gameplay stays native on the Pi for low input latency.</p>
+            </div>
+          </article>
+          <article class="flow-step">
+            <span>2</span>
+            <div>
+              <h3>Session capture loop</h3>
+              <p>RetroPie's <code>runcommand-onstart.sh</code> and <code>runcommand-onend.sh</code> hooks call <code>session_logger.py</code>, which opens and closes session rows in MySQL through FastAPI. The dashboard's playtime, recently played, and system stats come from this path.</p>
+            </div>
+          </article>
+          <article class="flow-step">
+            <span>3</span>
+            <div>
+              <h3>Dashboard and media loop</h3>
+              <p>Kodi connects to laptop-hosted Jellyfin for media. The React dashboard runs fullscreen on the laptop and is streamed to the Pi through Sunshine and Moonlight, so the Pi only decodes video instead of rendering a modern PWA.</p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section id="dashboard" class="panel panel--hero" aria-labelledby="dashboard-title">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Dashboard</p>
+            <h2 id="dashboard-title">A React 19 control surface styled like a retro cabinet HUD.</h2>
+          </div>
+          <p>
+            This page borrows the dashboard's dark surface stack, scanlines, red/cyan glow, stat cards, and progress meters. The real dashboard is a Vite 7 + Tailwind v4 PWA with gamepad-friendly navigation and kiosk-ready display.
+          </p>
+        </div>
+
+        <div class="content-grid">
+          <div class="card-grid">
+            <article class="card">
+              <h3>Analytics core</h3>
+              <p>Total playtime, sessions, recently played games, top games, system share, and live "now playing" state are served from FastAPI and MySQL.</p>
+              <div class="meter" aria-hidden="true"><span style="width: 92%"></span></div>
+            </article>
+            <article class="card">
+              <h3>Gamepad tooling</h3>
+              <p>Controller diagnostics and keyboard rebinding are included so the TV setup can be tested from the sofa without falling back to desktop-only controls.</p>
+              <div class="meter" aria-hidden="true"><span style="width: 84%"></span></div>
+            </article>
+            <article class="card">
+              <h3>Achievement layer</h3>
+              <p>Seeded achievements track progress and give the dashboard a persistent sense of progression beyond raw session history.</p>
+              <div class="meter" aria-hidden="true"><span style="width: 78%"></span></div>
+            </article>
+          </div>
+
+          <aside class="mini-panel">
+            <h3>Runtime surface</h3>
+            <p><strong>Frontend:</strong> React 19, TypeScript, Vite 7, Tailwind CSS v4, shadcn/ui, Zustand.</p>
+            <p><strong>Persistence:</strong> MySQL for Pi session data, Dexie/IndexedDB for browser-local library and emulator support data.</p>
+            <p><strong>Streaming:</strong> Sunshine captures the laptop window and sends H.264/HEVC to Moonlight on the Pi.</p>
+          </aside>
+        </div>
+      </section>
+
+      <section id="ai" class="panel" aria-labelledby="ai-title">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Voice and AI</p>
+            <h2 id="ai-title">Local audio, streamed responses, and model routing.</h2>
+          </div>
+          <p>
+            The assistant is designed around privacy and low-latency interaction. Browser audio is chunked locally, speech services run on the laptop, and LLM completions are routed through NVIDIA's API with optional grounding.
+          </p>
+        </div>
+
+        <pre class="codeblock" aria-label="Voice pipeline">Browser mic AudioWorklet
+  -> PCM16 16 kHz mono chunks
+  -> FastAPI voice WebSocket
+  -> Parakeet TDT 1.1B STT on CUDA (:8786)
+  -> NVIDIA LLM completion stream
+  -> Kokoro ONNX TTS (:8787)
+  -> PCM16 22.05 kHz playback in browser</pre>
+
+        <div class="service-grid">
+          <article class="card">
+            <h3>Voice capture</h3>
+            <p>The browser worklet downsamples microphone input, sends 80 ms frames, and suppresses voice activity detection while TTS is playing so the assistant does not hear itself.</p>
+            <ul class="tag-list">
+              <li>AudioWorklet</li>
+              <li>PCM16</li>
+              <li>VAD</li>
+              <li>WebSocket</li>
+            </ul>
+          </article>
+          <article class="card">
+            <h3>Activation modes</h3>
+            <p>Three modes support different rooms and microphones: auto near-field, headset, and push-to-talk using the <code>T</code> key.</p>
+            <ul class="tag-list">
+              <li>auto_near_field</li>
+              <li>headset</li>
+              <li>push_to_talk</li>
+            </ul>
+          </article>
+          <article class="card">
+            <h3>Model picker</h3>
+            <p>The dashboard exposes multiple NVIDIA-hosted LLMs, including Step, DeepSeek, Kimi, Mistral, Gemma, GLM, and MiniMax options.</p>
+            <ul class="tag-list">
+              <li>NVIDIA API</li>
+              <li>Grounding</li>
+              <li>Streaming</li>
+            </ul>
+          </article>
+          <article class="card">
+            <h3>Optional extensions</h3>
+            <p>ImageRouter support and Tavily/SearXNG grounding let the assistant answer visual and web-backed questions when configured.</p>
+            <ul class="tag-list">
+              <li>Image generation</li>
+              <li>Web search</li>
+              <li>Context service</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section id="backend" class="panel panel--hero" aria-labelledby="backend-title">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Backend and data</p>
+            <h2 id="backend-title">FastAPI ties Pi telemetry, dashboard data, and AI services together.</h2>
+          </div>
+          <p>
+            The laptop backend is the system's ingestion and orchestration layer. It accepts Pi session posts, serves dashboard views, handles AI context assembly, and proxies voice service calls.
+          </p>
+        </div>
+
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Layer</th>
+                <th>Technology</th>
+                <th>Responsibility</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>API</strong></td>
+                <td>FastAPI, Python 3.12, Uvicorn</td>
+                <td>Sessions, games, systems, devices, achievements, health, AI, image generation, and voice WebSocket routes.</td>
+              </tr>
+              <tr>
+                <td><strong>Database</strong></td>
+                <td>MySQL 8, PyMySQL, DBUtils pool</td>
+                <td>Stores session rows, game metadata, devices, achievements, controller profiles, and AI conversation records.</td>
+              </tr>
+              <tr>
+                <td><strong>Orchestrator</strong></td>
+                <td><code>start.mjs</code></td>
+                <td>Starts XAMPP, FastAPI, Kokoro, Parakeet, Vite, and Sunshine in the order the laptop stack expects.</td>
+              </tr>
+              <tr>
+                <td><strong>Media</strong></td>
+                <td>Jellyfin server + Kodi add-on</td>
+                <td>Laptop hosts the media library and transcodes when needed; the Pi only decodes playback video.</td>
+              </tr>
+              <tr>
+                <td><strong>Streaming</strong></td>
+                <td>Sunshine NVENC + Moonlight</td>
+                <td>Converts the laptop dashboard into a low-latency TV interface without forcing the Pi to render React.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="games" class="panel" aria-labelledby="games-title">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Original homebrew corpus</p>
+            <h2 id="games-title">Three IP-safe GBA games built for the artefact.</h2>
+          </div>
+          <p>
+            The project avoids commercial ROM distribution by shipping original Game Boy Advance homebrew. Each game started as a Python prototype, then became a native C or C++ GBA build that runs on the Pi through <code>lr-mgba</code>.
+          </p>
+        </div>
+
+        <div class="game-grid">
+          <article class="card">
+            <h3>Red Racer</h3>
+            <p><strong>GBA language:</strong> C.</p>
+            <p>A traffic-dodging racer based on rapid Python prototyping, then rewritten for devkitARM with fixed-point logic and sprite/OAM constraints.</p>
+            <ul class="tag-list">
+              <li>Python prototype</li>
+              <li>C port</li>
+              <li>GBA ROM</li>
+            </ul>
+          </article>
+          <article class="card">
+            <h3>Mythical</h3>
+            <p><strong>GBA language:</strong> C++.</p>
+            <p>A top-down adventure with project-original assets. It demonstrates the full prototype-to-GBA rewrite without third-party visual assets.</p>
+            <ul class="tag-list">
+              <li>Original assets</li>
+              <li>C++ port</li>
+              <li>GBA ROM</li>
+            </ul>
+          </article>
+          <article class="card">
+            <h3>Bastion Tower Defence</h3>
+            <p><strong>GBA language:</strong> C++ with Butano.</p>
+            <p>A tower defence game that moved from Python + SDL2 into a Butano C++23 GBA build with static pools and hardware-aware rendering.</p>
+            <ul class="tag-list">
+              <li>Butano</li>
+              <li>CMake simulator</li>
+              <li>GBA ROM</li>
+            </ul>
+          </article>
+        </div>
+
+        <div class="callout">
+          The Python prototypes are design tools, not transpilation sources. The GBA versions are separate native implementations shaped around the ARM7TDMI CPU, 240x160 display, palette/tile memory, and no-allocation hot paths.
+        </div>
+      </section>
+
+      <section id="setup" class="panel panel--hero" aria-labelledby="setup-title">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Setup and repository map</p>
+            <h2 id="setup-title">One repo, two physical deployment targets.</h2>
+          </div>
+          <p>
+            The laptop component has the heavier setup because it runs the dashboard, backend, AI services, database, media server, and streamer. The Pi component is deployment-focused: RetroPie, Kodi, Moonlight, controller pairing, and hook scripts.
+          </p>
+        </div>
+
+        <div class="repo-layout">
+          <div>
+            <pre class="codeblock" aria-label="Quick start commands">git clone https://github.com/AlviHossain97/RetroWeb.git PiStation
+cd PiStation
+npm install
+python3 -m pip install -r backend/requirements.txt
+cp backend/.env.example backend/.env
+npm start</pre>
+          </div>
+          <aside class="mini-panel">
+            <h3>Repository landmarks</h3>
+            <p><code>README.md</code> is the system overview.</p>
+            <p><code>laptop/README.md</code> covers FastAPI, React, voice, services, and hardware requirements.</p>
+            <p><code>pi/README.md</code> covers RetroPie, Kodi, Moonlight, and runcommand hooks.</p>
+            <p><code>games/README.md</code> explains the original GBA homebrew pipeline.</p>
+          </aside>
+        </div>
+
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Artefact area</th>
+                <th>Status</th>
+                <th>Evidence in repo</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>RetroPie native gaming with session capture</td>
+                <td>Operational</td>
+                <td><a href="https://github.com/AlviHossain97/RetroWeb/tree/main/pi" target="_blank" rel="noopener">pi/</a> and FastAPI session routes</td>
+              </tr>
+              <tr>
+                <td>Kodi with laptop-hosted Jellyfin</td>
+                <td>Operational</td>
+                <td><a href="https://github.com/AlviHossain97/RetroWeb/blob/main/pi/README.md" target="_blank" rel="noopener">pi/README.md</a></td>
+              </tr>
+              <tr>
+                <td>Sunshine-to-Moonlight dashboard delivery</td>
+                <td>Operational</td>
+                <td><a href="https://github.com/AlviHossain97/RetroWeb/blob/main/laptop/README.md" target="_blank" rel="noopener">laptop/README.md</a></td>
+              </tr>
+              <tr>
+                <td>Original GBA homebrew corpus</td>
+                <td>Built and runnable on Pi</td>
+                <td><a href="https://github.com/AlviHossain97/RetroWeb/tree/main/games" target="_blank" rel="noopener">games/</a></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>PiStation / RetroWeb. Built by Alvi Hossain for the University of Roehampton BSc Computer Science final-year artefact, 2025-26.</p>
+    </footer>
+  </div>
+</body>
+</html>
