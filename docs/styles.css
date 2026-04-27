@@ -1,6 +1,6 @@
 @font-face {
   font-family: "RoSpritendo";
-  src: url("fonts/RoSpritendo.otf") format("opentype");
+  src: url("https://raw.githubusercontent.com/AlviHossain97/RetroWeb/main/public/fonts/RoSpritendo.otf") format("opentype");
   font-weight: 600;
   font-style: normal;
   font-display: swap;
