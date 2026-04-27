@@ -82,7 +82,7 @@
                 <div class="card">
                     <h3>📺 Raspberry Pi 3 (The Client)</h3>
                     <p><strong>Specs:</strong> Quad-core ARM Cortex-A53 @ 1.2 GHz, 1 GB LPDDR2, VideoCore IV GPU.</p>
-                    <p><strong>Role:</strong> Attached directly to the TV. Handles low-latency native retro emulation via RetroArch (`lr-mgba`, `lr-snes9x`), H.264/HEVC hardware decoding for Kodi media playback, and runs Moonlight as a thin client to receive the streamed AI dashboard.</p>
+                    <p><strong>Role:</strong> Attached directly to the TV. Handles low-latency native retro emulation via RetroArch (<code>lr-mgba</code>, <code>lr-snes9x</code>), H.264/HEVC hardware decoding for Kodi media playback, and runs Moonlight as a thin client to receive the streamed AI dashboard.</p>
                 </div>
                 <div class="card">
                     <h3>💻 Laptop (The Powerhouse Server)</h3>
@@ -99,11 +99,11 @@
             <div class="grid">
                 <div class="card">
                     <h3>1. Native Gaming</h3>
-                    <p>EmulationStation launches RetroArch natively. Game ROMs do not live on the Pi; they are streamed from the laptop via a <strong>Samba/CIFS mount</strong> (`/mnt/laptop`). `runcommand` hooks (`onstart` and `onend`) execute `session_logger.py` to record gameplay sessions (timestamps, duration, core) to the laptop's MySQL database.</p>
+                    <p>EmulationStation launches RetroArch natively. Game ROMs do not live on the Pi; they are streamed from the laptop via a <strong>Samba/CIFS mount</strong> (<code>/mnt/laptop</code>). <code>runcommand</code> hooks (<code>onstart</code> and <code>onend</code>) execute <code>session_logger.py</code> to record gameplay sessions (timestamps, duration, core) to the laptop's MySQL database.</p>
                 </div>
                 <div class="card">
                     <h3>2. Media Playback</h3>
-                    <p>Jellyfin acts as a dedicated system entry in EmulationStation. Running `Jellyfin.sh` spawns a new X server on VT8 and launches Kodi with the Jellyfin-for-Kodi add-on. Video transcoding happens on the laptop's RTX 3070, while the Pi handles H.264/HEVC decode.</p>
+                    <p>Jellyfin acts as a dedicated system entry in EmulationStation. Running <code>Jellyfin.sh</code> spawns a new X server on VT8 and launches Kodi with the Jellyfin-for-Kodi add-on. Video transcoding happens on the laptop's RTX 3070, while the Pi handles H.264/HEVC decode.</p>
                 </div>
                 <div class="card">
                     <h3>3. AI Dashboard</h3>
@@ -120,8 +120,8 @@
             <ul class="fl">
                 <li><strong>State Management & Storage:</strong> Zustand for global app state. Dexie.js (IndexedDB) for browser-local persistent storage.</li>
                 <li><strong>Browser Emulation Route:</strong> While production gaming runs on the Pi, the dashboard includes an offline-capable browser emulator powered by <strong>Nostalgist</strong> (RetroArch WASM).</li>
-                <li><strong>ROM Normalization:</strong> Advanced ZIP extraction using `@zip.js` for dropping ROMs directly into the browser.</li>
-                <li><strong>Cross-Origin Isolation:</strong> Strict COOP/COEP headers are enforced via Vite to enable `SharedArrayBuffer` for multi-threaded WASM libretro cores.</li>
+                <li><strong>ROM Normalization:</strong> Advanced ZIP extraction using <code>@zip.js</code> for dropping ROMs directly into the browser.</li>
+                <li><strong>Cross-Origin Isolation:</strong> Strict COOP/COEP headers are enforced via Vite to enable <code>SharedArrayBuffer</code> for multi-threaded WASM libretro cores.</li>
             </ul>
         </section>
 
