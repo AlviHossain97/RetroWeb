@@ -67,3 +67,10 @@ games/BastionTD/tools/
 games/BastionTD/src_cpp/tools
 games/BastionTD/src_cpp/third_party/
 games/BastionTD/assets.zip
+
+# AI / Copilot agent files (scrubbed from history 2026-04-25 — don't reintroduce)
+AGENTS.md
+.claude/
+.claude-flow/
+.github/agents.md
+.github/copilot-instructions.md
