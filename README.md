@@ -23,7 +23,7 @@ can do what its hardware is suited for:
 | Host | Hardware | Role |
 |---|---|---|
 | **Pi 3** | quad-core ARM, 1 GB RAM, no discrete GPU | TV-attached client. Native retro emulation, Kodi media playback, and Moonlight thin-client for the dashboard. |
-| **Laptop** | x86_64, RTX 3070 Laptop 8 GB VRAM, 16 GB RAM | Analytics backend, MySQL, Jellyfin server, local STT/TTS, and the React dashboard streamed to the Pi via Sunshine NVENC. |
+| **Laptop** | x86_64, RTX 3070 Laptop GPU with 8 GB GDDR6 VRAM, 64 GB DDR4-3200 RAM (3200 MT/s, CL22; upgraded from 16 GB DDR4) | Analytics backend, MySQL, Jellyfin server, local STT/TTS, and the React dashboard streamed to the Pi via Sunshine NVENC. |
 
 Three independent **interaction loops** run on top of these two hosts:
 

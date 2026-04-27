@@ -485,7 +485,7 @@ metadata; the laptop only ingests. To diagnose from the laptop side:
 - SSD (Kokoro ONNX + Parakeet 1.1B = ~4 GB cached)
 - Wired Ethernet or 5 GHz Wi-Fi (for Sunshine streaming)
 
-**Tested on**: HP OMEN Laptop 15 · RTX 3070 Laptop 8 GB · Zorin OS 18.1 · driver 580.126.09.
+**Tested on**: HP OMEN Laptop 15 · RTX 3070 Laptop GPU with 8 GB GDDR6 VRAM · 64 GB DDR4-3200 RAM (3200 MT/s, CL22; upgraded from 16 GB DDR4) · Zorin OS 18.1 · driver 580.126.09.
 
 ---
 
